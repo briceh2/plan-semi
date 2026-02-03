@@ -30,31 +30,8 @@
     .phase { background: #ecfeff; color: #155e75; }
     .warn { background: #fff7ed; color: #9a3412; }
     .ok { background: #ecfdf5; color: #065f46; }
-    details summary {
-      cursor: pointer; font-weight: 700; font-size: 14px; list-style: none;
-      display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    }
-    details summary::-webkit-details-marker { display: none; }
-    .meta { font-size: 12px; color: #444; margin-top: 6px; line-height: 1.35; }
-    .session {
-      border-top: 1px dashed #e5e7eb; padding-top: 10px; margin-top: 10px;
-    }
-    .s-title { font-weight: 700; margin: 0 0 6px 0; }
-    label.cb { display: flex; align-items: center; gap: 10px; }
-    input[type="checkbox"] { width: 22px; height: 22px; }
-    textarea, input[type="number"] {
-      width: 100%; border: 1px solid #d1d5db; border-radius: 10px; padding: 10px;
-      font-size: 14px; box-sizing: border-box; background: #fff;
-    }
-    textarea { min-height: 64px; resize: vertical; }
-    .grid3 { display: grid; grid-template-columns: 1fr; gap: 10px; }
-    @media (min-width: 720px) { .grid3 { grid-template-columns: 1fr 2fr 2fr; } }
-    .btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
-    button {
-      border: 1px solid #d1d5db; background: #fff; border-radius: 10px;
-      padding: 10px 12px; font-size: 14px;
-    }
-    button.primary { background: #111827; color: #fff; border-color: #111827; }
+    .kpi { font-size: 12px; color: #111; margin-top: 8px; line-height: 1.35; }
+    .kpi strong { font-size: 13px; }
 
     /* Tabs */
     .tabs { display: flex; gap: 8px; margin-top: 10px; }
@@ -65,16 +42,40 @@
     .tab.active { background: #111827; color: #fff; border-color: #111827; }
     .hidden { display:none; }
 
-    /* Stats */
+    details summary {
+      cursor: pointer; font-weight: 800; font-size: 14px; list-style: none;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    details summary::-webkit-details-marker { display: none; }
+    .meta { font-size: 12px; color: #444; margin-top: 6px; line-height: 1.35; }
+
+    .session {
+      border-top: 1px dashed #e5e7eb; padding-top: 10px; margin-top: 10px;
+    }
+    .s-title { font-weight: 800; margin: 0 0 6px 0; }
+    label.cb { display: flex; align-items: flex-start; gap: 10px; }
+    input[type="checkbox"] { width: 22px; height: 22px; margin-top: 2px; }
+    textarea, input[type="number"] {
+      width: 100%; border: 1px solid #d1d5db; border-radius: 10px; padding: 10px;
+      font-size: 14px; box-sizing: border-box; background: #fff;
+    }
+    textarea { min-height: 64px; resize: vertical; }
+    .grid3 { display: grid; grid-template-columns: 1fr; gap: 10px; }
+    @media (min-width: 720px) { .grid3 { grid-template-columns: 1fr 2fr 2fr; } }
+
+    .btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    button {
+      border: 1px solid #d1d5db; background: #fff; border-radius: 10px;
+      padding: 10px 12px; font-size: 14px;
+    }
+    button.primary { background: #111827; color: #fff; border-color: #111827; }
+
+    /* Stats mini chart */
     .barwrap { display: grid; gap: 8px; margin-top: 10px; }
     .barrow { display: grid; grid-template-columns: 54px 1fr 46px; gap: 10px; align-items: center; }
-    .bar {
-      height: 10px; border-radius: 999px; background: #e5e7eb; overflow: hidden;
-    }
+    .bar { height: 10px; border-radius: 999px; background: #e5e7eb; overflow: hidden; }
     .bar > span { display:block; height: 100%; width: 0%; background: #111827; }
     .muted { color:#555; font-size:12px; }
-    .kpi { font-size: 12px; color: #111; margin-top: 8px; line-height: 1.35; }
-    .kpi strong { font-size: 13px; }
     .two { display:grid; grid-template-columns: 1fr; gap: 10px; }
     @media (min-width: 720px){ .two { grid-template-columns: 1fr 1fr; } }
     .list { margin: 8px 0 0; padding-left: 18px; }
@@ -82,16 +83,16 @@
 </head>
 <body>
 <header>
-  <h1>Plan Semi — Course dimanche 10 mai 2026</h1>
+  <h1>Plan Semi — dimanche 10 mai 2026</h1>
   <div class="sub">
     Début : <b>lundi 2 février 2026</b> • Jours : <b>Mar / Jeu / Sam / Dim</b><br>
     Objectif : <b>1h45 (5’00/km)</b> • Bonus : <b>1h43–1h44</b>
   </div>
 
   <div class="tabs">
-    <button class="tab active" id="tabPlan">Plan</button>
-    <button class="tab" id="tabStats">Stats</button>
-    <button class="tab" id="tabNutri">Nutrition</button>
+    <button class="tab active" id="tabPlan" aria-selected="true">Plan</button>
+    <button class="tab" id="tabStats" aria-selected="false">Stats</button>
+    <button class="tab" id="tabNutri" aria-selected="false">Nutrition</button>
   </div>
 
   <div class="kpi" id="kpi"></div>
@@ -99,11 +100,22 @@
 
 <div class="wrap">
   <div class="card">
-    <div class="row" id="statusRow">
+    <div class="row">
       <span class="pill">💾 Sauvegarde auto</span>
       <span class="pill phase">🛡️ Pas 2 séances dures d’affilée</span>
+      <span class="pill" id="countdownPill">⏳ —</span>
       <span class="pill" id="fatiguePill">—</span>
     </div>
+
+    <div class="btns">
+      <button class="primary" id="exportBtn">Exporter mes données (JSON)</button>
+      <button id="importBtn">Importer (JSON)</button>
+      <button id="resetBtn">Réinitialiser tout</button>
+    </div>
+    <div class="meta">
+      iPhone : Safari → Partager → <b>Sur l’écran d’accueil</b> (icône comme une app).
+    </div>
+    <input type="file" id="fileInput" accept="application/json" style="display:none" />
   </div>
 
   <!-- PLAN -->
@@ -119,14 +131,19 @@
         <span class="pill" id="sleepPill">—</span>
         <span class="pill" id="painPill">—</span>
       </div>
+
       <div class="two">
         <div>
-          <div class="s-title">Progression hebdomadaire</div>
+          <div class="s-title">Progression (séances cochées / 4)</div>
+          <div class="muted">Chaque ligne = une semaine.</div>
           <div id="bars" class="barwrap"></div>
         </div>
         <div>
           <div class="s-title">Alerte fatigue</div>
           <ul class="list" id="fatigueList"></ul>
+          <div class="muted" style="margin-top:10px;">
+            Si alerte orange/rouge : transforme la prochaine séance qualité en footing facile.
+          </div>
         </div>
       </div>
     </div>
@@ -135,139 +152,427 @@
   <!-- NUTRITION -->
   <section id="nutriSection" class="hidden">
     <div class="card">
-      <h3>🍽️ Stratégie Nutrition & Hydratation</h3>
+      <div class="s-title">🍽️ Préconisations alimentation & hydratation (liées au plan)</div>
 
-      <h4>Phase Base & Moteur (Semaines 1–5)</h4>
-      <ul>
-        <li>Objectif : construire les réserves et la récupération</li>
-        <li>Glucides modérés, protéines quotidiennes (œufs, poisson, yaourt, légumineuses)</li>
-        <li>Hydratation : urine claire, 1 verre d’eau à chaque repas</li>
-      </ul>
+      <div class="session">
+        <div class="s-title">Semaines 1–5 — Base & Moteur</div>
+        <ul class="list">
+          <li>Objectif : récupérer + construire (pas de “régime”).</li>
+          <li>À chaque repas : <b>glucides + protéines</b> (riz/pâtes/pain + œufs/poisson/volaille/légumineuses).</li>
+          <li>Hydratation : <b>1 verre d’eau à chaque repas</b> + 1 à 2 verres dans l’après-midi.</li>
+          <li>Après VMA/tempo : collation <b>glucides + protéines</b> (banane + yaourt / tartines + fromage).</li>
+        </ul>
+      </div>
 
-      <h4>Phase Spécifique Semi (Semaines 6–12)</h4>
-      <ul>
-        <li>Tester le ravitaillement : <b>1 gel au km 9–11 + eau</b></li>
-        <li>Augmenter glucides la veille des sorties longues</li>
-        <li>Boisson énergétique après séances dures</li>
-      </ul>
+      <div class="session">
+        <div class="s-title">Semaines 6–12 — Spécifique semi</div>
+        <ul class="list">
+          <li>Objectif : apprendre à “tenir” l’allure et tester le ravito.</li>
+          <li>La veille de la sortie longue : repas plus riche en <b>glucides digestes</b> (pâtes/riz/pdt, peu de gras).</li>
+          <li>Sortie longue : teste <b>1 gel au km 9–11 + eau</b> (toujours avec eau).</li>
+          <li>À l’entraînement : petites gorgées régulières, ne bois pas d’un coup.</li>
+        </ul>
+      </div>
 
-      <h4>Phase Affûtage (Semaines 13–14)</h4>
-      <ul>
-        <li>Réduire fibres & aliments lourds</li>
-        <li>Augmenter glucides J-2 / J-1</li>
-        <li>Pas d’aliments nouveaux</li>
-      </ul>
+      <div class="session">
+        <div class="s-title">Semaines 13–14 — Affûtage + course</div>
+        <ul class="list">
+          <li>Objectif : arriver “plein d’énergie” et léger au niveau digestif.</li>
+          <li>J-3 à J-1 : augmente les glucides, baisse fibres/gras, évite les nouveautés.</li>
+          <li><b>Hydratation</b> : régulière, urine claire (sans excès).</li>
+        </ul>
+      </div>
 
-      <h4>🏁 Semaine de course</h4>
-      <ul>
-        <li>Petit-déj J : pain blanc + miel + banane + eau</li>
-        <li>En course : eau tous les 5 km</li>
-        <li>Gel au km 9–11</li>
-        <li>Après : eau + glucides + protéines dans l’heure</li>
-      </ul>
+      <div class="session">
+        <div class="s-title">🏁 Jour J (dimanche 10 mai 2026)</div>
+        <ul class="list">
+          <li>Petit-déj (2h30–3h avant) : <b>pain blanc + miel/confiture + banane + 300–500 ml eau</b>.</li>
+          <li>15 min avant : 2–3 gorgées d’eau.</li>
+          <li>En course : <b>2–3 gorgées tous les ~5 km</b> (à chaque ravito si chaleur).</li>
+          <li><b>Gel au km 9–11</b> + eau juste après.</li>
+          <li>Stratégie allure (1h45) : km 1–3 à 5’05, km 4–18 à 5’00, dernier tiers si OK → 4’55.</li>
+          <li>Après : eau + glucides + protéines dans l’heure.</li>
+        </ul>
+      </div>
     </div>
   </section>
 </div>
 
 <script>
-  const START = new Date("2026-02-02T00:00:00"); // Lundi 2 février 2026
-  const WEEKS = 14;
+  // === Dates ===
+  const START = new Date("2026-02-02T00:00:00");      // lundi 2 février 2026
+  const RACE  = new Date("2026-05-10T00:00:00");      // dimanche 10 mai 2026
+  const WEEKS = 14;                                   // S1: 2-8 fév ... S14: 4-10 mai (course)
 
   function fmtDate(d){
     return d.toLocaleDateString("fr-FR", { day:"2-digit", month:"short", year:"numeric" });
   }
   function addDays(d, n){ const x = new Date(d); x.setDate(x.getDate()+n); return x; }
 
+  // === Phases ===
   function phaseForWeek(w){
     if (w <= 5) return "Base & Moteur";
     if (w <= 12) return "Spécifique Semi";
     return "Affûtage";
   }
 
+  // === Séances (structure fixe) ===
   function sessionsForWeek(w){
+    // On reste cohérent et simple, mais tu peux affiner ensuite si tu veux (progression des blocs).
     if (w <= 5) {
       return {
-        tue: "VMA : 2 × (8 × 30s rapide / 30s lent)",
-        thu: "Tempo : 3 × 8 min à 5’10–5’05/km",
-        sat: "Endurance facile 45–60 min",
-        sun: "Sortie longue 1h20–1h35"
+        tue: "VMA : 2 × (8 × 30s rapide / 30s lent) (rapide ~4’05–4’15/km)",
+        thu: "Tempo : 3 × 8 min à 5’10–5’05/km (récup 2 min)",
+        sat: "Endurance facile : 45–60 min (5’50–6’20/km) + 6 lignes droites",
+        sun: "Sortie longue : 1h20–1h35 (facile)"
       };
     } else if (w <= 12) {
       return {
-        tue: "VMA : 10 × 400 m",
-        thu: "Allure semi : 2–3 × 15 min à 5’00/km",
-        sat: "Endurance facile 50–60 min",
-        sun: "Sortie longue 1h30–1h45 (blocs allure semi)"
+        tue: "VMA : 10 × 400 m à ~4’10/km (récup 1’15)",
+        thu: "Allure semi : 2–3 × 15 min à 5’00/km (récup 3 min)",
+        sat: "Endurance facile : 50–60 min + 6 lignes droites",
+        sun: "Sortie longue : 1h30–1h45 avec blocs à 5’00/km (tester gel km 9–11)"
       };
-    } else {
+    } else if (w === 13) {
       return {
-        tue: "6 × 200 m rapide",
-        thu: "2 × 10 min allure semi",
-        sat: "40 min très facile",
-        sun: w === 14 ? "🏁 SEMI-MARATHON — 21,1 km" : "45 min facile"
+        tue: "Rappel : 6 × 200 m rapide (récup 1 min) + footing facile",
+        thu: "Allure semi : 2 × 10 min à 5’00/km (récup 3 min)",
+        sat: "40–50 min très facile",
+        sun: "1h05–1h15 facile (sans forcer)"
+      };
+    } else { // w === 14
+      return {
+        tue: "Footing 40–45 min + 4 lignes droites",
+        thu: "Rappel : 8–10 min allure semi (sans fatigue) + retour au calme",
+        sat: "25–35 min très facile (optionnel si fatigue)",
+        sun: "🏁 SEMI-MARATHON (10 mai) — Objectif 1h45 (5’00/km) • Gel km 9–11 + eau"
       };
     }
   }
 
-  const KEY = "planSemiData_v3";
-  const data = JSON.parse(localStorage.getItem(KEY) || '{"weeks":{}}');
+  // === Persistence ===
+  const KEY = "planSemiData_v4";
+  const defaultData = { weeks: {} };
 
-  function ensureWeek(w){
-    if (!data.weeks[w]) {
-      data.weeks[w] = { done:{tue:false,thu:false,sat:false,sun:false}, sleep:"", feel:"", pain:"" };
+  function loadData(){
+    try {
+      const raw = localStorage.getItem(KEY);
+      return raw ? JSON.parse(raw) : defaultData;
+    } catch { return defaultData; }
+  }
+  function saveData(){
+    localStorage.setItem(KEY, JSON.stringify(data));
+    updateAll();
+  }
+
+  const data = loadData();
+
+  function ensureWeek(week){
+    if (!data.weeks[week]) {
+      data.weeks[week] = {
+        done: { tue:false, thu:false, sat:false, sun:false },
+        sleep: "",
+        feel: "",
+        pain: ""
+      };
     }
   }
 
-  function render(){
-    const weeksEl = document.getElementById("weeks");
-    weeksEl.innerHTML = "";
+  // === Countdown ===
+  function updateCountdown(){
+    const today = new Date();
+    const ms = RACE - new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const daysLeft = Math.ceil(ms / (1000*60*60*24));
+    let pill = document.getElementById("countdownPill");
 
+    if (daysLeft > 0){
+      const weeksLeft = Math.floor(daysLeft / 7);
+      const extraDays = daysLeft % 7;
+      pill.textContent = `⏳ Course dans ${weeksLeft} sem + ${extraDays} j (=${daysLeft} jours)`;
+      pill.className = "pill";
+    } else if (daysLeft === 0){
+      pill.textContent = "🏁 C’est aujourd’hui !";
+      pill.className = "pill ok";
+    } else {
+      pill.textContent = "✅ Course passée";
+      pill.className = "pill ok";
+    }
+  }
+
+  // === KPI + fatigue (simple) ===
+  function computeKPI(){
+    let total = 0, done = 0, painWeeks = 0, sleepLowWeeks = 0;
     for (let w=1; w<=WEEKS; w++){
       ensureWeek(w);
-      const start = addDays(START, (w-1)*7);
-      const end = addDays(start, 6);
+      const d = data.weeks[w].done;
+      const count = ["tue","thu","sat","sun"].reduce((a,k)=>a+(d[k]?1:0),0);
+      total += 4; done += count;
+
+      const pain = (data.weeks[w].pain || "").trim();
+      if (pain.length >= 3) painWeeks++;
+
+      const sleep = parseFloat(String(data.weeks[w].sleep || "").replace(",", "."));
+      if (!Number.isNaN(sleep) && sleep > 0 && sleep < 6) sleepLowWeeks++;
+    }
+    const pct = total ? Math.round(done*100/total) : 0;
+    return { total, done, pct, painWeeks, sleepLowWeeks };
+  }
+
+  function currentWeekIndex(){
+    const today = new Date();
+    const base = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const ms = base - START;
+    const days = Math.floor(ms / (1000*60*60*24));
+    if (days < 0) return 0;
+    return Math.floor(days / 7) + 1;
+  }
+
+  function fatigueStatus(){
+    const w = currentWeekIndex();
+    if (w < 1 || w > WEEKS) return { level:"ok", label:"🟢 RAS (hors période)", reasons:["Hors des 14 semaines."] };
+
+    ensureWeek(w);
+    const d = data.weeks[w].done;
+    const count = ["tue","thu","sat","sun"].reduce((a,k)=>a+(d[k]?1:0),0);
+    const pain = (data.weeks[w].pain || "").trim().length >= 3;
+    const sleep = parseFloat(String(data.weeks[w].sleep || "").replace(",", "."));
+    const sleepLow = (!Number.isNaN(sleep) && sleep > 0 && sleep < 6);
+
+    const reasons = [];
+    if (pain) reasons.push("Douleurs renseignées cette semaine.");
+    if (sleepLow) reasons.push("Sommeil < 6h cette semaine.");
+    if (count === 4) reasons.push("4 séances cochées : OK si récupération bonne.");
+
+    if ((pain && count >= 3) || (sleepLow && count >= 3)){
+      return { level:"warn", label:"🔴 Vigilance (allège)", reasons: reasons.length?reasons:["Charge élevée avec signaux faibles."] };
+    }
+    if (pain || sleepLow){
+      return { level:"warn", label:"🟠 Attention (prudence)", reasons: reasons.length?reasons:["Surveille la récup."] };
+    }
+    return { level:"ok", label:"🟢 OK (continue)", reasons:["Bon équilibre charge / récupération."] };
+  }
+
+  // === Render Plan ===
+  const weeksEl = document.getElementById("weeks");
+
+  function renderPlan(){
+    weeksEl.innerHTML = "";
+    for (let w=1; w<=WEEKS; w++){
+      ensureWeek(w);
+
+      const weekStart = addDays(START, (w-1)*7);
+      const weekEnd = addDays(weekStart, 6);
+      const phase = phaseForWeek(w);
       const s = sessionsForWeek(w);
+      const state = data.weeks[w];
 
       const card = document.createElement("div");
       card.className = "card";
 
-      const det = document.createElement("details");
-      det.open = w <= 2;
+      const details = document.createElement("details");
+      details.open = (w <= 2);
 
-      det.innerHTML = `
-        <summary>
-          <span>Semaine  —  → </span>
-          <span class="pill phase"></span>
-        </summary>
-        <div class="session"><b>Mardi</b> — </div>
-        <div class="session"><b>Jeudi</b> — </div>
-        <div class="session"><b>Samedi</b> — </div>
-        <div class="session"><b>Dimanche</b> — </div>
+      const summary = document.createElement("summary");
+      summary.innerHTML = `<span>Semaine ${w} — ${fmtDate(weekStart)} → ${fmtDate(weekEnd)}</span>
+                           <span class="pill phase">${phase}</span>`;
+      details.appendChild(summary);
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = (w === 14)
+        ? "Semaine de course : on garde de la fraîcheur. Dimanche = semi-marathon."
+        : "Cases à cocher + notes (sauvegarde automatique).";
+      details.appendChild(meta);
+
+      const sessions = [
+        ["tue","Mardi", s.tue],
+        ["thu","Jeudi", s.thu],
+        ["sat","Samedi", s.sat],
+        ["sun","Dimanche", s.sun],
+      ];
+
+      sessions.forEach(([key, day, text]) => {
+        const sec = document.createElement("div");
+        sec.className = "session";
+        sec.innerHTML = `
+          <div class="s-title">${day}</div>
+          <label class="cb">
+            <input type="checkbox" ${state.done[key] ? "checked" : ""} data-week="${w}" data-key="${key}">
+            <span>${text}</span>
+          </label>
+        `;
+        details.appendChild(sec);
+      });
+
+      // Notes
+      const notes = document.createElement("div");
+      notes.className = "session";
+      notes.innerHTML = `
+        <div class="s-title">Notes de la semaine</div>
+        <div class="grid3">
+          <div>
+            <div class="meta">Sommeil (heures)</div>
+            <input type="number" min="0" step="0.5" inputmode="decimal"
+              value="${state.sleep}" data-week="${w}" data-field="sleep" placeholder="ex: 7.5" />
+          </div>
+          <div>
+            <div class="meta">Sensations</div>
+            <textarea data-week="${w}" data-field="feel" placeholder="ex: bonnes jambes, séance facile...">${state.feel || ""}</textarea>
+          </div>
+          <div>
+            <div class="meta">Douleurs</div>
+            <textarea data-week="${w}" data-field="pain" placeholder="ex: légère gêne mollet droit...">${state.pain || ""}</textarea>
+          </div>
+        </div>
       `;
+      details.appendChild(notes);
 
-      card.appendChild(det);
+      card.appendChild(details);
       weeksEl.appendChild(card);
     }
+
+    // Wire events
+    weeksEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener("change", (e) => {
+        const w = e.target.getAttribute("data-week");
+        const k = e.target.getAttribute("data-key");
+        ensureWeek(w);
+        data.weeks[w].done[k] = e.target.checked;
+        saveData();
+      });
+    });
+
+    weeksEl.querySelectorAll('textarea, input[type="number"]').forEach(el => {
+      el.addEventListener("input", (e) => {
+        const w = e.target.getAttribute("data-week");
+        const f = e.target.getAttribute("data-field");
+        ensureWeek(w);
+        data.weeks[w][f] = e.target.value;
+        saveData();
+      });
+    });
   }
 
-  // Tabs
-  function show(tab){
-    ["planSection","statsSection","nutriSection"].forEach(id=>{
-      document.getElementById(id).classList.add("hidden");
-    });
-    document.getElementById(tab+"Section").classList.remove("hidden");
+  // === Render Stats ===
+  const barsEl = document.getElementById("bars");
+  const fatiguePillEl = document.getElementById("fatiguePill");
+  const fatigueListEl = document.getElementById("fatigueList");
 
-    ["tabPlan","tabStats","tabNutri"].forEach(id=>{
-      document.getElementById(id).classList.remove("active");
+  function renderStats(){
+    const k = computeKPI();
+    document.getElementById("globalPill").textContent = `Global : ${k.done}/${k.total} séances (${k.pct}%)`;
+    document.getElementById("sleepPill").textContent = `Semaines sommeil <6h : ${k.sleepLowWeeks}`;
+    document.getElementById("painPill").textContent = `Semaines avec douleurs : ${k.painWeeks}`;
+
+    barsEl.innerHTML = "";
+    for (let w=1; w<=WEEKS; w++){
+      ensureWeek(w);
+      const d = data.weeks[w].done;
+      const count = ["tue","thu","sat","sun"].reduce((a,k)=>a+(d[k]?1:0),0);
+      const pct = Math.round(count*100/4);
+
+      const row = document.createElement("div");
+      row.className = "barrow";
+      row.innerHTML = `
+        <div class="muted">S${w}</div>
+        <div class="bar"><span style="width:${pct}%"></span></div>
+        <div class="muted">${count}/4</div>
+      `;
+      barsEl.appendChild(row);
+    }
+
+    const f = fatigueStatus();
+    fatiguePillEl.textContent = f.label;
+    fatiguePillEl.className = "pill " + (f.level === "ok" ? "ok" : "warn");
+
+    fatigueListEl.innerHTML = "";
+    f.reasons.forEach(r=>{
+      const li = document.createElement("li");
+      li.textContent = r;
+      fatigueListEl.appendChild(li);
     });
-    document.getElementById("tab"+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add("active");
   }
 
+  // === Header KPI ===
+  function updateHeaderKPI(){
+    const k = computeKPI();
+    const w = currentWeekIndex();
+    const scope = (w>=1 && w<=WEEKS) ? `Semaine en cours : <strong>S${w}</strong> • ` : "";
+    document.getElementById("kpi").innerHTML =
+      `${scope}Suivi : <strong>${k.done}/${k.total}</strong> séances cochées • <strong>${k.pct}%</strong>`;
+  }
+
+  // === Tabs ===
+  function show(which){
+    const plan = document.getElementById("planSection");
+    const stats = document.getElementById("statsSection");
+    const nutri = document.getElementById("nutriSection");
+
+    plan.classList.add("hidden"); stats.classList.add("hidden"); nutri.classList.add("hidden");
+    document.getElementById("tabPlan").classList.remove("active");
+    document.getElementById("tabStats").classList.remove("active");
+    document.getElementById("tabNutri").classList.remove("active");
+
+    if (which === "plan"){ plan.classList.remove("hidden"); document.getElementById("tabPlan").classList.add("active"); }
+    if (which === "stats"){ stats.classList.remove("hidden"); document.getElementById("tabStats").classList.add("active"); }
+    if (which === "nutri"){ nutri.classList.remove("hidden"); document.getElementById("tabNutri").classList.add("active"); }
+
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
   document.getElementById("tabPlan").onclick = ()=>show("plan");
   document.getElementById("tabStats").onclick = ()=>show("stats");
   document.getElementById("tabNutri").onclick = ()=>show("nutri");
 
-  render();
+  // === Export / Import / Reset ===
+  document.getElementById("exportBtn").addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "plan-semi-donnees.json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById("importBtn").addEventListener("click", () => {
+    document.getElementById("fileInput").click();
+  });
+
+  document.getElementById("fileInput").addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const txt = await file.text();
+      const parsed = JSON.parse(txt);
+      if (!parsed || typeof parsed !== "object" || !parsed.weeks) throw new Error("Format invalide");
+      localStorage.setItem(KEY, JSON.stringify(parsed));
+      location.reload();
+    } catch (err) {
+      alert("Import impossible : fichier invalide.");
+    }
+  });
+
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    if (!confirm("Réinitialiser toutes les cases et notes ?")) return;
+    localStorage.removeItem(KEY);
+    location.reload();
+  });
+
+  // === Update all ===
+  function updateAll(){
+    updateCountdown();
+    updateHeaderKPI();
+    renderStats();
+  }
+
+  // Initial render
+  renderPlan();
+  updateAll();
+
+  // Update countdown daily (and if you keep the page open)
+  setInterval(updateCountdown, 60 * 60 * 1000);
 </script>
 </body>
 </html>
