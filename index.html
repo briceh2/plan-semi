@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Plan Semi â€” 10 mai 2026 (4 sÃ©ances)</title>
+  <title>Plan Semi &mdash; 10 mai 2026 (4 s&eacute;ances)</title>
   <style>
     :root { --pad: 14px; }
     body { margin:0; font-family:-apple-system,system-ui,Segoe UI,Roboto,Arial,sans-serif; background:#f6f7f8; color:#111; }
@@ -58,10 +58,10 @@
 
 <body>
 <header>
-  <h1>Plan Semi â€” dimanche 10 mai 2026</h1>
+  <h1>Plan Semi &mdash; dimanche 10 mai 2026</h1>
   <div class="sub">
-    DÃ©but : <b>lundi 2 fÃ©vrier 2026</b> â€¢ Jours : <b>Mar / Jeu / Sam / Dim</b><br>
-    Objectif : <b>1h45 (5â€™00/km)</b> â€¢ Bonus : <b>1h43â€“1h44</b>
+    D&eacute;but : <b>lundi 2 f&eacute;vrier 2026</b> &bull; Jours : <b>Mar / Jeu / Sam / Dim</b><br>
+    Objectif : <b>1h45 (5&rsquo;00/km)</b> &bull; Bonus : <b>1h43&ndash;1h44</b>
   </div>
 
   <div class="tabs">
@@ -77,17 +77,17 @@
 <div class="wrap">
   <div class="card">
     <div class="row">
-      <span class="pill">ðŸ’¾ Sauvegarde auto</span>
-      <span class="pill phase">ðŸ›¡ï¸ Pas 2 sÃ©ances dures dâ€™affilÃ©e</span>
-      <span class="pill" id="countdownPill">â³ â€”</span>
-      <span class="pill" id="fatiguePill">â€”</span>
+      <span class="pill">&#128190; Sauvegarde auto</span>
+      <span class="pill phase">&#128737; Pas 2 s&eacute;ances dures d&rsquo;affil&eacute;e</span>
+      <span class="pill" id="countdownPill">&#9203; &mdash;</span>
+      <span class="pill" id="fatiguePill">&mdash;</span>
     </div>
     <div class="btns">
-      <button class="primary" id="exportBtn">Exporter mes donnÃ©es (JSON)</button>
+      <button class="primary" id="exportBtn">Exporter mes donn&eacute;es (JSON)</button>
       <button id="importBtn">Importer (JSON)</button>
-      <button id="resetBtn">RÃ©initialiser tout</button>
+      <button id="resetBtn">R&eacute;initialiser tout</button>
     </div>
-    <div class="meta">iPhone : Safari â†’ Partager â†’ <b>Sur lâ€™Ã©cran dâ€™accueil</b> (icÃ´ne comme une app).</div>
+    <div class="meta">iPhone : Safari &rarr; Partager &rarr; <b>Sur l&rsquo;&eacute;cran d&rsquo;accueil</b> (ic&ocirc;ne comme une app).</div>
     <input type="file" id="fileInputJSON" accept="application/json" style="display:none" />
   </div>
 
@@ -99,19 +99,19 @@
   <!-- IMPORT GPX -->
   <section id="importSection" class="hidden">
     <div class="card">
-      <div class="s-title">ðŸ“¥ Importer une sÃ©ance (GPX)</div>
+      <div class="s-title">&#128229; Importer une s&eacute;ance (GPX)</div>
       <div class="muted">
-        Choisis un fichier <b>.gpx</b> (Apple / montre / Strava). La page calcule distance, durÃ©e, allure, splits km et une dÃ©tection simple des segments rapides.
+        Choisis un fichier <b>.gpx</b> (Apple / montre / Strava). La page calcule distance, dur&eacute;e, allure, splits km et une d&eacute;tection simple des segments rapides.
       </div>
 
       <div class="session">
-        <div class="s-title">1) SÃ©lectionner le fichier GPX</div>
+        <div class="s-title">1) S&eacute;lectionner le fichier GPX</div>
         <input type="file" id="fileInputGPX" accept=".gpx,application/gpx+xml,application/xml,text/xml" />
-        <div class="mini">Astuce iPhone : via â€œFichiersâ€ â†’ partage/ouvrir â†’ sÃ©lectionne le .gpx.</div>
+        <div class="mini">Astuce iPhone : via &ldquo;Fichiers&rdquo; &rarr; s&eacute;lectionne le .gpx.</div>
       </div>
 
       <div class="session">
-        <div class="s-title">2) Attacher la sÃ©ance Ã  ton plan</div>
+        <div class="s-title">2) Attacher la s&eacute;ance &agrave; ton plan</div>
         <div class="grid3">
           <div>
             <div class="meta">Semaine</div>
@@ -141,26 +141,26 @@
         <div class="btns">
           <button class="primary" id="attachBtn" disabled>Attacher au plan + cocher</button>
         </div>
-        <div class="mini">Quand tu attaches : la sÃ©ance est sauvegardÃ©e + la case du jour est cochÃ©e automatiquement.</div>
+        <div class="mini">Quand tu attaches : la s&eacute;ance est sauvegard&eacute;e + la case du jour est coch&eacute;e automatiquement.</div>
       </div>
 
       <div class="session">
-        <div class="s-title">RÃ©sumÃ© calculÃ©</div>
-        <div id="gpxSummary" class="muted">Aucun fichier analysÃ© pour lâ€™instant.</div>
+        <div class="s-title">R&eacute;sum&eacute; calcul&eacute;</div>
+        <div id="gpxSummary" class="muted">Aucun fichier analys&eacute; pour l&rsquo;instant.</div>
         <div class="hr"></div>
         <div class="s-title">Splits (au km)</div>
-        <div id="gpxSplits" class="muted">â€”</div>
+        <div id="gpxSplits" class="muted">&mdash;</div>
         <div class="hr"></div>
         <div class="s-title">Segments rapides (approx.)</div>
-        <div id="gpxFast" class="muted">â€”</div>
+        <div id="gpxFast" class="muted">&mdash;</div>
       </div>
 
       <div class="session">
         <div class="s-title">Conseil coach (VMA)</div>
         <ul class="list">
-          <li>Si les segments rapides sont <b>trÃ¨s irrÃ©guliers</b> : pars un peu moins vite au dÃ©but.</li>
-          <li>Si tu nâ€™as pas de â€œpicsâ€ rapides : tu Ã©tais peut-Ãªtre en sÃ©ance tempo plutÃ´t que VMA.</li>
-          <li>Sur une sÃ©ance 30/30 : lâ€™objectif est la <b>rÃ©pÃ©tabilitÃ©</b>, pas le sprint.</li>
+          <li>Si les segments rapides sont <b>tr&egrave;s irr&eacute;guliers</b> : pars un peu moins vite au d&eacute;but.</li>
+          <li>Si tu n&rsquo;as pas de &ldquo;pics&rdquo; rapides : tu &eacute;tais peut-&ecirc;tre en s&eacute;ance tempo plut&ocirc;t que VMA.</li>
+          <li>Sur une s&eacute;ance 30/30 : l&rsquo;objectif est la <b>r&eacute;p&eacute;tabilit&eacute;</b>, pas le sprint.</li>
         </ul>
       </div>
     </div>
@@ -170,15 +170,15 @@
   <section id="statsSection" class="hidden">
     <div class="card">
       <div class="row">
-        <span class="pill" id="globalPill">â€”</span>
-        <span class="pill" id="sleepPill">â€”</span>
-        <span class="pill" id="painPill">â€”</span>
-        <span class="pill" id="fitnessPill">Forme: â€”</span>
+        <span class="pill" id="globalPill">&mdash;</span>
+        <span class="pill" id="sleepPill">&mdash;</span>
+        <span class="pill" id="painPill">&mdash;</span>
+        <span class="pill" id="fitnessPill">Forme: &mdash;</span>
       </div>
 
       <div class="two">
         <div>
-          <div class="s-title">Progression (sÃ©ances cochÃ©es / 4)</div>
+          <div class="s-title">Progression (s&eacute;ances coch&eacute;es / 4)</div>
           <div class="muted">Chaque ligne = une semaine.</div>
           <div id="bars" class="barwrap"></div>
         </div>
@@ -186,14 +186,14 @@
           <div class="s-title">Alerte fatigue</div>
           <ul class="list" id="fatigueList"></ul>
           <div class="muted" style="margin-top:10px;">
-            Si alerte orange/rouge : transforme la prochaine sÃ©ance qualitÃ© en footing facile.
+            Si alerte orange/rouge : transforme la prochaine s&eacute;ance qualit&eacute; en footing facile.
           </div>
         </div>
       </div>
 
       <div class="session">
-        <div class="s-title">DerniÃ¨res sÃ©ances importÃ©es</div>
-        <div id="recentWorkouts" class="muted">â€”</div>
+        <div class="s-title">Derni&egrave;res s&eacute;ances import&eacute;es</div>
+        <div id="recentWorkouts" class="muted">&mdash;</div>
       </div>
     </div>
   </section>
@@ -201,43 +201,43 @@
   <!-- NUTRITION -->
   <section id="nutriSection" class="hidden">
     <div class="card">
-      <div class="s-title">ðŸ½ï¸ PrÃ©conisations alimentation & hydratation (liÃ©es au plan)</div>
+      <div class="s-title">&#127860; Pr&eacute;conisations alimentation &amp; hydratation (li&eacute;es au plan)</div>
 
       <div class="session">
-        <div class="s-title">Semaines 1â€“5 â€” Base & Moteur</div>
+        <div class="s-title">Semaines 1&ndash;5 &mdash; Base &amp; Moteur</div>
         <ul class="list">
-          <li>Objectif : rÃ©cupÃ©rer + construire.</li>
-          <li>Ã€ chaque repas : <b>glucides + protÃ©ines</b> (riz/pÃ¢tes/pain + Å“ufs/poisson/volaille/lÃ©gumineuses).</li>
-          <li>Hydratation : <b>1 verre dâ€™eau Ã  chaque repas</b> + 1â€“2 verres dans lâ€™aprÃ¨s-midi.</li>
-          <li>AprÃ¨s VMA/tempo : collation <b>glucides + protÃ©ines</b> (banane + yaourt / tartines + fromage).</li>
+          <li>Objectif : r&eacute;cup&eacute;rer + construire.</li>
+          <li>&Agrave; chaque repas : <b>glucides + prot&eacute;ines</b> (riz/p&acirc;tes/pain + &#339;ufs/poisson/volaille/l&eacute;gumineuses).</li>
+          <li>Hydratation : <b>1 verre d&rsquo;eau &agrave; chaque repas</b> + 1&ndash;2 verres dans l&rsquo;apr&egrave;s-midi.</li>
+          <li>Apr&egrave;s VMA/tempo : collation <b>glucides + prot&eacute;ines</b> (banane + yaourt / tartines + fromage).</li>
         </ul>
       </div>
 
       <div class="session">
-        <div class="s-title">Semaines 6â€“12 â€” SpÃ©cifique semi</div>
+        <div class="s-title">Semaines 6&ndash;12 &mdash; Sp&eacute;cifique semi</div>
         <ul class="list">
-          <li>La veille de la sortie longue : repas plus riche en <b>glucides digestes</b> (pÃ¢tes/riz/pdt), peu gras/fibres.</li>
-          <li>Sortie longue : teste <b>1 gel au km 9â€“11 + eau</b>.</li>
-          <li>EntraÃ®nement : petites gorgÃ©es rÃ©guliÃ¨res, ne bois pas â€œdâ€™un coupâ€.</li>
+          <li>La veille de la sortie longue : repas plus riche en <b>glucides digestes</b> (p&acirc;tes/riz/pdt), peu gras/fibres.</li>
+          <li>Sortie longue : teste <b>1 gel au km 9&ndash;11 + eau</b>.</li>
+          <li>Entra&icirc;nement : petites gorg&eacute;es r&eacute;guli&egrave;res, ne bois pas &ldquo;d&rsquo;un coup&rdquo;.</li>
         </ul>
       </div>
 
       <div class="session">
-        <div class="s-title">Semaines 13â€“14 â€” AffÃ»tage + course</div>
+        <div class="s-title">Semaines 13&ndash;14 &mdash; Aff&ucirc;tage + course</div>
         <ul class="list">
-          <li>J-3 Ã  J-1 : + glucides, - fibres/gras, pas de nouveautÃ©.</li>
-          <li>Hydratation rÃ©guliÃ¨re (urine claire), sans excÃ¨s.</li>
+          <li>J-3 &agrave; J-1 : + glucides, - fibres/gras, pas de nouveaut&eacute;.</li>
+          <li>Hydratation r&eacute;guli&egrave;re (urine claire), sans exc&egrave;s.</li>
         </ul>
       </div>
 
       <div class="session">
-        <div class="s-title">ðŸ Jour J (dimanche 10 mai 2026)</div>
+        <div class="s-title">&#127937; Jour J (dimanche 10 mai 2026)</div>
         <ul class="list">
-          <li>Petit-dÃ©j (2h30â€“3h avant) : <b>pain blanc + miel/confiture + banane + 300â€“500 ml eau</b>.</li>
-          <li>En course : <b>2â€“3 gorgÃ©es ~tous les 5 km</b> (Ã  chaque ravito si chaleur).</li>
-          <li><b>Gel au km 9â€“11</b> + eau juste aprÃ¨s.</li>
-          <li>Allure (1h45) : km 1â€“3 Ã  5â€™05, km 4â€“18 Ã  5â€™00, fin si OK â†’ 4â€™55.</li>
-          <li>AprÃ¨s : eau + glucides + protÃ©ines dans lâ€™heure.</li>
+          <li>Petit-d&eacute;j (2h30&ndash;3h avant) : <b>pain blanc + miel/confiture + banane + 300&ndash;500 ml eau</b>.</li>
+          <li>En course : <b>2&ndash;3 gorg&eacute;es ~tous les 5 km</b> (&agrave; chaque ravito si chaleur).</li>
+          <li><b>Gel au km 9&ndash;11</b> + eau juste apr&egrave;s.</li>
+          <li>Allure (1h45) : km 1&ndash;3 &agrave; 5&rsquo;05, km 4&ndash;18 &agrave; 5&rsquo;00, fin si OK &rarr; 4&rsquo;55.</li>
+          <li>Apr&egrave;s : eau + glucides + prot&eacute;ines dans l&rsquo;heure.</li>
         </ul>
       </div>
     </div>
@@ -246,9 +246,9 @@
 
 <script>
   // ===== Dates =====
-  const START = new Date("2026-02-02T00:00:00"); // lundi 2 fÃ©vrier 2026
+  const START = new Date("2026-02-02T00:00:00"); // lundi 2 f&eacute;vrier 2026
   const RACE  = new Date("2026-05-10T00:00:00"); // dimanche 10 mai 2026
-  const WEEKS = 14; // S1: 2-8 fÃ©v ... S14: 4-10 mai (course)
+  const WEEKS = 14; // S1: 2-8 f&eacute;v ... S14: 4-10 mai (course)
 
   function fmtDate(d){
     return d.toLocaleDateString("fr-FR", { day:"2-digit", month:"short", year:"numeric" });
@@ -258,38 +258,38 @@
   // ===== Plan =====
   function phaseForWeek(w){
     if (w <= 5) return "Base & Moteur";
-    if (w <= 12) return "SpÃ©cifique Semi";
-    return "AffÃ»tage";
+    if (w <= 12) return "Sp\u00E9cifique Semi";
+    return "Aff\u00FBtage";
   }
 
   function sessionsForWeek(w){
     if (w <= 5) {
       return {
-        tue: "VMA : 2 Ã— (8 Ã— 30s rapide / 30s lent) (rapide ~4â€™05â€“4â€™15/km)",
-        thu: "Tempo : 3 Ã— 8 min Ã  5â€™10â€“5â€™05/km (rÃ©cup 2 min)",
-        sat: "Endurance facile : 45â€“60 min (5â€™50â€“6â€™20/km) + 6 lignes droites",
-        sun: "Sortie longue : 1h20â€“1h35 (facile)"
+        tue: "VMA : 2 x (8 x 30s rapide / 30s lent) (rapide ~4'05\u20134'15/km)",
+        thu: "Tempo : 3 x 8 min \u00E0 5'10\u20135'05/km (r\u00E9cup 2 min)",
+        sat: "Endurance facile : 45\u201360 min (5'50\u20136'20/km) + 6 lignes droites",
+        sun: "Sortie longue : 1h20\u20131h35 (facile)"
       };
     } else if (w <= 12) {
       return {
-        tue: "VMA : 10 Ã— 400 m Ã  ~4â€™10/km (rÃ©cup 1â€™15)",
-        thu: "Allure semi : 2â€“3 Ã— 15 min Ã  5â€™00/km (rÃ©cup 3 min)",
-        sat: "Endurance facile : 50â€“60 min + 6 lignes droites",
-        sun: "Sortie longue : 1h30â€“1h45 avec blocs Ã  5â€™00/km (tester gel km 9â€“11)"
+        tue: "VMA : 10 x 400 m \u00E0 ~4'10/km (r\u00E9cup 1'15)",
+        thu: "Allure semi : 2\u20133 x 15 min \u00E0 5'00/km (r\u00E9cup 3 min)",
+        sat: "Endurance facile : 50\u201360 min + 6 lignes droites",
+        sun: "Sortie longue : 1h30\u20131h45 avec blocs \u00E0 5'00/km (tester gel km 9\u201311)"
       };
     } else if (w === 13) {
       return {
-        tue: "Rappel : 6 Ã— 200 m rapide (rÃ©cup 1 min) + footing facile",
-        thu: "Allure semi : 2 Ã— 10 min Ã  5â€™00/km (rÃ©cup 3 min)",
-        sat: "40â€“50 min trÃ¨s facile",
-        sun: "1h05â€“1h15 facile (sans forcer)"
+        tue: "Rappel : 6 x 200 m rapide (r\u00E9cup 1 min) + footing facile",
+        thu: "Allure semi : 2 x 10 min \u00E0 5'00/km (r\u00E9cup 3 min)",
+        sat: "40\u201350 min tr\u00E8s facile",
+        sun: "1h05\u20131h15 facile (sans forcer)"
       };
-    } else { // w === 14
+    } else {
       return {
-        tue: "Footing 40â€“45 min + 4 lignes droites",
-        thu: "Rappel : 8â€“10 min allure semi (sans fatigue) + retour au calme",
-        sat: "25â€“35 min trÃ¨s facile (optionnel si fatigue)",
-        sun: "ðŸ SEMI-MARATHON (10 mai) â€” Objectif 1h45 (5â€™00/km) â€¢ Gel km 9â€“11 + eau"
+        tue: "Footing 40\u201345 min + 4 lignes droites",
+        thu: "Rappel : 8\u201310 min allure semi (sans fatigue) + retour au calme",
+        sat: "25\u201335 min tr\u00E8s facile (optionnel si fatigue)",
+        sun: "SEMI-MARATHON (10 mai) \u2014 Objectif 1h45 (5'00/km) \u2014 Gel km 9\u201311 + eau"
       };
     }
   }
@@ -313,7 +313,7 @@
         sleep: "",
         feel: "",
         pain: "",
-        attached: { tue:null, thu:null, sat:null, sun:null } // workoutId
+        attached: { tue:null, thu:null, sat:null, sun:null }
       };
     }
   }
@@ -332,13 +332,13 @@
     if (daysLeft > 0){
       const weeksLeft = Math.floor(daysLeft / 7);
       const extra = daysLeft % 7;
-      pill.textContent = `â³ Course dans ${weeksLeft} sem + ${extra} j (= ${daysLeft} jours)`;
+      pill.textContent = `\u23F3 Course dans ${weeksLeft} sem + ${extra} j (= ${daysLeft} jours)`;
       pill.className = "pill";
     } else if (daysLeft === 0){
-      pill.textContent = "ðŸ Câ€™est aujourdâ€™hui !";
+      pill.textContent = "\uD83C\uDFC1 C'est aujourd'hui !";
       pill.className = "pill ok";
     } else {
-      pill.textContent = "âœ… Course passÃ©e";
+      pill.textContent = "\u2705 Course passe\u0301e";
       pill.className = "pill ok";
     }
   }
@@ -373,7 +373,7 @@
 
   function fatigueStatus(){
     const w = currentWeekIndex();
-    if (w < 1 || w > WEEKS) return { level:"ok", label:"ðŸŸ¢ RAS (hors pÃ©riode)", reasons:["Hors des 14 semaines."] };
+    if (w < 1 || w > WEEKS) return { level:"ok", label:"\uD83D\uDFE2 RAS (hors periode)", reasons:["Hors des 14 semaines."] };
     ensureWeek(w);
 
     const d = data.weeks[w].done;
@@ -383,182 +383,25 @@
     const sleepLow = (!Number.isNaN(sleep) && sleep>0 && sleep<6);
 
     const reasons = [];
-    if (pain) reasons.push("Douleurs renseignÃ©es cette semaine.");
+    if (pain) reasons.push("Douleurs renseignees cette semaine.");
     if (sleepLow) reasons.push("Sommeil < 6h cette semaine.");
-    if (count === 4) reasons.push("4 sÃ©ances cochÃ©es : OK si rÃ©cupÃ©ration bonne.");
+    if (count === 4) reasons.push("4 seances cochees : OK si recuperation bonne.");
 
     if ((pain && count>=3) || (sleepLow && count>=3)){
-      return { level:"warn", label:"ðŸ”´ Vigilance (allÃ¨ge)", reasons: reasons.length?reasons:["Charge Ã©levÃ©e avec signaux faibles."] };
+      return { level:"warn", label:"\uD83D\uDD34 Vigilance (allege)", reasons: reasons.length?reasons:["Charge elevee avec signaux faibles."] };
     }
     if (pain || sleepLow){
-      return { level:"warn", label:"ðŸŸ  Attention (prudence)", reasons: reasons.length?reasons:["Surveille la rÃ©cup."] };
+      return { level:"warn", label:"\uD83D\uDFE0 Attention (prudence)", reasons: reasons.length?reasons:["Surveille la recup."] };
     }
-    return { level:"ok", label:"ðŸŸ¢ OK (continue)", reasons:["Bon Ã©quilibre charge / rÃ©cupÃ©ration."] };
+    return { level:"ok", label:"\uD83D\uDFE2 OK (continue)", reasons:["Bon equilibre charge / recuperation."] };
   }
 
   function updateHeaderKPI(){
     const k = computeKPI();
     const w = currentWeekIndex();
-    const scope = (w>=1 && w<=WEEKS) ? `Semaine en cours : <strong>S${w}</strong> â€¢ ` : "";
+    const scope = (w>=1 && w<=WEEKS) ? `Semaine en cours : <strong>S${w}</strong> &bull; ` : "";
     document.getElementById("kpi").innerHTML =
-      `${scope}Suivi : <strong>${k.done}/${k.total}</strong> sÃ©ances cochÃ©es â€¢ <strong>${k.pct}%</strong>`;
-  }
-
-  // ===== Plan render =====
-  const weeksEl = document.getElementById("weeks");
-  function renderPlan(){
-    weeksEl.innerHTML = "";
-    for (let w=1; w<=WEEKS; w++){
-      ensureWeek(w);
-      const weekStart = addDays(START, (w-1)*7);
-      const weekEnd = addDays(weekStart, 6);
-      const phase = phaseForWeek(w);
-      const s = sessionsForWeek(w);
-      const state = data.weeks[w];
-
-      const card = document.createElement("div");
-      card.className = "card";
-
-      const details = document.createElement("details");
-      details.open = (w <= 2);
-
-      const summary = document.createElement("summary");
-      summary.innerHTML = `<span>Semaine ${w} â€” ${fmtDate(weekStart)} â†’ ${fmtDate(weekEnd)}</span>
-                           <span class="pill phase">${phase}</span>`;
-      details.appendChild(summary);
-
-      const meta = document.createElement("div");
-      meta.className = "meta";
-      meta.textContent = (w===14) ? "Semaine de course : fraÃ®cheur. Dimanche = semi-marathon." : "Cases Ã  cocher + notes + sÃ©ances importÃ©es (GPX).";
-      details.appendChild(meta);
-
-      const sessions = [
-        ["tue","Mardi", s.tue],
-        ["thu","Jeudi", s.thu],
-        ["sat","Samedi", s.sat],
-        ["sun","Dimanche", s.sun],
-      ];
-
-      sessions.forEach(([key, day, text]) => {
-        const workoutId = state.attached[key];
-        const workout = workoutId ? data.workouts.find(x => x.id === workoutId) : null;
-        const badge = workout
-          ? `<span class="badge">ðŸ“Ž ${workout.distKm.toFixed(2)} km â€¢ ${workout.avgPaceStr}</span>`
-          : `<span class="badge">ðŸ“Ž aucune sÃ©ance importÃ©e</span>`;
-
-        const sec = document.createElement("div");
-        sec.className = "session";
-        sec.innerHTML = `
-          <div class="s-title">${day} ${badge}</div>
-          <label class="cb">
-            <input type="checkbox" ${state.done[key] ? "checked" : ""} data-week="${w}" data-key="${key}">
-            <span>${text}</span>
-          </label>
-          ${workout ? `<div class="mini">ImportÃ© le ${workout.dateStr} â€¢ DurÃ©e ${workout.durationStr} â€¢ Splits OK</div>` : `<div class="mini">${workoutId ? "SÃ©ance liÃ©e introuvable (export/import ?)":""}</div>`}
-        `;
-        details.appendChild(sec);
-      });
-
-      const notes = document.createElement("div");
-      notes.className = "session";
-      notes.innerHTML = `
-        <div class="s-title">Notes de la semaine</div>
-        <div class="grid3">
-          <div>
-            <div class="meta">Sommeil (heures)</div>
-            <input type="number" min="0" step="0.5" inputmode="decimal"
-              value="${state.sleep}" data-week="${w}" data-field="sleep" placeholder="ex: 7.5" />
-          </div>
-          <div>
-            <div class="meta">Sensations</div>
-            <textarea data-week="${w}" data-field="feel" placeholder="ex: bonnes jambes, sÃ©ance facile...">${state.feel||""}</textarea>
-          </div>
-          <div>
-            <div class="meta">Douleurs</div>
-            <textarea data-week="${w}" data-field="pain" placeholder="ex: lÃ©gÃ¨re gÃªne mollet droit...">${state.pain||""}</textarea>
-          </div>
-        </div>
-      `;
-      details.appendChild(notes);
-
-      card.appendChild(details);
-      weeksEl.appendChild(card);
-    }
-
-    // events
-    weeksEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-      cb.addEventListener("change", (e) => {
-        const w = parseInt(e.target.getAttribute("data-week"),10);
-        const k = e.target.getAttribute("data-key");
-        ensureWeek(w);
-        data.weeks[w].done[k] = e.target.checked;
-        saveData();
-      });
-    });
-
-    weeksEl.querySelectorAll('textarea, input[type="number"]').forEach(el => {
-      el.addEventListener("input", (e) => {
-        const w = parseInt(e.target.getAttribute("data-week"),10);
-        const f = e.target.getAttribute("data-field");
-        ensureWeek(w);
-        data.weeks[w][f] = e.target.value;
-        saveData();
-      });
-    });
-  }
-
-  // ===== Stats render =====
-  function renderStats(){
-    const k = computeKPI();
-    document.getElementById("globalPill").textContent = `Global : ${k.done}/${k.total} sÃ©ances (${k.pct}%)`;
-    document.getElementById("sleepPill").textContent = `Semaines sommeil <6h : ${k.sleepLowWeeks}`;
-    document.getElementById("painPill").textContent = `Semaines avec douleurs : ${k.painWeeks}`;
-
-    // Progress bars
-    const barsEl = document.getElementById("bars");
-    barsEl.innerHTML = "";
-    for (let w=1; w<=WEEKS; w++){
-      ensureWeek(w);
-      const d = data.weeks[w].done;
-      const count = ["tue","thu","sat","sun"].reduce((a,k)=>a+(d[k]?1:0),0);
-      const pct = Math.round(count*100/4);
-      const row = document.createElement("div");
-      row.className = "barrow";
-      row.innerHTML = `<div class="muted">S${w}</div>
-                       <div class="bar"><span style="width:${pct}%"></span></div>
-                       <div class="muted">${count}/4</div>`;
-      barsEl.appendChild(row);
-    }
-
-    // Fatigue
-    const f = fatigueStatus();
-    const fatiguePill = document.getElementById("fatiguePill");
-    fatiguePill.textContent = f.label;
-    fatiguePill.className = "pill " + (f.level==="ok" ? "ok" : "warn");
-
-    const list = document.getElementById("fatigueList");
-    list.innerHTML = "";
-    f.reasons.forEach(r => { const li=document.createElement("li"); li.textContent=r; list.appendChild(li); });
-
-    // Recent workouts + simple fitness indicator (based on last 3 avg pace)
-    const recent = [...data.workouts].slice(-5).reverse();
-    const recentEl = document.getElementById("recentWorkouts");
-    if (recent.length === 0){
-      recentEl.textContent = "Aucune sÃ©ance importÃ©e pour lâ€™instant.";
-    } else {
-      recentEl.innerHTML = recent.map(w =>
-        `<div class="split"><span>${w.dateStr} â€¢ ${w.distKm.toFixed(2)} km</span><span>${w.avgPaceStr}</span></div>`
-      ).join("");
-    }
-
-    const fitnessPill = document.getElementById("fitnessPill");
-    const last3 = [...data.workouts].slice(-3);
-    if (last3.length >= 2){
-      const avgSec = Math.round(last3.reduce((a,w)=>a+w.avgPaceSec,0)/last3.length);
-      fitnessPill.textContent = `Forme (indicative) : allure moy. ~ ${paceStr(avgSec)}/km`;
-    } else {
-      fitnessPill.textContent = "Forme: import 2â€“3 sÃ©ances";
-    }
+      `${scope}Suivi : <strong>${k.done}/${k.total}</strong> seances cochees &bull; <strong>${k.pct}%</strong>`;
   }
 
   // ===== Tabs =====
@@ -583,7 +426,7 @@
   document.getElementById("tabStats").onclick = ()=>show("stats");
   document.getElementById("tabNutri").onclick = ()=>show("nutri");
 
-  // ===== Export / import JSON / reset =====
+  // ===== Export / Import JSON / Reset =====
   document.getElementById("exportBtn").addEventListener("click", () => {
     const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
     const url = URL.createObjectURL(blob);
@@ -615,38 +458,13 @@
   });
 
   document.getElementById("resetBtn").addEventListener("click", () => {
-    if (!confirm("RÃ©initialiser toutes les cases, notes et sÃ©ances importÃ©es ?")) return;
+    if (!confirm("Reinitialiser toutes les cases, notes et seances importees ?")) return;
     localStorage.removeItem(KEY);
     location.reload();
   });
 
-  // ===== GPX parsing =====
-  const attachWeekEl = document.getElementById("attachWeek");
-  const attachDayEl = document.getElementById("attachDay");
-  const attachTypeEl = document.getElementById("attachType");
-  const attachBtn = document.getElementById("attachBtn");
-  const gpxSummaryEl = document.getElementById("gpxSummary");
-  const gpxSplitsEl = document.getElementById("gpxSplits");
-  const gpxFastEl = document.getElementById("gpxFast");
-
-  let lastParsedWorkout = null;
-
-  function fillWeekSelect(){
-    attachWeekEl.innerHTML = "";
-    for (let w=1; w<=WEEKS; w++){
-      const start = addDays(START, (w-1)*7);
-      const end = addDays(start, 6);
-      const opt = document.createElement("option");
-      opt.value = String(w);
-      opt.textContent = `S${w} â€” ${fmtDate(start)} â†’ ${fmtDate(end)}`;
-      attachWeekEl.appendChild(opt);
-    }
-    const cw = currentWeekIndex();
-    if (cw>=1 && cw<=WEEKS) attachWeekEl.value = String(cw);
-  }
-
+  // ===== Helpers for GPX =====
   function toNum(s){ return parseFloat(String(s||"").replace(",", ".")); }
-
   function haversine(lat1, lon1, lat2, lon2){
     const R = 6371000;
     const toRad = x => x*Math.PI/180;
@@ -656,9 +474,7 @@
     const a = Math.sin(dphi/2)**2 + Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
     return 2*R*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   }
-
   function pad2(n){ return n<10 ? "0"+n : ""+n; }
-
   function durationStr(sec){
     sec = Math.max(0, Math.round(sec));
     const h = Math.floor(sec/3600);
@@ -667,19 +483,195 @@
     if (h>0) return `${h}h${pad2(m)}m${pad2(s)}s`;
     return `${m}m${pad2(s)}s`;
   }
-
   function paceStr(secPerKm){
-    if (!isFinite(secPerKm) || secPerKm<=0) return "â€”";
+    if (!isFinite(secPerKm) || secPerKm<=0) return "—";
     const m = Math.floor(secPerKm/60);
     const s = Math.round(secPerKm%60);
     return `${m}'${pad2(s)}`;
   }
 
+  // ===== Render Plan =====
+  const weeksEl = document.getElementById("weeks");
+
+  function renderPlan(){
+    weeksEl.innerHTML = "";
+    for (let w=1; w<=WEEKS; w++){
+      ensureWeek(w);
+      const weekStart = addDays(START, (w-1)*7);
+      const weekEnd = addDays(weekStart, 6);
+      const phase = phaseForWeek(w);
+      const s = sessionsForWeek(w);
+      const state = data.weeks[w];
+
+      const card = document.createElement("div");
+      card.className = "card";
+
+      const details = document.createElement("details");
+      details.open = (w <= 2);
+
+      const summary = document.createElement("summary");
+      summary.innerHTML = `<span>Semaine ${w} — ${fmtDate(weekStart)} → ${fmtDate(weekEnd)}</span>
+                           <span class="pill phase">${phase}</span>`;
+      details.appendChild(summary);
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = (w===14) ? "Semaine de course : fraicheur. Dimanche = semi-marathon." : "Cases a cocher + notes + seances importees (GPX).";
+      details.appendChild(meta);
+
+      const sessions = [
+        ["tue","Mardi", s.tue],
+        ["thu","Jeudi", s.thu],
+        ["sat","Samedi", s.sat],
+        ["sun","Dimanche", s.sun],
+      ];
+
+      sessions.forEach(([key, day, text]) => {
+        const workoutId = state.attached[key];
+        const workout = workoutId ? data.workouts.find(x => x.id === workoutId) : null;
+        const badge = workout
+          ? `<span class="badge">&#128206; ${workout.distKm.toFixed(2)} km &bull; ${workout.avgPaceStr}</span>`
+          : `<span class="badge">&#128206; aucune seance importee</span>`;
+
+        const sec = document.createElement("div");
+        sec.className = "session";
+        sec.innerHTML = `
+          <div class="s-title">${day} ${badge}</div>
+          <label class="cb">
+            <input type="checkbox" ${state.done[key] ? "checked" : ""} data-week="${w}" data-key="${key}">
+            <span>${text}</span>
+          </label>
+          ${workout ? `<div class="mini">Importe le ${workout.dateStr} &bull; Duree ${workout.durationStr}</div>` : `<div class="mini"></div>`}
+        `;
+        details.appendChild(sec);
+      });
+
+      const notes = document.createElement("div");
+      notes.className = "session";
+      notes.innerHTML = `
+        <div class="s-title">Notes de la semaine</div>
+        <div class="grid3">
+          <div>
+            <div class="meta">Sommeil (heures)</div>
+            <input type="number" min="0" step="0.5" inputmode="decimal"
+              value="${state.sleep}" data-week="${w}" data-field="sleep" placeholder="ex: 7.5" />
+          </div>
+          <div>
+            <div class="meta">Sensations</div>
+            <textarea data-week="${w}" data-field="feel" placeholder="ex: bonnes jambes, seance facile...">${state.feel||""}</textarea>
+          </div>
+          <div>
+            <div class="meta">Douleurs</div>
+            <textarea data-week="${w}" data-field="pain" placeholder="ex: legere gene mollet droit...">${state.pain||""}</textarea>
+          </div>
+        </div>
+      `;
+      details.appendChild(notes);
+
+      card.appendChild(details);
+      weeksEl.appendChild(card);
+    }
+
+    weeksEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener("change", (e) => {
+        const w = parseInt(e.target.getAttribute("data-week"),10);
+        const k = e.target.getAttribute("data-key");
+        ensureWeek(w);
+        data.weeks[w].done[k] = e.target.checked;
+        saveData();
+      });
+    });
+
+    weeksEl.querySelectorAll('textarea, input[type="number"]').forEach(el => {
+      el.addEventListener("input", (e) => {
+        const w = parseInt(e.target.getAttribute("data-week"),10);
+        const f = e.target.getAttribute("data-field");
+        ensureWeek(w);
+        data.weeks[w][f] = e.target.value;
+        saveData();
+      });
+    });
+  }
+
+  // ===== Stats Render =====
+  function renderStats(){
+    const k = computeKPI();
+    document.getElementById("globalPill").textContent = `Global : ${k.done}/${k.total} seances (${k.pct}%)`;
+    document.getElementById("sleepPill").textContent = `Semaines sommeil <6h : ${k.sleepLowWeeks}`;
+    document.getElementById("painPill").textContent = `Semaines avec douleurs : ${k.painWeeks}`;
+
+    const barsEl = document.getElementById("bars");
+    barsEl.innerHTML = "";
+    for (let w=1; w<=WEEKS; w++){
+      ensureWeek(w);
+      const d = data.weeks[w].done;
+      const count = ["tue","thu","sat","sun"].reduce((a,k)=>a+(d[k]?1:0),0);
+      const pct = Math.round(count*100/4);
+      const row = document.createElement("div");
+      row.className = "barrow";
+      row.innerHTML = `<div class="muted">S${w}</div>
+                       <div class="bar"><span style="width:${pct}%"></span></div>
+                       <div class="muted">${count}/4</div>`;
+      barsEl.appendChild(row);
+    }
+
+    const f = fatigueStatus();
+    const fatiguePill = document.getElementById("fatiguePill");
+    fatiguePill.textContent = f.label;
+    fatiguePill.className = "pill " + (f.level==="ok" ? "ok" : "warn");
+
+    const list = document.getElementById("fatigueList");
+    list.innerHTML = "";
+    f.reasons.forEach(r => { const li=document.createElement("li"); li.textContent=r; list.appendChild(li); });
+
+    const recent = [...data.workouts].slice(-5).reverse();
+    const recentEl = document.getElementById("recentWorkouts");
+    if (recent.length === 0){
+      recentEl.textContent = "Aucune seance importee pour l'instant.";
+    } else {
+      recentEl.innerHTML = recent.map(w =>
+        `<div class="split"><span>${w.dateStr} &bull; ${w.distKm.toFixed(2)} km</span><span>${w.avgPaceStr}</span></div>`
+      ).join("");
+    }
+
+    const fitnessPill = document.getElementById("fitnessPill");
+    const last3 = [...data.workouts].slice(-3);
+    if (last3.length >= 2){
+      const avgSec = Math.round(last3.reduce((a,w)=>a+w.avgPaceSec,0)/last3.length);
+      fitnessPill.textContent = `Forme (indicative) : allure moy. ~ ${paceStr(avgSec)}/km`;
+    } else {
+      fitnessPill.textContent = "Forme: import 2-3 seances";
+    }
+  }
+
+  // ===== GPX UI hooks =====
+  const attachWeekEl = document.getElementById("attachWeek");
+  const attachDayEl = document.getElementById("attachDay");
+  const attachTypeEl = document.getElementById("attachType");
+  const attachBtn = document.getElementById("attachBtn");
+  const gpxSummaryEl = document.getElementById("gpxSummary");
+  const gpxSplitsEl = document.getElementById("gpxSplits");
+  const gpxFastEl = document.getElementById("gpxFast");
+  let lastParsedWorkout = null;
+
+  function fillWeekSelect(){
+    attachWeekEl.innerHTML = "";
+    for (let w=1; w<=WEEKS; w++){
+      const start = addDays(START, (w-1)*7);
+      const end = addDays(start, 6);
+      const opt = document.createElement("option");
+      opt.value = String(w);
+      opt.textContent = `S${w} — ${fmtDate(start)} → ${fmtDate(end)}`;
+      attachWeekEl.appendChild(opt);
+    }
+    const cw = currentWeekIndex();
+    if (cw>=1 && cw<=WEEKS) attachWeekEl.value = String(cw);
+  }
+
   function parseGPX(xmlText){
     const parser = new DOMParser();
     const doc = parser.parseFromString(xmlText, "application/xml");
-    const err = doc.querySelector("parsererror");
-    if (err) throw new Error("GPX invalide");
+    if (doc.querySelector("parsererror")) throw new Error("GPX invalide");
 
     const pts = Array.from(doc.getElementsByTagName("trkpt"));
     if (pts.length < 2) throw new Error("Pas assez de points");
@@ -692,7 +684,6 @@
       return { lat, lon, t };
     }).filter(p => isFinite(p.lat) && isFinite(p.lon));
 
-    // distance cumulative + time
     let distM = 0;
     let distCum = [0];
     for (let i=1; i<points.length; i++){
@@ -701,26 +692,20 @@
     }
     const distKm = distM/1000;
 
-    // duration using timestamps if present
     const times = points.map(p=>p.t).filter(t=>typeof t === "number" && !Number.isNaN(t));
-    let durationSec = null;
-    let startT = null, endT = null;
+    let durationSec = null, startT=null, endT=null;
     if (times.length >= 2){
       startT = times[0]; endT = times[times.length-1];
       durationSec = (endT - startT)/1000;
       if (!isFinite(durationSec) || durationSec <= 0) durationSec = null;
     }
 
-    // splits per km (from distance curve + timestamps)
     let splits = [];
     if (durationSec !== null){
       let nextKm = 1;
-      let lastIdx = 0;
       let lastKmTime = points[0].t;
-
       for (let i=1; i<points.length && nextKm <= Math.floor(distKm); i++){
         if (distCum[i] >= nextKm*1000){
-          // find time at crossing by linear interpolation between i-1 and i
           const d0 = distCum[i-1], d1 = distCum[i];
           const t0 = points[i-1].t, t1 = points[i].t;
           if (typeof t0==="number" && typeof t1==="number" && d1>d0){
@@ -729,54 +714,42 @@
             const splitSec = (tcross - lastKmTime)/1000;
             splits.push({ km: nextKm, sec: splitSec });
             lastKmTime = tcross;
-            nextKm++;
-          } else {
-            // fallback: skip if time missing
-            nextKm++;
           }
-          lastIdx = i;
+          nextKm++;
         }
       }
     }
 
-    // average pace
     let avgPaceSec = null;
     if (durationSec !== null && distKm > 0.2){
       avgPaceSec = durationSec / distKm;
     }
 
-    // detect "fast segments" by instantaneous speed (requires time)
     let fastSegments = [];
     if (durationSec !== null){
-      // compute speed between consecutive points
       const speeds = [];
       for (let i=1; i<points.length; i++){
         const dt = (points[i].t - points[i-1].t)/1000;
         const dd = distCum[i] - distCum[i-1];
         if (dt > 0.1 && dd >= 0){
-          speeds.push({ i, v: dd/dt }); // m/s
+          speeds.push({ i, v: dd/dt });
         }
       }
       if (speeds.length){
-        // threshold: consider "fast" if pace < 4'25/km (~3.77 m/s) OR top 25% speeds, whichever is higher
         const vs = speeds.map(x=>x.v).filter(v=>isFinite(v)).sort((a,b)=>a-b);
         const p75 = vs[Math.floor(0.75*(vs.length-1))] || 0;
-        const thr = Math.max(3.77, p75); // m/s
-
+        const thr = Math.max(3.77, p75); // ~4'25/km
         let segStart = null;
+
         for (const s of speeds){
           if (s.v >= thr){
             if (segStart === null) segStart = s.i-1;
-          } else {
-            if (segStart !== null){
-              const segEnd = s.i;
-              const d = (distCum[segEnd]-distCum[segStart])/1000;
-              const t = (points[segEnd].t - points[segStart].t)/1000;
-              if (d >= 0.08 && t >= 15) { // keep meaningful segments
-                fastSegments.push({ dKm:d, sec:t, pace: t/d });
-              }
-              segStart = null;
-            }
+          } else if (segStart !== null){
+            const segEnd = s.i;
+            const d = (distCum[segEnd]-distCum[segStart])/1000;
+            const t = (points[segEnd].t - points[segStart].t)/1000;
+            if (d >= 0.08 && t >= 15) fastSegments.push({ dKm:d, sec:t, pace: t/d });
+            segStart = null;
           }
         }
         if (segStart !== null){
@@ -786,21 +759,21 @@
           if (d >= 0.08 && t >= 15) fastSegments.push({ dKm:d, sec:t, pace: t/d });
         }
 
-        // keep up to 10 segments (most representative: by pace)
         fastSegments.sort((a,b)=>a.pace-b.pace);
         fastSegments = fastSegments.slice(0, 10);
       }
     }
 
-    // date label
-    const dateStr = (startT ? new Date(startT) : new Date()).toLocaleString("fr-FR", { weekday:"short", day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" });
+    const dateStr = (startT ? new Date(startT) : new Date()).toLocaleString("fr-FR", {
+      weekday:"short", day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit"
+    });
 
     return {
       distKm,
       durationSec,
-      durationStr: durationSec !== null ? durationStr(durationSec) : "â€”",
+      durationStr: durationSec !== null ? durationStr(durationSec) : "—",
       avgPaceSec: avgPaceSec ?? null,
-      avgPaceStr: avgPaceSec !== null ? paceStr(avgPaceSec) : "â€”",
+      avgPaceStr: avgPaceSec !== null ? paceStr(avgPaceSec) : "—",
       splits,
       fastSegments,
       dateStr
@@ -810,27 +783,36 @@
   function renderParsedWorkout(w){
     gpxSummaryEl.innerHTML = `
       <div class="split"><span><b>Distance</b></span><span>${w.distKm.toFixed(2)} km</span></div>
-      <div class="split"><span><b>DurÃ©e</b></span><span>${w.durationStr}</span></div>
+      <div class="split"><span><b>Duree</b></span><span>${w.durationStr}</span></div>
       <div class="split"><span><b>Allure moyenne</b></span><span>${w.avgPaceStr}/km</span></div>
       <div class="split"><span><b>Date (GPX)</b></span><span>${w.dateStr}</span></div>
-      <div class="mini">Si la durÃ©e est â€œâ€”â€, ton GPX nâ€™a pas de timestamps (ou incomplets).</div>
+      <div class="mini">Si la duree est "—", ton GPX n'a pas de timestamps (ou incomplets).</div>
     `;
 
     if (w.splits && w.splits.length){
       gpxSplitsEl.innerHTML = w.splits.slice(0, 20).map(s =>
         `<div class="split"><span>Km ${s.km}</span><span>${paceStr(s.sec)}/km</span></div>`
-      ).join("") + (w.splits.length>20 ? `<div class="mini">â€¦ ${w.splits.length-20} splits non affichÃ©s</div>` : "");
+      ).join("") + (w.splits.length>20 ? `<div class="mini">… ${w.splits.length-20} splits non affiches</div>` : "");
     } else {
       gpxSplitsEl.textContent = "Splits indisponibles (timestamps manquants ou trop peu de points).";
     }
 
     if (w.fastSegments && w.fastSegments.length){
       gpxFastEl.innerHTML = w.fastSegments.map((s,idx) =>
-        `<div class="split"><span>Segment ${idx+1} â€¢ ${s.dKm.toFixed(2)} km â€¢ ${durationStr(s.sec)}</span><span>${paceStr(s.pace)}/km</span></div>`
+        `<div class="split"><span>Segment ${idx+1} • ${s.dKm.toFixed(2)} km • ${durationStr(s.sec)}</span><span>${paceStr(s.pace)}/km</span></div>`
       ).join("");
     } else {
-      gpxFastEl.textContent = "Aucun segment rapide dÃ©tectÃ© (ou timestamps manquants).";
+      gpxFastEl.textContent = "Aucun segment rapide detecte (ou timestamps manquants).";
     }
+  }
+
+  function guessType(workout){
+    if (!workout || !isFinite(workout.avgPaceSec)) return "auto";
+    const best = workout.fastSegments?.[0]?.pace;
+    if (isFinite(best) && best <= 260) return "vma";
+    if (isFinite(best) && best <= 295) return "tempo";
+    if (workout.distKm >= 16) return "long";
+    return "easy";
   }
 
   document.getElementById("fileInputGPX").addEventListener("change", async (e) => {
@@ -839,66 +821,40 @@
     try {
       const text = await file.text();
       const parsed = parseGPX(text);
-      lastParsedWorkout = {
-        id: "w_" + Date.now(),
-        sourceName: file.name,
-        ...parsed
-      };
+      lastParsedWorkout = { id: "w_" + Date.now(), sourceName: file.name, ...parsed };
       renderParsedWorkout(lastParsedWorkout);
       attachBtn.disabled = false;
-    } catch (err) {
+    } catch {
       lastParsedWorkout = null;
       attachBtn.disabled = true;
-      gpxSummaryEl.textContent = "Impossible dâ€™analyser ce fichier GPX.";
-      gpxSplitsEl.textContent = "â€”";
-      gpxFastEl.textContent = "â€”";
+      gpxSummaryEl.textContent = "Impossible d'analyser ce fichier GPX.";
+      gpxSplitsEl.textContent = "—";
+      gpxFastEl.textContent = "—";
     }
   });
 
-  // Attach workout to plan
-  function guessType(workout){
-    // simple heuristics based on fastest segment pace
-    if (!workout || !isFinite(workout.avgPaceSec)) return "auto";
-    const best = workout.fastSegments?.[0]?.pace;
-    if (isFinite(best) && best <= 260) return "vma";       // <4'20
-    if (isFinite(best) && best <= 295) return "tempo";     // <4'55
-    if (workout.distKm >= 16) return "long";
-    return "easy";
-  }
-
   attachBtn.addEventListener("click", () => {
     if (!lastParsedWorkout) return;
-
     const w = parseInt(attachWeekEl.value, 10);
     const day = attachDayEl.value;
 
     ensureWeek(w);
 
-    // set type
     const selType = attachTypeEl.value;
     lastParsedWorkout.type = (selType === "auto") ? guessType(lastParsedWorkout) : selType;
 
-    // store
     data.workouts.push(lastParsedWorkout);
-
-    // attach + auto-check
     data.weeks[w].attached[day] = lastParsedWorkout.id;
     data.weeks[w].done[day] = true;
 
     saveData();
-
-    // reset lastParsedWorkout so user doesn't accidentally attach twice
     attachBtn.disabled = true;
 
-    // Feedback + jump
-    alert("SÃ©ance attachÃ©e et cochÃ©e âœ…");
+    alert("Seance attachee et cochee ✅");
     show("plan");
   });
 
-  // ===== Populate week select =====
-  fillWeekSelect();
-
-  // ===== Recent workouts & â€œFormeâ€ uses in stats =====
+  // ===== Init =====
   function updateAll(){
     updateCountdown();
     updateHeaderKPI();
@@ -906,11 +862,9 @@
     renderPlan();
   }
 
-  // ===== Initial render =====
+  fillWeekSelect();
   renderPlan();
   updateAll();
-
-  // update countdown hourly if the page stays open
   setInterval(updateCountdown, 60 * 60 * 1000);
 </script>
 </body>
