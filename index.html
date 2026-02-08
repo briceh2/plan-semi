@@ -61,14 +61,14 @@
   <h1>Plan Semi &mdash; dimanche 10 mai 2026</h1>
   <div class="sub">
     D&eacute;but : <b>lundi 2 f&eacute;vrier 2026</b> &bull; Jours : <b>Mar / Jeu / Sam / Dim</b><br>
-    Objectif : <b>1h45 (5&rsquo;00/km)</b> &bull; Bonus : <b>1h43&ndash;1h44</b>
+    Courses interm&eacute;diaires : <b>10 km (dim 15 f&eacute;v)</b> &bull; <b>Semi (dim 29 mars)</b><br>
+    Objectif final : <b>1h45 (5&rsquo;00/km)</b>
   </div>
 
   <div class="tabs">
     <button class="tab active" id="tabPlan">Plan</button>
     <button class="tab" id="tabImport">Importer GPX</button>
     <button class="tab" id="tabStats">Stats</button>
-    <button class="tab" id="tabNutri">Nutrition</button>
   </div>
 
   <div class="kpi" id="kpi"></div>
@@ -87,7 +87,7 @@
       <button id="importBtn">Importer (JSON)</button>
       <button id="resetBtn">R&eacute;initialiser tout</button>
     </div>
-    <div class="meta">iPhone : Safari &rarr; Partager &rarr; <b>Sur l&rsquo;&eacute;cran d&rsquo;accueil</b> (ic&ocirc;ne comme une app).</div>
+    <div class="meta">iPhone : Safari &rarr; Partager &rarr; <b>Sur l&rsquo;&eacute;cran d&rsquo;accueil</b>.</div>
     <input type="file" id="fileInputJSON" accept="application/json" style="display:none" />
   </div>
 
@@ -101,13 +101,12 @@
     <div class="card">
       <div class="s-title">&#128229; Importer une s&eacute;ance (GPX)</div>
       <div class="muted">
-        Choisis un fichier <b>.gpx</b> (Apple / montre / Strava). La page calcule distance, dur&eacute;e, allure, splits km et une d&eacute;tection simple des segments rapides.
+        Choisis un fichier <b>.gpx</b>. La page calcule distance, dur&eacute;e, allure, splits km et segments rapides.
       </div>
 
       <div class="session">
         <div class="s-title">1) S&eacute;lectionner le fichier GPX</div>
         <input type="file" id="fileInputGPX" accept=".gpx,application/gpx+xml,application/xml,text/xml" />
-        <div class="mini">Astuce iPhone : via &ldquo;Fichiers&rdquo; &rarr; s&eacute;lectionne le .gpx.</div>
       </div>
 
       <div class="session">
@@ -141,7 +140,6 @@
         <div class="btns">
           <button class="primary" id="attachBtn" disabled>Attacher au plan + cocher</button>
         </div>
-        <div class="mini">Quand tu attaches : la s&eacute;ance est sauvegard&eacute;e + la case du jour est coch&eacute;e automatiquement.</div>
       </div>
 
       <div class="session">
@@ -153,15 +151,9 @@
         <div class="hr"></div>
         <div class="s-title">Segments rapides (approx.)</div>
         <div id="gpxFast" class="muted">&mdash;</div>
-      </div>
-
-      <div class="session">
-        <div class="s-title">Conseil coach (VMA)</div>
-        <ul class="list">
-          <li>Si les segments rapides sont <b>tr&egrave;s irr&eacute;guliers</b> : pars un peu moins vite au d&eacute;but.</li>
-          <li>Si tu n&rsquo;as pas de &ldquo;pics&rdquo; rapides : tu &eacute;tais peut-&ecirc;tre en s&eacute;ance tempo plut&ocirc;t que VMA.</li>
-          <li>Sur une s&eacute;ance 30/30 : l&rsquo;objectif est la <b>r&eacute;p&eacute;tabilit&eacute;</b>, pas le sprint.</li>
-        </ul>
+        <div class="hr"></div>
+        <div class="s-title">Respect de la s&eacute;ance</div>
+        <div id="gpxCompliance" class="muted">&mdash;</div>
       </div>
     </div>
   </section>
@@ -197,72 +189,72 @@
       </div>
     </div>
   </section>
-
-  <!-- NUTRITION -->
-  <section id="nutriSection" class="hidden">
-    <div class="card">
-      <div class="s-title">&#127860; Pr&eacute;conisations alimentation &amp; hydratation (li&eacute;es au plan)</div>
-
-      <div class="session">
-        <div class="s-title">Semaines 1&ndash;5 &mdash; Base &amp; Moteur</div>
-        <ul class="list">
-          <li>Objectif : r&eacute;cup&eacute;rer + construire.</li>
-          <li>&Agrave; chaque repas : <b>glucides + prot&eacute;ines</b> (riz/p&acirc;tes/pain + &#339;ufs/poisson/volaille/l&eacute;gumineuses).</li>
-          <li>Hydratation : <b>1 verre d&rsquo;eau &agrave; chaque repas</b> + 1&ndash;2 verres dans l&rsquo;apr&egrave;s-midi.</li>
-          <li>Apr&egrave;s VMA/tempo : collation <b>glucides + prot&eacute;ines</b> (banane + yaourt / tartines + fromage).</li>
-        </ul>
-      </div>
-
-      <div class="session">
-        <div class="s-title">Semaines 6&ndash;12 &mdash; Sp&eacute;cifique semi</div>
-        <ul class="list">
-          <li>La veille de la sortie longue : repas plus riche en <b>glucides digestes</b> (p&acirc;tes/riz/pdt), peu gras/fibres.</li>
-          <li>Sortie longue : teste <b>1 gel au km 9&ndash;11 + eau</b>.</li>
-          <li>Entra&icirc;nement : petites gorg&eacute;es r&eacute;guli&egrave;res, ne bois pas &ldquo;d&rsquo;un coup&rdquo;.</li>
-        </ul>
-      </div>
-
-      <div class="session">
-        <div class="s-title">Semaines 13&ndash;14 &mdash; Aff&ucirc;tage + course</div>
-        <ul class="list">
-          <li>J-3 &agrave; J-1 : + glucides, - fibres/gras, pas de nouveaut&eacute;.</li>
-          <li>Hydratation r&eacute;guli&egrave;re (urine claire), sans exc&egrave;s.</li>
-        </ul>
-      </div>
-
-      <div class="session">
-        <div class="s-title">&#127937; Jour J (dimanche 10 mai 2026)</div>
-        <ul class="list">
-          <li>Petit-d&eacute;j (2h30&ndash;3h avant) : <b>pain blanc + miel/confiture + banane + 300&ndash;500 ml eau</b>.</li>
-          <li>En course : <b>2&ndash;3 gorg&eacute;es ~tous les 5 km</b> (&agrave; chaque ravito si chaleur).</li>
-          <li><b>Gel au km 9&ndash;11</b> + eau juste apr&egrave;s.</li>
-          <li>Allure (1h45) : km 1&ndash;3 &agrave; 5&rsquo;05, km 4&ndash;18 &agrave; 5&rsquo;00, fin si OK &rarr; 4&rsquo;55.</li>
-          <li>Apr&egrave;s : eau + glucides + prot&eacute;ines dans l&rsquo;heure.</li>
-        </ul>
-      </div>
-    </div>
-  </section>
 </div>
 
 <script>
   // ===== Dates =====
-  const START = new Date("2026-02-02T00:00:00"); // lundi 2 f&eacute;vrier 2026
-  const RACE  = new Date("2026-05-10T00:00:00"); // dimanche 10 mai 2026
-  const WEEKS = 14; // S1: 2-8 f&eacute;v ... S14: 4-10 mai (course)
+  const START = new Date("2026-02-02T00:00:00"); // lundi 2 fev 2026
+  const RACE  = new Date("2026-05-10T00:00:00"); // semi objectif
+  const WEEKS = 14;
 
-  function fmtDate(d){
-    return d.toLocaleDateString("fr-FR", { day:"2-digit", month:"short", year:"numeric" });
-  }
+  function fmtDate(d){ return d.toLocaleDateString("fr-FR", { day:"2-digit", month:"short", year:"numeric" }); }
   function addDays(d, n){ const x = new Date(d); x.setDate(x.getDate()+n); return x; }
 
-  // ===== Plan =====
+  // ===== Phases =====
   function phaseForWeek(w){
     if (w <= 5) return "Base & Moteur";
     if (w <= 12) return "Sp\u00E9cifique Semi";
     return "Aff\u00FBtage";
   }
 
+  // ===== PLAN (MIS A JOUR AVEC 10 km + semi du 29 mars) =====
+  // S1 = 2-8 fev
+  // S2 = 9-15 fev (10 km le dim 15)
+  // S3 = 16-22 fev (recup post-10 km)
+  // S8 = 23-29 mars (semi le dim 29)
+  // S9 = 30 mars-5 avril (recup post-semi)
   function sessionsForWeek(w){
+    // --- S2: allegement + 10 km ---
+    if (w === 2){
+      return {
+        tue: "VMA all\u00E9g\u00E9e : 2 x (6 x 30s rapide / 30s lent) + r\u00E9cup 3 min entre s\u00E9ries",
+        thu: "Tempo all\u00E9g\u00E9 : 2 x 8 min (r\u00E9cup 2 min) \u2014 finir propre, sans se cramer",
+        sat: "30\u201340 min tr\u00E8s facile + 4 lignes droites (rel\u00E2ch\u00E9es)",
+        sun: "\uD83C\uDFC1 COURSE 10 km (dim 15 f\u00E9v) \u2014 d\u00E9part prudent 1\u20132 km, puis stabiliser"
+      };
+    }
+
+    // --- S3: recup post-10 km ---
+    if (w === 3){
+      return {
+        tue: "45\u201355 min facile (pas de VMA)",
+        thu: "Rappel doux : 3 x 6 min tempo mod\u00E9r\u00E9 (r\u00E9cup 2 min) OU 20 min continu doux",
+        sat: "45\u201360 min facile + 6 lignes droites (optionnel si jambes OK)",
+        sun: "Sortie longue sage : 1h15\u20131h25 facile"
+      };
+    }
+
+    // --- S8: mini-affutage + semi le 29 mars ---
+    if (w === 8){
+      return {
+        tue: "VMA courte : 8 x 400 m \u00E0 ~4'10/km (r\u00E9cup 1'15)",
+        thu: "Allure semi : 2 x 10 min \u00E0 5'00/km (r\u00E9cup 3 min) \u2014 sans fatigue",
+        sat: "25\u201335 min tr\u00E8s facile + 4 lignes droites",
+        sun: "\uD83C\uDFC1 SEMI (dim 29 mars) \u2014 mode r\u00E9p\u00E9tition : 5 km faciles, puis 10\u201312 km \u00E0 5'00, fin propre"
+      };
+    }
+
+    // --- S9: recup post-semi ---
+    if (w === 9){
+      return {
+        tue: "45\u201355 min facile",
+        thu: "Tempo l\u00E9ger : 2 x 8 min (r\u00E9cup 2 min) OU 20 min continu doux",
+        sat: "50\u201360 min facile + 6 lignes droites si jambes OK",
+        sun: "Sortie longue : 1h20\u20131h35 facile (sans blocs)"
+      };
+    }
+
+    // --- Sinon: plan standard (comme avant) ---
     if (w <= 5) {
       return {
         tue: "VMA : 2 x (8 x 30s rapide / 30s lent) (rapide ~4'05\u20134'15/km)",
@@ -284,25 +276,24 @@
         sat: "40\u201350 min tr\u00E8s facile",
         sun: "1h05\u20131h15 facile (sans forcer)"
       };
-    } else {
+    } else { // w === 14
       return {
         tue: "Footing 40\u201345 min + 4 lignes droites",
         thu: "Rappel : 8\u201310 min allure semi (sans fatigue) + retour au calme",
         sat: "25\u201335 min tr\u00E8s facile (optionnel si fatigue)",
-        sun: "SEMI-MARATHON (10 mai) \u2014 Objectif 1h45 (5'00/km) \u2014 Gel km 9\u201311 + eau"
+        sun: "\uD83C\uDFC1 SEMI OBJECTIF (10 mai) \u2014 Objectif 1h45 (5'00/km) \u2014 Gel km 9\u201311 + eau"
       };
     }
   }
 
   // ===== Storage =====
-  const KEY = "planSemiData_v5";
+  // (nouvelle cl\u00E9 pour \u00E9viter les conflits avec tes anciennes versions)
+  const KEY = "planSemiData_v7";
   const defaultData = { weeks: {}, workouts: [] };
 
   function loadData(){
-    try {
-      const raw = localStorage.getItem(KEY);
-      return raw ? JSON.parse(raw) : defaultData;
-    } catch { return defaultData; }
+    try { const raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : defaultData; }
+    catch { return defaultData; }
   }
   const data = loadData();
 
@@ -332,13 +323,13 @@
     if (daysLeft > 0){
       const weeksLeft = Math.floor(daysLeft / 7);
       const extra = daysLeft % 7;
-      pill.textContent = `\u23F3 Course dans ${weeksLeft} sem + ${extra} j (= ${daysLeft} jours)`;
+      pill.textContent = `\u23F3 Semi objectif dans ${weeksLeft} sem + ${extra} j (= ${daysLeft} jours)`;
       pill.className = "pill";
     } else if (daysLeft === 0){
       pill.textContent = "\uD83C\uDFC1 C'est aujourd'hui !";
       pill.className = "pill ok";
     } else {
-      pill.textContent = "\u2705 Course passe\u0301e";
+      pill.textContent = "\u2705 Course passee";
       pill.className = "pill ok";
     }
   }
@@ -360,10 +351,7 @@
       const d = data.weeks[w].done;
       const count = ["tue","thu","sat","sun"].reduce((a,k)=>a+(d[k]?1:0),0);
       total += 4; done += count;
-
-      const pain = (data.weeks[w].pain || "").trim();
-      if (pain.length >= 3) painWeeks++;
-
+      const pain = (data.weeks[w].pain || "").trim(); if (pain.length >= 3) painWeeks++;
       const sleep = parseFloat(String(data.weeks[w].sleep||"").replace(",","."));
       if (!Number.isNaN(sleep) && sleep>0 && sleep<6) sleepLowWeeks++;
     }
@@ -375,24 +363,17 @@
     const w = currentWeekIndex();
     if (w < 1 || w > WEEKS) return { level:"ok", label:"\uD83D\uDFE2 RAS (hors periode)", reasons:["Hors des 14 semaines."] };
     ensureWeek(w);
-
     const d = data.weeks[w].done;
     const count = ["tue","thu","sat","sun"].reduce((a,k)=>a+(d[k]?1:0),0);
     const pain = (data.weeks[w].pain||"").trim().length >= 3;
     const sleep = parseFloat(String(data.weeks[w].sleep||"").replace(",","."));
     const sleepLow = (!Number.isNaN(sleep) && sleep>0 && sleep<6);
-
     const reasons = [];
     if (pain) reasons.push("Douleurs renseignees cette semaine.");
     if (sleepLow) reasons.push("Sommeil < 6h cette semaine.");
     if (count === 4) reasons.push("4 seances cochees : OK si recuperation bonne.");
-
-    if ((pain && count>=3) || (sleepLow && count>=3)){
-      return { level:"warn", label:"\uD83D\uDD34 Vigilance (allege)", reasons: reasons.length?reasons:["Charge elevee avec signaux faibles."] };
-    }
-    if (pain || sleepLow){
-      return { level:"warn", label:"\uD83D\uDFE0 Attention (prudence)", reasons: reasons.length?reasons:["Surveille la recup."] };
-    }
+    if ((pain && count>=3) || (sleepLow && count>=3)) return { level:"warn", label:"\uD83D\uDD34 Vigilance (allege)", reasons: reasons.length?reasons:["Charge elevee avec signaux faibles."] };
+    if (pain || sleepLow) return { level:"warn", label:"\uD83D\uDFE0 Attention (prudence)", reasons: reasons.length?reasons:["Surveille la recup."] };
     return { level:"ok", label:"\uD83D\uDFE2 OK (continue)", reasons:["Bon equilibre charge / recuperation."] };
   }
 
@@ -400,77 +381,52 @@
     const k = computeKPI();
     const w = currentWeekIndex();
     const scope = (w>=1 && w<=WEEKS) ? `Semaine en cours : <strong>S${w}</strong> &bull; ` : "";
-    document.getElementById("kpi").innerHTML =
-      `${scope}Suivi : <strong>${k.done}/${k.total}</strong> seances cochees &bull; <strong>${k.pct}%</strong>`;
+    document.getElementById("kpi").innerHTML = `${scope}Suivi : <strong>${k.done}/${k.total}</strong> seances cochees &bull; <strong>${k.pct}%</strong>`;
   }
 
   // ===== Tabs =====
   function show(which){
-    document.getElementById("planSection").classList.add("hidden");
-    document.getElementById("importSection").classList.add("hidden");
-    document.getElementById("statsSection").classList.add("hidden");
-    document.getElementById("nutriSection").classList.add("hidden");
-    document.getElementById("tabPlan").classList.remove("active");
-    document.getElementById("tabImport").classList.remove("active");
-    document.getElementById("tabStats").classList.remove("active");
-    document.getElementById("tabNutri").classList.remove("active");
-
+    ["planSection","importSection","statsSection"].forEach(id=>document.getElementById(id).classList.add("hidden"));
+    ["tabPlan","tabImport","tabStats"].forEach(id=>document.getElementById(id).classList.remove("active"));
     if (which==="plan"){ document.getElementById("planSection").classList.remove("hidden"); document.getElementById("tabPlan").classList.add("active"); }
     if (which==="import"){ document.getElementById("importSection").classList.remove("hidden"); document.getElementById("tabImport").classList.add("active"); }
     if (which==="stats"){ document.getElementById("statsSection").classList.remove("hidden"); document.getElementById("tabStats").classList.add("active"); }
-    if (which==="nutri"){ document.getElementById("nutriSection").classList.remove("hidden"); document.getElementById("tabNutri").classList.add("active"); }
     window.scrollTo({top:0, behavior:"smooth"});
   }
   document.getElementById("tabPlan").onclick = ()=>show("plan");
   document.getElementById("tabImport").onclick = ()=>show("import");
   document.getElementById("tabStats").onclick = ()=>show("stats");
-  document.getElementById("tabNutri").onclick = ()=>show("nutri");
 
   // ===== Export / Import JSON / Reset =====
   document.getElementById("exportBtn").addEventListener("click", () => {
     const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
-    a.download = "plan-semi-donnees.json";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    a.href = url; a.download = "plan-semi-donnees.json";
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   });
-
-  document.getElementById("importBtn").addEventListener("click", () => {
-    document.getElementById("fileInputJSON").click();
-  });
-
+  document.getElementById("importBtn").addEventListener("click", () => document.getElementById("fileInputJSON").click());
   document.getElementById("fileInputJSON").addEventListener("change", async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const file = e.target.files?.[0]; if (!file) return;
     try {
       const txt = await file.text();
       const parsed = JSON.parse(txt);
       if (!parsed || typeof parsed !== "object" || !parsed.weeks) throw new Error("Format invalide");
       localStorage.setItem(KEY, JSON.stringify(parsed));
       location.reload();
-    } catch {
-      alert("Import impossible : fichier invalide.");
-    }
+    } catch { alert("Import impossible : fichier invalide."); }
   });
-
   document.getElementById("resetBtn").addEventListener("click", () => {
     if (!confirm("Reinitialiser toutes les cases, notes et seances importees ?")) return;
-    localStorage.removeItem(KEY);
-    location.reload();
+    localStorage.removeItem(KEY); location.reload();
   });
 
-  // ===== Helpers for GPX =====
+  // ===== Helpers GPX =====
   function toNum(s){ return parseFloat(String(s||"").replace(",", ".")); }
   function haversine(lat1, lon1, lat2, lon2){
-    const R = 6371000;
-    const toRad = x => x*Math.PI/180;
+    const R = 6371000; const toRad = x => x*Math.PI/180;
     const p1 = toRad(lat1), p2 = toRad(lat2);
-    const dphi = toRad(lat2-lat1);
-    const dl = toRad(lon2-lon1);
+    const dphi = toRad(lat2-lat1); const dl = toRad(lon2-lon1);
     const a = Math.sin(dphi/2)**2 + Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
     return 2*R*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   }
@@ -489,8 +445,143 @@
     const s = Math.round(secPerKm%60);
     return `${m}'${pad2(s)}`;
   }
+  function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
 
-  // ===== Render Plan =====
+  // ===== Indicateur respect seance (mis a jour avec 10km + semi 29/03) =====
+  function expectedSessionType(week, day){
+    // semaines speciales
+    if (week === 2 && day === "sun") return "race_10k";
+    if (week === 8 && day === "sun") return "race_hm_tune"; // semi repetition
+    if (week === 14 && day === "sun") return "race_hm_goal";
+
+    // post-course semaines allegement
+    if (week === 3){
+      if (day === "tue") return "easy";
+      if (day === "thu") return "tempo_light";
+      if (day === "sat") return "easy";
+      if (day === "sun") return "long_light";
+    }
+    if (week === 9){
+      if (day === "tue") return "easy";
+      if (day === "thu") return "tempo_light";
+      if (day === "sat") return "easy";
+      if (day === "sun") return "long_light";
+    }
+
+    // plan standard
+    if (week <= 5){
+      if (day === "tue") return "vma_30_30";
+      if (day === "thu") return "tempo";
+      if (day === "sat") return "easy";
+      if (day === "sun") return "long";
+    } else if (week <= 12){
+      if (day === "tue") return "vma_400";
+      if (day === "thu") return "as21";
+      if (day === "sat") return "easy";
+      if (day === "sun") return "long_as21";
+    } else if (week === 13){
+      if (day === "tue") return "vma_200";
+      if (day === "thu") return "as21";
+      if (day === "sat") return "easy";
+      if (day === "sun") return "easy_long";
+    } else {
+      if (day === "tue") return "easy";
+      if (day === "thu") return "as21_short";
+      if (day === "sat") return "easy_short";
+      if (day === "sun") return "race_hm_goal";
+    }
+  }
+
+  function complianceIndicator(workout, week, day){
+    const exp = expectedSessionType(week, day);
+    const dist = workout?.distKm ?? 0;
+    const dur = workout?.durationSec ?? null;
+    const avg = workout?.avgPaceSec ?? null;
+    const segs = workout?.fastSegments ?? [];
+
+    let score = 50;
+    const notes = [];
+    const bestPace = segs.length ? segs[0].pace : null;
+    const segCount = segs.length;
+
+    // Commun
+    if (dist < 3.5) { score -= 20; notes.push("Sortie courte."); }
+    if (dur && dur < 20*60) { score -= 12; notes.push("Duree courte."); }
+
+    // Courses
+    if (exp === "race_10k"){
+      // Distance attendue ~10km (tol 9-11)
+      if (dist >= 9 && dist <= 11) score += 25; else { score -= 10; notes.push("Distance atypique pour un 10 km."); }
+      if (avg && avg <= 330) score += 10; else if (avg) { score -= 5; notes.push("Allure moyenne plutot prudente (OK si objectif = ne pas se cramer)."); }
+    }
+
+    if (exp === "race_hm_tune" || exp === "race_hm_goal"){
+      // Distance attendue ~21.1 (tol 20-22)
+      if (dist >= 20 && dist <= 22.2) score += 25; else { score -= 12; notes.push("Distance atypique pour un semi."); }
+      if (exp === "race_hm_goal"){
+        if (avg && avg <= 315) score += 10; // ~5'15 ou mieux
+      } else {
+        // repetition generale: allure peut etre plus conservative
+        if (avg && avg <= 330) score += 6;
+      }
+    }
+
+    // Easy / recup
+    if (exp === "easy" || exp === "easy_short" || exp === "easy_long"){
+      if (avg && avg < 320) { score -= 15; notes.push("Un peu rapide pour une seance facile."); }
+      else score += 10;
+      if (segCount >= 3 && bestPace && bestPace < 270) { score -= 10; notes.push("Beaucoup de segments tres rapides."); }
+      else score += 5;
+    }
+
+    // Long / long_light
+    if (exp === "long" || exp === "long_as21" || exp === "long_light"){
+      const minKm = (exp === "long_light") ? 10 : 12;
+      if (dist >= minKm) score += 15; else { score -= 10; notes.push("Sortie longue plutot courte."); }
+      if (exp === "long_as21"){
+        if (segCount >= 2) score += 10; else { score -= 8; notes.push("Pas de bloc soutenu detecte (si prevu)."); }
+      }
+      if (exp === "long_light" && segCount >= 4){
+        score -= 6; notes.push("Recup post-course: eviter trop de segments rapides.");
+      }
+    }
+
+    // AS21
+    if (exp === "as21" || exp === "as21_short"){
+      if (avg){
+        if (avg >= 290 && avg <= 330) score += 15;
+        else if (avg >= 280 && avg < 290) { score += 5; notes.push("Plutot rapide: OK si maitrise."); }
+        else if (avg > 330) { score -= 10; notes.push("Plutot lent: peut-etre endurance."); }
+      } else { score -= 8; notes.push("Allure moyenne indisponible."); }
+      if (segCount >= 1) score += 5;
+    }
+
+    // Tempo / tempo light
+    if (exp === "tempo" || exp === "tempo_light"){
+      const thr = (exp === "tempo_light") ? 315 : 305; // light = un peu moins exigeant
+      if (bestPace && bestPace <= thr) score += 12;
+      else { score -= 8; notes.push("Peu de travail soutenu detecte."); }
+    }
+
+    // VMA
+    if (String(exp).startsWith("vma")){
+      const minSeg = (exp === "vma_200") ? 3 : 5;
+      if (segCount >= minSeg) score += 15;
+      else if (segCount >= 3) { score += 5; notes.push("Segments rapides presents mais peu nombreux."); }
+      else { score -= 15; notes.push("Peu de segments rapides: VMA difficile a confirmer."); }
+      if (bestPace && bestPace <= 270) score += 10;
+      else { score -= 8; notes.push("Segments pas tres rapides (peut-etre tempo)."); }
+    }
+
+    score = clamp(Math.round(score), 0, 100);
+    let verdict = "🟠 Partiel";
+    if (score >= 75) verdict = "✅ Tres proche";
+    if (score < 50) verdict = "🔴 Hors cible";
+
+    return { exp, score, verdict, notes };
+  }
+
+  // ===== Render plan =====
   const weeksEl = document.getElementById("weeks");
 
   function renderPlan(){
@@ -516,7 +607,12 @@
 
       const meta = document.createElement("div");
       meta.className = "meta";
-      meta.textContent = (w===14) ? "Semaine de course : fraicheur. Dimanche = semi-marathon." : "Cases a cocher + notes + seances importees (GPX).";
+      if (w === 2) meta.textContent = "Semaine course 10 km (dim 15 fev): allegement + course.";
+      else if (w === 3) meta.textContent = "Recuperation post-10 km: absorber, sans forcer.";
+      else if (w === 8) meta.textContent = "Semaine semi (dim 29 mars): mini-affutage + repetition generale.";
+      else if (w === 9) meta.textContent = "Recuperation post-semi: reprise progressive.";
+      else if (w === 14) meta.textContent = "Semaine de course: fraicheur. Dimanche = semi objectif.";
+      else meta.textContent = "Cases a cocher + notes + seances importees (GPX).";
       details.appendChild(meta);
 
       const sessions = [
@@ -529,14 +625,19 @@
       sessions.forEach(([key, day, text]) => {
         const workoutId = state.attached[key];
         const workout = workoutId ? data.workouts.find(x => x.id === workoutId) : null;
-        const badge = workout
+
+        const badge1 = workout
           ? `<span class="badge">&#128206; ${workout.distKm.toFixed(2)} km &bull; ${workout.avgPaceStr}</span>`
           : `<span class="badge">&#128206; aucune seance importee</span>`;
+
+        const badge2 = (workout && workout.compliance)
+          ? `<span class="badge">${workout.compliance.verdict} &bull; ${workout.compliance.score}/100</span>`
+          : "";
 
         const sec = document.createElement("div");
         sec.className = "session";
         sec.innerHTML = `
-          <div class="s-title">${day} ${badge}</div>
+          <div class="s-title">${day} ${badge1} ${badge2}</div>
           <label class="cb">
             <input type="checkbox" ${state.done[key] ? "checked" : ""} data-week="${w}" data-key="${key}">
             <span>${text}</span>
@@ -593,7 +694,7 @@
     });
   }
 
-  // ===== Stats Render =====
+  // ===== Stats =====
   function renderStats(){
     const k = computeKPI();
     document.getElementById("globalPill").textContent = `Global : ${k.done}/${k.total} seances (${k.pct}%)`;
@@ -644,7 +745,7 @@
     }
   }
 
-  // ===== GPX UI hooks =====
+  // ===== GPX parsing =====
   const attachWeekEl = document.getElementById("attachWeek");
   const attachDayEl = document.getElementById("attachDay");
   const attachTypeEl = document.getElementById("attachType");
@@ -652,6 +753,8 @@
   const gpxSummaryEl = document.getElementById("gpxSummary");
   const gpxSplitsEl = document.getElementById("gpxSplits");
   const gpxFastEl = document.getElementById("gpxFast");
+  const gpxComplianceEl = document.getElementById("gpxCompliance");
+
   let lastParsedWorkout = null;
 
   function fillWeekSelect(){
@@ -731,9 +834,7 @@
       for (let i=1; i<points.length; i++){
         const dt = (points[i].t - points[i-1].t)/1000;
         const dd = distCum[i] - distCum[i-1];
-        if (dt > 0.1 && dd >= 0){
-          speeds.push({ i, v: dd/dt });
-        }
+        if (dt > 0.1 && dd >= 0) speeds.push({ i, v: dd/dt });
       }
       if (speeds.length){
         const vs = speeds.map(x=>x.v).filter(v=>isFinite(v)).sort((a,b)=>a-b);
@@ -786,7 +887,7 @@
       <div class="split"><span><b>Duree</b></span><span>${w.durationStr}</span></div>
       <div class="split"><span><b>Allure moyenne</b></span><span>${w.avgPaceStr}/km</span></div>
       <div class="split"><span><b>Date (GPX)</b></span><span>${w.dateStr}</span></div>
-      <div class="mini">Si la duree est "—", ton GPX n'a pas de timestamps (ou incomplets).</div>
+      <div class="mini">Le respect de seance s'affiche apres attache au plan.</div>
     `;
 
     if (w.splits && w.splits.length){
@@ -794,7 +895,7 @@
         `<div class="split"><span>Km ${s.km}</span><span>${paceStr(s.sec)}/km</span></div>`
       ).join("") + (w.splits.length>20 ? `<div class="mini">… ${w.splits.length-20} splits non affiches</div>` : "");
     } else {
-      gpxSplitsEl.textContent = "Splits indisponibles (timestamps manquants ou trop peu de points).";
+      gpxSplitsEl.textContent = "Splits indisponibles.";
     }
 
     if (w.fastSegments && w.fastSegments.length){
@@ -804,6 +905,8 @@
     } else {
       gpxFastEl.textContent = "Aucun segment rapide detecte (ou timestamps manquants).";
     }
+
+    gpxComplianceEl.textContent = "Attache la seance a une semaine/jour pour calculer le respect.";
   }
 
   function guessType(workout){
@@ -830,31 +933,52 @@
       gpxSummaryEl.textContent = "Impossible d'analyser ce fichier GPX.";
       gpxSplitsEl.textContent = "—";
       gpxFastEl.textContent = "—";
+      gpxComplianceEl.textContent = "—";
     }
   });
 
   attachBtn.addEventListener("click", () => {
     if (!lastParsedWorkout) return;
-    const w = parseInt(attachWeekEl.value, 10);
-    const day = attachDayEl.value;
 
-    ensureWeek(w);
+    const week = parseInt(attachWeekEl.value, 10);
+    const day  = attachDayEl.value;
+
+    ensureWeek(week);
 
     const selType = attachTypeEl.value;
     lastParsedWorkout.type = (selType === "auto") ? guessType(lastParsedWorkout) : selType;
 
+    // respect seance
+    const comp = complianceIndicator(lastParsedWorkout, week, day);
+    lastParsedWorkout.compliance = comp;
+
     data.workouts.push(lastParsedWorkout);
-    data.weeks[w].attached[day] = lastParsedWorkout.id;
-    data.weeks[w].done[day] = true;
+    data.weeks[week].attached[day] = lastParsedWorkout.id;
+    data.weeks[week].done[day] = true;
 
     saveData();
-    attachBtn.disabled = true;
 
-    alert("Seance attachee et cochee ✅");
+    gpxComplianceEl.innerHTML = `<b>${comp.verdict}</b> &bull; ${comp.score}/100<br><span class="mini">${comp.notes.join(" ") || "Aucun commentaire."}</span>`;
+    attachBtn.disabled = true;
+    alert(`Seance attachee et cochee ✅\nRespect : ${comp.verdict} (${comp.score}/100)`);
     show("plan");
   });
 
   // ===== Init =====
+  function fillWeekSelectInit(){
+    attachWeekEl.innerHTML = "";
+    for (let w=1; w<=WEEKS; w++){
+      const start = addDays(START, (w-1)*7);
+      const end = addDays(start, 6);
+      const opt = document.createElement("option");
+      opt.value = String(w);
+      opt.textContent = `S${w} — ${fmtDate(start)} → ${fmtDate(end)}`;
+      attachWeekEl.appendChild(opt);
+    }
+    const cw = currentWeekIndex();
+    if (cw>=1 && cw<=WEEKS) attachWeekEl.value = String(cw);
+  }
+
   function updateAll(){
     updateCountdown();
     updateHeaderKPI();
@@ -862,7 +986,7 @@
     renderPlan();
   }
 
-  fillWeekSelect();
+  fillWeekSelectInit();
   renderPlan();
   updateAll();
   setInterval(updateCountdown, 60 * 60 * 1000);
