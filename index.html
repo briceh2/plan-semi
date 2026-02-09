@@ -972,7 +972,7 @@
             <input type="checkbox" ${state.done[key] ? "checked" : ""} data-week="${w}" data-key="${key}">
             <span>${text}</span>
           </label>
-          ${workout ? `<div class="mini">Importe le ${workout.dateStr} &bull; Duree ${workout.durationStr} &bull; R\u00E9f: ${workout.compliance?.specLabel || "-"}</div>` : `<div class="mini"></div>`}
+          ${workout ? `<div class="mini">Importe le ${workout.dateStr} &bull; Duree ${workout.durationStr} &bull; R\u00E9f: ${workout.compliance?.specLabel || "-"}</div>${reasonsInLine}` : `<div class="mini"></div>`}
         `;
         details.appendChild(sec);
       });
