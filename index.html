@@ -56,9 +56,8 @@
     .badge.ok { background:#ecfdf5; color:#065f46; }
     .badge.warn { background:#fff7ed; color:#9a3412; }
     .badge.bad { background:#fef2f2; color:#991b1b; }
-    code { background:#f3f4f6; padding:2px 6px; border-radius:6px; }
 
-    /* Raisons compactes */
+    /* Raisons compactes (dans le plan) */
     .reasonsInline { margin:6px 0 0; padding-left:18px; }
     .reasonsInline li { margin:3px 0; font-size:11px; color:#444; }
     .reasonsCompact { margin-top:6px; font-size:11px; color:#444; }
@@ -88,7 +87,7 @@
   <div class="card">
     <div class="row">
       <span class="pill">💾 Sauvegarde auto</span>
-      <span class="pill phase">🧠 Pas 2 séances dures d’affilée</span>
+      <span class="pill phase">🧠 Analyse adaptée (30/30, 400m, tempo)</span>
       <span class="pill" id="countdownPill">⏳ —</span>
       <span class="pill" id="fatiguePill">—</span>
     </div>
@@ -109,12 +108,17 @@
     <div class="card">
       <div class="s-title">📥 Importer une séance (GPX/GTX)</div>
       <div class="muted">
-        Choisis un fichier <b>.gpx</b> ou <b>.gtx</b>. Si le fichier est un XML de type GPX, la page calcule distance, durée, allure, splits & un indicateur adapté à la séance sélectionnée.
+        Choisis un fichier <b>.gpx</b> ou <b>.gtx</b>. Si le fichier contient des points GPS + timestamps (format GPX/XML), la page calcule distance, durée, allure, splits et l’indicateur de respect.
       </div>
 
       <div class="session">
         <div class="s-title">1) Choisir le fichier</div>
-        <input type="file" id="fileInputGPX" accept=".gpx,.gtx,application/gpx+xml,application/xml,text/xml,*/*" />
+        <input
+          type="file"
+          id="fileInputGPX"
+          accept=".gpx,.gtx,application/gpx+xml,application/xml,text/xml,*/*"
+        />
+        <div class="mini">Si les fichiers .gtx apparaissent grisés : vérifie que l’extension est bien “.gtx” (pas “.gtx.xml”) et que Safari ne l’a pas renommée.</div>
       </div>
 
       <div class="session">
@@ -137,7 +141,8 @@
             <div class="meta">Type (optionnel)</div>
             <select id="attachType">
               <option value="auto">Auto (selon plan)</option>
-              <option value="vma">VMA</option>
+              <option value="vma30">VMA 30/30</option>
+              <option value="vma400">VMA 400m</option>
               <option value="tempo">Tempo / Seuil</option>
               <option value="easy">Endurance</option>
               <option value="long">Sortie longue</option>
@@ -214,6 +219,7 @@
   }
 
   function sessionsForWeek(w){
+    // Courses intermédiaires intégrées
     if (w === 2){
       return {
         tue: "VMA allégée : 2 x (6 x 30/30) + récup 3 min",
@@ -279,7 +285,7 @@
   }
 
   // ===== Storage =====
-  // (nouvelle clé pour éviter de casser ton stockage si tu as eu une version bug)
+  // (clé stable pour conserver tes données)
   const KEY = "planSemiData_v10";
   const defaultData = { weeks: {}, workouts: [] };
 
@@ -403,16 +409,17 @@
     localStorage.removeItem(KEY); location.reload();
   });
 
-  // ===== Helpers GPX =====
+  // ===== Helpers =====
   function toNum(s){ return parseFloat(String(s||"").replace(",", ".")); }
-  function haversine(lat1, lon1, lat2, lon2){
-    const R = 6371000; const toRad = x => x*Math.PI/180;
-    const p1 = toRad(lat1), p2 = toRad(lat2);
-    const dphi = toRad(lat2-lat1); const dl = toRad(lon2-lon1);
-    const a = Math.sin(dphi/2)**2 + Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
-    return 2*R*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  }
   function pad2(n){ return n<10 ? "0"+n : ""+n; }
+  function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
+  function mean(arr){ return arr.length ? (arr.reduce((a,x)=>a+x,0)/arr.length) : null; }
+  function minmax(arr){
+    if (!arr.length) return { min:null, max:null };
+    let mn=arr[0], mx=arr[0];
+    for (const x of arr){ if (x<mn) mn=x; if (x>mx) mx=x; }
+    return { min:mn, max:mx };
+  }
   function durationStr(sec){
     sec = Math.max(0, Math.round(sec));
     const h = Math.floor(sec/3600);
@@ -427,20 +434,21 @@
     const s = Math.round(secPerKm%60);
     return `${m}'${pad2(s)}`;
   }
-  function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
-
-  function mean(arr){ return arr.length ? (arr.reduce((a,x)=>a+x,0)/arr.length) : null; }
-  function minmax(arr){
-    if (!arr.length) return { min:null, max:null };
-    let mn=arr[0], mx=arr[0];
-    for (const x of arr){ if (x<mn) mn=x; if (x>mx) mx=x; }
-    return { min:mn, max:mx };
-  }
   function fmtPaceTarget(target, tol){
     return `${paceStr(target)}/km ± ${Math.round(tol)}s`;
   }
 
+  function haversine(lat1, lon1, lat2, lon2){
+    const R = 6371000; const toRad = x => x*Math.PI/180;
+    const p1 = toRad(lat1), p2 = toRad(lat2);
+    const dphi = toRad(lat2-lat1); const dl = toRad(lon2-lon1);
+    const a = Math.sin(dphi/2)**2 + Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
+    return 2*R*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  // ===== GPX processing =====
   function normalizeSamples(raw){
+    // on garde un point toutes les ~2s (stabilité sur iPhone)
     const out = [];
     let lastT = null;
     for (const p of raw){
@@ -471,7 +479,7 @@
     const splits = [];
     let nextKm = 1;
     let lastCrossMs = samples[0].tMs;
-    for (let i=1;i<samples.length && nextKm<=100;i++){
+    for (let i=1;i<samples.length && nextKm<=200;i++){
       if (samples[i].distM >= nextKm*1000){
         const d0 = samples[i-1].distM, d1 = samples[i].distM;
         const t0 = samples[i-1].tMs, t1 = samples[i].tMs;
@@ -488,45 +496,84 @@
     return splits;
   }
 
-  function timeAtDistance(samples, targetDistM){
-    if (targetDistM <= samples[0].distM) return samples[0].tMs;
-    const last = samples[samples.length-1];
-    if (targetDistM >= last.distM) return last.tMs;
-    for (let i=1;i<samples.length;i++){
-      if (samples[i].distM >= targetDistM){
-        const d0 = samples[i-1].distM, d1 = samples[i].distM;
-        const t0 = samples[i-1].tMs, t1 = samples[i].tMs;
-        const frac = (targetDistM - d0) / (d1 - d0);
-        return t0 + frac*(t1 - t0);
+  function parseGPX(xmlText){
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xmlText, "application/xml");
+    if (doc.querySelector("parsererror")) throw new Error("Format XML non reconnu (pas un GPX).");
+
+    const pts = Array.from(doc.getElementsByTagName("trkpt"));
+    if (pts.length < 2) throw new Error("Pas assez de points GPX.");
+
+    const points = [];
+    for (const p of pts){
+      const lat = toNum(p.getAttribute("lat"));
+      const lon = toNum(p.getAttribute("lon"));
+      const timeEl = p.getElementsByTagName("time")[0];
+      const tMs = timeEl ? Date.parse(timeEl.textContent.trim()) : null;
+      if (isFinite(lat) && isFinite(lon) && typeof tMs === "number" && !Number.isNaN(tMs)){
+        points.push({ lat, lon, tMs });
       }
     }
-    return last.tMs;
+    if (points.length < 2) throw new Error("Timestamps manquants : impossible d'analyser l'allure/blocs.");
+
+    points.sort((a,b)=>a.tMs-b.tMs);
+    const { distM, samples } = computeDistanceTimeArrays(points);
+    const norm = normalizeSamples(samples);
+
+    const durSec = (norm[norm.length-1].tMs - norm[0].tMs)/1000;
+    const distKm = distM/1000;
+    const avgPaceSec = durSec / Math.max(0.01, distKm);
+
+    const dateStr = new Date(points[0].tMs).toLocaleString("fr-FR", {
+      weekday:"short", day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit"
+    });
+
+    const splits = computeKmSplits(norm);
+
+    return {
+      distKm,
+      durationSec: durSec,
+      durationStr: durationStr(durSec),
+      avgPaceSec,
+      avgPaceStr: paceStr(avgPaceSec),
+      dateStr,
+      splits,
+      _samples: norm
+    };
   }
 
-  // ===== Specs =====
+  // ===== Expected session spec =====
   function expectedSpec(week, day){
+    // courses
     if (week === 2 && day === "sun") return { kind:"race", distKm:10, tolKm:1.2, label:"Course 10 km" };
     if (week === 8 && day === "sun") return { kind:"race", distKm:21.1, tolKm:1.8, label:"Semi (répétition)", paceTarget:300, paceTol:35 };
     if (week === 14 && day === "sun") return { kind:"race", distKm:21.1, tolKm:1.8, label:"Semi objectif", paceTarget:300, paceTol:25 };
 
+    // semaine 2
     if (week === 2){
       if (day === "tue") return { kind:"interval_time", repFastSec:30, repSlowSec:30, sets:2, repsPerSet:6, paceTarget:255, paceTol:20, label:"VMA 30/30 (2x6)" };
       if (day === "thu") return { kind:"tempo_time", reps:2, repMin:8, paceTarget:305, paceTol:25, label:"Seuil 2x8" };
       if (day === "sat") return { kind:"endurance", minMin:25, label:"Footing très facile" };
       if (day === "sun") return { kind:"race", distKm:10, tolKm:1.2, label:"Course 10 km" };
     }
+
+    // semaine 3
     if (week === 3){
       if (day === "tue") return { kind:"endurance", minMin:40, label:"Endurance (récup)" };
       if (day === "thu") return { kind:"tempo_time", reps:3, repMin:6, paceTarget:310, paceTol:30, label:"Tempo doux 3x6" };
       if (day === "sat") return { kind:"endurance", minMin:40, label:"Endurance" };
       if (day === "sun") return { kind:"long", minMin:70, label:"Sortie longue sage" };
     }
+
+    // semaine 8
     if (week === 8){
       if (day === "tue") return { kind:"interval_dist", reps:8, repDistM:400, paceTarget:250, paceTol:18, label:"VMA 8x400" };
       if (day === "thu") return { kind:"tempo_time", reps:2, repMin:10, paceTarget:300, paceTol:25, label:"AS21 2x10" };
       if (day === "sat") return { kind:"endurance", minMin:20, label:"Footing très facile" };
       if (day === "sun") return { kind:"race", distKm:21.1, tolKm:1.8, label:"Semi (répétition)", paceTarget:300, paceTol:35 };
     }
+
+    // semaine 9
     if (week === 9){
       if (day === "tue") return { kind:"endurance", minMin:40, label:"Endurance (récup)" };
       if (day === "thu") return { kind:"tempo_time", reps:2, repMin:8, paceTarget:310, paceTol:35, label:"Tempo léger 2x8" };
@@ -534,275 +581,331 @@
       if (day === "sun") return { kind:"long", minMin:75, label:"Sortie longue facile" };
     }
 
+    // général
     if (week <= 5){
       if (day === "tue") return { kind:"interval_time", repFastSec:30, repSlowSec:30, sets:2, repsPerSet:8, paceTarget:255, paceTol:20, label:"VMA 30/30 (2x8)" };
       if (day === "thu") return { kind:"tempo_time", reps:3, repMin:8, paceTarget:305, paceTol:25, label:"Seuil 3x8" };
       if (day === "sat") return { kind:"endurance", minMin:40, label:"Endurance facile" };
       if (day === "sun") return { kind:"long", minMin:75, label:"Sortie longue" };
     }
+
     if (week <= 12){
       if (day === "tue") return { kind:"interval_dist", reps:10, repDistM:400, paceTarget:250, paceTol:18, label:"VMA 10x400" };
       if (day === "thu") return { kind:"tempo_time", reps:2, repMin:15, paceTarget:300, paceTol:25, label:"AS21 2x15" };
       if (day === "sat") return { kind:"endurance", minMin:45, label:"Endurance facile" };
       if (day === "sun") return { kind:"long", minMin:85, label:"Sortie longue (blocs AS21 possibles)" };
     }
+
     if (week === 13){
       if (day === "tue") return { kind:"interval_dist", reps:6, repDistM:200, paceTarget:240, paceTol:20, label:"Rappel 6x200" };
       if (day === "thu") return { kind:"tempo_time", reps:2, repMin:10, paceTarget:300, paceTol:25, label:"AS21 2x10" };
       if (day === "sat") return { kind:"endurance", minMin:35, label:"Footing facile" };
       if (day === "sun") return { kind:"long", minMin:60, label:"Sortie facile" };
     }
+
+    // semaine 14
     if (day === "tue") return { kind:"endurance", minMin:35, label:"Footing + lignes droites" };
     if (day === "thu") return { kind:"tempo_time", reps:1, repMin:8, paceTarget:300, paceTol:30, label:"Rappel AS21 (8-10min)" };
     if (day === "sat") return { kind:"endurance", minMin:20, label:"Très facile (optionnel)" };
     if (day === "sun") return { kind:"race", distKm:21.1, tolKm:1.8, label:"Semi objectif", paceTarget:300, paceTol:25 };
+
     return { kind:"unknown", label:"Séance" };
   }
 
+  // ===== Verdict =====
   function verdictFromScore(score){
     if (score >= 80) return { text:"✅ Très proche", cls:"ok" };
     if (score >= 55) return { text:"🟠 Partiel", cls:"warn" };
     return { text:"🔴 Hors cible", cls:"bad" };
   }
-
-  // ===== Scoring (avec raisons) =====
-  function scoreIntervalDist(samples, spec){
-    const rep = spec.repDistM;
-    const maxDist = samples[samples.length-1].distM;
-    const candidates = [];
-    for (let start=0; start+rep<=maxDist; start+=50){
-      const t0 = timeAtDistance(samples, start);
-      const t1 = timeAtDistance(samples, start+rep);
-      const sec = (t1 - t0)/1000;
-      if (sec > 20 && sec < 600) {
-        const pace = (sec / (rep/1000));
-        candidates.push({ startM:start, endM:start+rep, sec, pace });
-      }
-    }
-    candidates.sort((a,b)=>a.pace - b.pace);
-
-    const chosen = [];
-    const used = [];
-    for (const c of candidates){
-      if (chosen.length >= spec.reps) break;
-      let ok = true;
-      for (const u of used){
-        if (!(c.endM <= u.startM || c.startM >= u.endM)) { ok=false; break; }
-      }
-      if (!ok) continue;
-      chosen.push(c);
-      used.push({ startM:c.startM, endM:c.endM });
-    }
-
-    const reasons = [];
-    const notes = [];
-
-    const target = spec.paceTarget;
-    const tol = spec.paceTol;
-
-    if (!chosen.length){
-      reasons.push(`Blocs ${Math.round(rep)}m détectés : 0/${spec.reps}.`);
-      reasons.push(`Cible : ${fmtPaceTarget(target, tol)}.`);
-      return { score: 20, details: [], reasons, notes:["Aucun bloc distance détecté (données GPX insuffisantes ?)"] };
-    }
-
-    const paces = chosen.map(x=>x.pace);
-    const avgP = mean(paces);
-    const mm = minmax(paces);
-
-    let within = 0, tooFast = 0, tooSlow = 0;
-    for (const p of paces){
-      if (Math.abs(p - target) <= tol) within++;
-      else if (p < target - tol) tooFast++;
-      else if (p > target + tol) tooSlow++;
-    }
-
-    const repScore = Math.round(60 * Math.min(1, chosen.length / spec.reps));
-    const paceScore = Math.round(40 * (within / Math.max(1, chosen.length)));
-    const score = clamp(repScore + paceScore, 0, 100);
-
-    reasons.push(`Blocs ${Math.round(rep)}m détectés : ${chosen.length}/${spec.reps}.`);
-    reasons.push(`Cible : ${fmtPaceTarget(target, tol)}.`);
-    reasons.push(`Allure blocs : moy ${paceStr(avgP)}/km (min ${paceStr(mm.min)}, max ${paceStr(mm.max)}).`);
-    reasons.push(`Dans la cible : ${within}/${chosen.length} (trop rapide : ${tooFast}, trop lent : ${tooSlow}).`);
-
-    if (chosen.length < spec.reps) notes.push(`Nombre de répétitions insuffisant : ${chosen.length}/${spec.reps}.`);
-    if (tooFast) notes.push(`Certaines répétitions sont trop rapides (${tooFast}).`);
-    if (tooSlow) notes.push(`Certaines répétitions sont trop lentes (${tooSlow}).`);
-
-    return {
-      score,
-      details: chosen.slice(0, Math.min(chosen.length, 10)).map((r,i)=>({
-        label:`${i+1} x ${Math.round(spec.repDistM)}m`,
-        pace: paceStr(r.pace),
-        sec: durationStr(r.sec)
-      })),
-      reasons,
-      notes
-    };
+  function verdictBadgeClass(verdictClass){
+    if (verdictClass === "ok") return "ok";
+    if (verdictClass === "warn") return "warn";
+    return "bad";
   }
 
-  function scoreTempoTime(samples, spec){
+  // ===== Core detection utilities =====
+  function buildPaceSeries(samples){
+    const pts = [];
+    for (let i=1; i<samples.length; i++){
+      const dt = (samples[i].tMs - samples[i-1].tMs)/1000;
+      const dd = (samples[i].distM - samples[i-1].distM);
+      if (dt <= 0 || dd <= 0) continue;
+      const pace = dt / (dd/1000); // sec/km
+      pts.push({ tMs: samples[i].tMs, distM: samples[i].distM, pace });
+    }
+    return pts;
+  }
+
+  function smoothPace(pts, windowSec=8){
+    if (!pts.length) return pts;
+    const out = [];
+    let j = 0;
+    for (let i=0; i<pts.length; i++){
+      const t = pts[i].tMs;
+      while (j < i && (t - pts[j].tMs) > windowSec*1000) j++;
+      let sum = 0, n=0;
+      for (let k=j; k<=i; k++){ sum += pts[k].pace; n++; }
+      out.push({ ...pts[i], pace: sum/Math.max(1,n) });
+    }
+    return out;
+  }
+
+  function buildSegments(pts, isFastFn){
+    if (!pts.length) return [];
+    const segs = [];
+    let curType = isFastFn(pts[0]) ? "fast" : "slow";
+    let t0 = pts[0].tMs, d0 = pts[0].distM;
+    let sumP = pts[0].pace, n=1;
+
+    for (let i=1; i<pts.length; i++){
+      const type = isFastFn(pts[i]) ? "fast" : "slow";
+      if (type !== curType){
+        const t1 = pts[i-1].tMs, d1 = pts[i-1].distM;
+        const durSec = (t1 - t0)/1000;
+        const distM = d1 - d0;
+        segs.push({ type: curType, t0, t1, durSec, d0, d1, distM, avgPace: sumP/Math.max(1,n) });
+        curType = type;
+        t0 = pts[i].tMs;
+        d0 = pts[i].distM;
+        sumP = pts[i].pace; n=1;
+      } else {
+        sumP += pts[i].pace; n++;
+      }
+    }
+    const last = pts[pts.length-1];
+    segs.push({
+      type: curType, t0, t1: last.tMs,
+      durSec: (last.tMs - t0)/1000,
+      d0, d1: last.distM,
+      distM: last.distM - d0,
+      avgPace: sumP/Math.max(1,n)
+    });
+    return segs.filter(s => s.durSec >= 5);
+  }
+
+  // ===== Detection: 30/30 =====
+  function score30_30(samples, spec){
+    const target = spec.paceTarget;
+    const tolFast = spec.paceTol;
+    const slowMinDelta = 35;
+    const durTol = 10;
+    const setGapMinSec = 90;
+
+    const pts = smoothPace(buildPaceSeries(samples), 8);
+    const isFast = (p) => Math.abs(p.pace - target) <= tolFast;
+    const segs0 = buildSegments(pts, isFast);
+
+    const segs = segs0.map(s => {
+      if (s.type === "fast") return s;
+      return { ...s, type: (s.avgPace >= target + slowMinDelta ? "slow" : "other") };
+    });
+
+    const pairs = [];
+    for (let i=0; i<segs.length-1; i++){
+      const a = segs[i], b = segs[i+1];
+      if (a.type !== "fast") continue;
+      if (b.type === "fast") continue;
+
+      const okFastDur = Math.abs(a.durSec - spec.repFastSec) <= durTol;
+      const okSlowDur = Math.abs(b.durSec - spec.repSlowSec) <= durTol;
+      const okSlowType = (b.type === "slow" || b.avgPace > target + 20);
+
+      if (okFastDur && okSlowDur && okSlowType){
+        pairs.push({
+          fastDur: a.durSec, slowDur: b.durSec,
+          fastPace: a.avgPace, slowPace: b.avgPace,
+          t0: a.t0, t1: b.t1
+        });
+      }
+    }
+
+    const sets = [];
+    for (const p of pairs){
+      if (!sets.length) sets.push([p]);
+      else {
+        const prev = sets[sets.length-1][sets[sets.length-1].length-1];
+        const gap = (p.t0 - prev.t1)/1000;
+        if (gap >= setGapMinSec) sets.push([p]);
+        else sets[sets.length-1].push(p);
+      }
+    }
+
+    const totalExpected = spec.sets * spec.repsPerSet;
+    const detected = pairs.length;
+
+    const fastPaces = pairs.map(x=>x.fastPace);
+    const slowPaces = pairs.map(x=>x.slowPace);
+    const avgFast = fastPaces.length ? mean(fastPaces) : null;
+    const avgSlow = slowPaces.length ? mean(slowPaces) : null;
+    const withinFast = fastPaces.filter(p => Math.abs(p - target) <= tolFast).length;
+
+    const qtyScore = 60 * Math.min(1, detected / Math.max(1,totalExpected));
+    const paceScore = 40 * (withinFast / Math.max(1, detected));
+    const score = Math.round(clamp(qtyScore + paceScore, 0, 100));
+
+    const reasons = [];
+    reasons.push(`Paires 30/30 détectées : ${detected}/${totalExpected}.`);
+    reasons.push(`Sets détectés : ${sets.length}/${spec.sets} (pause set ≥ ${setGapMinSec}s).`);
+    reasons.push(`Allure rapide cible : ${fmtPaceTarget(target, tolFast)}.`);
+    if (avgFast !== null) reasons.push(`Rapide : moy ${paceStr(avgFast)}/km (dans cible : ${withinFast}/${Math.max(1,detected)}).`);
+    if (avgSlow !== null) reasons.push(`Lent : moy ${paceStr(avgSlow)}/km (attendu plus lent).`);
+
+    const notes = [];
+    if (detected < totalExpected) notes.push(`Nombre de 30/30 insuffisant : ${detected}/${totalExpected}.`);
+    if (sets.length < spec.sets) notes.push(`Nombre de sets insuffisant : ${sets.length}/${spec.sets}.`);
+    if (detected && withinFast < detected) notes.push(`Phases rapides hors cible : ${detected-withinFast}.`);
+
+    const details = pairs.slice(0, 10).map((p,i)=>({
+      label:`30/30 #${i+1}`,
+      pace: `rapide ${paceStr(p.fastPace)}/km • lent ${paceStr(p.slowPace)}/km`,
+      sec: `${Math.round(p.fastDur)}s/${Math.round(p.slowDur)}s`
+    }));
+
+    return { score, reasons, notes, details };
+  }
+
+  // ===== Detection: 400m =====
+  function score400m(samples, spec){
+    const target = spec.paceTarget;
+    const tolFast = spec.paceTol;
+    const distTolM = 60;
+    const slowMinSec = 25;
+    const slowMinDelta = 35;
+
+    const pts = smoothPace(buildPaceSeries(samples), 8);
+
+    const isFast = (p) => Math.abs(p.pace - target) <= tolFast;
+    const segs0 = buildSegments(pts, isFast);
+
+    const segs = segs0.map(s => {
+      if (s.type === "fast") return s;
+      return { ...s, type: (s.avgPace >= target + slowMinDelta ? "slow" : "other") };
+    });
+
+    const reps = [];
+    for (let i=0; i<segs.length; i++){
+      const a = segs[i];
+      if (a.type !== "fast") continue;
+      if (Math.abs(a.distM - spec.repDistM) > distTolM) continue;
+
+      const b = segs[i+1];
+      let okRecover = false;
+      if (b){
+        if (b.type === "slow" && b.durSec >= slowMinSec) okRecover = true;
+        else if (b.avgPace >= target + 20 && b.durSec >= slowMinSec) okRecover = true;
+      }
+      reps.push({
+        distM: a.distM,
+        pace: a.avgPace,
+        durSec: a.durSec,
+        recoverOk: okRecover,
+        recoverDur: b ? b.durSec : 0,
+        recoverPace: b ? b.avgPace : null
+      });
+    }
+
+    const detected = reps.length;
+    const expected = spec.reps;
+
+    const within = reps.filter(r => Math.abs(r.pace - target) <= tolFast).length;
+    const recoverOkN = reps.filter(r => r.recoverOk).length;
+
+    const qtyScore = 55 * Math.min(1, detected / Math.max(1,expected));
+    const paceScore = 30 * (within / Math.max(1, detected));
+    const recScore  = 15 * (recoverOkN / Math.max(1, detected));
+    const score = Math.round(clamp(qtyScore + paceScore + recScore, 0, 100));
+
+    const paces = reps.map(r=>r.pace);
+    const mm = minmax(paces);
+    const avgP = paces.length ? mean(paces) : null;
+
+    const reasons = [];
+    reasons.push(`Blocs ~${Math.round(spec.repDistM)}m détectés : ${detected}/${expected} (tol ± ${distTolM}m).`);
+    reasons.push(`Cible : ${fmtPaceTarget(target, tolFast)}.`);
+    if (avgP !== null) reasons.push(`Allure blocs : moy ${paceStr(avgP)}/km (min ${paceStr(mm.min)}, max ${paceStr(mm.max)}).`);
+    reasons.push(`Récup après bloc : OK ${recoverOkN}/${Math.max(1,detected)} (≥ ${slowMinSec}s & plus lent).`);
+
+    const notes = [];
+    if (detected < expected) notes.push(`Répétitions insuffisantes : ${detected}/${expected}.`);
+    if (detected && within < detected) notes.push(`Blocs hors allure cible : ${detected-within}.`);
+    if (detected && recoverOkN < detected) notes.push(`Récup trop courte / pas assez lente : ${detected-recoverOkN}.`);
+
+    const details = reps.slice(0, 10).map((r,i)=>({
+      label:`${Math.round(spec.repDistM)}m #${i+1}`,
+      pace: `${paceStr(r.pace)}/km`,
+      sec: `${Math.round(r.durSec)}s • récup ${r.recoverOk ? "OK" : "NO"}`
+    }));
+
+    return { score, reasons, notes, details };
+  }
+
+  // ===== Detection: tempo/seuil blocks =====
+  function scoreTempoBlocks(samples, spec){
+    const target = spec.paceTarget;
+    const tol = spec.paceTol;
     const repSec = spec.repMin * 60;
-    const stepSec = 10;
-    const target = spec.paceTarget;
-    const tol = spec.paceTol;
+    const minBlockSec = repSec * 0.9;    // bloc ≥ 90%
+    const maxPauseInBlockSec = 10;       // micro trou
 
-    function distAtTime(tMs){
-      if (tMs <= samples[0].tMs) return samples[0].distM;
-      const last = samples[samples.length-1];
-      if (tMs >= last.tMs) return last.distM;
-      for (let i=1;i<samples.length;i++){
-        if (samples[i].tMs >= tMs){
-          const t0=samples[i-1].tMs, t1=samples[i].tMs;
-          const d0=samples[i-1].distM, d1=samples[i].distM;
-          const frac = (tMs - t0) / (t1 - t0);
-          return d0 + frac*(d1 - d0);
-        }
-      }
-      return last.distM;
-    }
+    const pts = smoothPace(buildPaceSeries(samples), 10);
+    if (!pts.length) return { score: 30, reasons:["Données insuffisantes (points trop rares)."], notes:[], details:[] };
 
-    const startMs = samples[0].tMs;
-    const endMs = samples[samples.length-1].tMs;
-    const candidates = [];
+    const okPace = (p) => Math.abs(p.pace - target) <= tol;
 
-    for (let t0=startMs; (t0 + repSec*1000) <= endMs; t0 += stepSec*1000){
-      const t1 = t0 + repSec*1000;
-      const d0 = distAtTime(t0);
-      const d1 = distAtTime(t1);
-      const dKm = (d1 - d0)/1000;
-      if (dKm < 0.4) continue;
-      const pace = repSec / dKm;
-      const within = Math.abs(pace - target) <= tol;
-      const scoreLocal = within ? 1 : (Math.max(0, 1 - (Math.abs(pace-target) / (tol*2))));
-      if (scoreLocal > 0.35){
-        candidates.push({ t0, t1, dKm, pace, scoreLocal });
+    const segs = [];
+    let cur = { good: okPace(pts[0]), t0: pts[0].tMs, t1: pts[0].tMs, sumP: pts[0].pace, n:1 };
+    for (let i=1; i<pts.length; i++){
+      const g = okPace(pts[i]);
+      const dt = (pts[i].tMs - pts[i-1].tMs)/1000;
+
+      if (g === cur.good || (cur.good && !g && dt <= maxPauseInBlockSec)){
+        cur.t1 = pts[i].tMs;
+        cur.sumP += pts[i].pace; cur.n++;
+      } else {
+        segs.push({ ...cur, durSec:(cur.t1-cur.t0)/1000, avgPace:cur.sumP/cur.n });
+        cur = { good:g, t0: pts[i].tMs, t1: pts[i].tMs, sumP: pts[i].pace, n:1 };
       }
     }
+    segs.push({ ...cur, durSec:(cur.t1-cur.t0)/1000, avgPace:cur.sumP/cur.n });
 
-    const reasons = [];
-    const notes = [];
-    reasons.push(`Attendu : ${spec.reps} bloc(s) de ${spec.repMin} min.`);
-    reasons.push(`Cible : ${fmtPaceTarget(target, tol)}.`);
+    const blocks = segs
+      .filter(s => s.good && s.durSec >= minBlockSec)
+      .sort((a,b)=>b.durSec-a.durSec)
+      .slice(0, spec.reps)
+      .sort((a,b)=>a.t0-b.t0);
 
-    if (!candidates.length){
-      reasons.push(`Blocs détectés : 0/${spec.reps} (fenêtres ${spec.repMin} min).`);
-      return { score: 25, details: [], reasons, notes:[`Aucun bloc continu de ${spec.repMin} min proche de la cible.`] };
-    }
+    const detected = blocks.length;
+    const expected = spec.reps;
 
-    candidates.sort((a,b)=>b.scoreLocal - a.scoreLocal);
-
-    const chosen = [];
-    for (const c of candidates){
-      if (chosen.length >= spec.reps) break;
-      let ok = true;
-      for (const u of chosen){
-        if (!(c.t1 <= u.t0 || c.t0 >= u.t1)) { ok=false; break; }
-      }
-      if (!ok) continue;
-      chosen.push(c);
-    }
-
-    const paces = chosen.map(x=>x.pace);
-    const avgP = mean(paces);
+    const paces = blocks.map(b=>b.avgPace);
+    const within = paces.filter(p => Math.abs(p-target) <= tol).length;
+    const avgP = paces.length ? mean(paces) : null;
     const mm = minmax(paces);
 
-    let within = 0, tooFast = 0, tooSlow = 0;
-    for (const p of paces){
-      if (Math.abs(p - target) <= tol) within++;
-      else if (p < target - tol) tooFast++;
-      else if (p > target + tol) tooSlow++;
-    }
+    const qtyScore = 60 * Math.min(1, detected / Math.max(1,expected));
+    const paceScore = 40 * (within / Math.max(1,detected));
+    const score = Math.round(clamp(qtyScore + paceScore, 0, 100));
 
-    const repScore = Math.round(60 * Math.min(1, chosen.length / spec.reps));
-    const paceScore = Math.round(40 * (within / Math.max(1, chosen.length)));
-    const score = clamp(repScore + paceScore, 0, 100);
-
-    reasons.push(`Blocs détectés : ${chosen.length}/${spec.reps}.`);
-    if (chosen.length){
-      reasons.push(`Allure blocs : moy ${paceStr(avgP)}/km (min ${paceStr(mm.min)}, max ${paceStr(mm.max)}).`);
-      reasons.push(`Dans la cible : ${within}/${chosen.length} (trop rapide : ${tooFast}, trop lent : ${tooSlow}).`);
-    }
-
-    if (chosen.length < spec.reps) notes.push(`Nombre de blocs insuffisant : ${chosen.length}/${spec.reps}.`);
-    if (tooFast) notes.push(`Blocs trop rapides : ${tooFast}.`);
-    if (tooSlow) notes.push(`Blocs trop lents : ${tooSlow}.`);
-
-    return {
-      score,
-      details: chosen.map((b,i)=>({
-        label:`Bloc ${i+1} (${spec.repMin} min)`,
-        pace: paceStr(b.pace),
-        dist: `${b.dKm.toFixed(2)} km`
-      })),
-      reasons,
-      notes
-    };
-  }
-
-  function scoreIntervalTimeFallback(samples, spec){
-    const target = spec.paceTarget;
-    const tol = spec.paceTol;
     const reasons = [];
-    const notes = [];
-
-    const startMs = samples[0].tMs;
-    const endMs = samples[samples.length-1].tMs;
-
-    function distAtTime(tMs){
-      if (tMs <= samples[0].tMs) return samples[0].distM;
-      const last = samples[samples.length-1];
-      if (tMs >= last.tMs) return last.distM;
-      for (let i=1;i<samples.length;i++){
-        if (samples[i].tMs >= tMs){
-          const t0=samples[i-1].tMs, t1=samples[i].tMs;
-          const d0=samples[i-1].distM, d1=samples[i].distM;
-          const frac = (tMs - t0) / (t1 - t0);
-          return d0 + frac*(d1 - d0);
-        }
-      }
-      return last.distM;
-    }
-
-    const windowSec = 60;
-    const stepSec = 10;
-    const candidates = [];
-    for (let t0=startMs; (t0 + windowSec*1000) <= endMs; t0 += stepSec*1000){
-      const t1 = t0 + windowSec*1000;
-      const dKm = (distAtTime(t1)-distAtTime(t0))/1000;
-      if (dKm < 0.05) continue;
-      const pace = windowSec / dKm;
-      candidates.push({ t0, pace });
-    }
-    if (!candidates.length){
-      reasons.push("Fenêtres 1 min analysables : 0 (timestamps trop rares).");
-      return { score: 30, details: [], reasons, notes:["Données insuffisantes pour analyser la VMA."] };
-    }
-
-    candidates.sort((a,b)=>a.pace-b.pace);
-    const best = candidates[0].pace;
-
-    let peaks = 0;
-    for (const c of candidates){
-      if (Math.abs(c.pace - target) <= tol) peaks++;
-    }
-    const expectedPeaks = Math.max(6, Math.round(spec.sets * spec.repsPerSet * 0.35));
-
-    const repScore = Math.round(55 * Math.min(1, peaks / expectedPeaks));
-    const paceScore = Math.round(45 * (Math.abs(best - target) <= tol ? 1 : Math.max(0, 1 - (Math.abs(best-target)/(tol*2)))));
-    const score = clamp(repScore + paceScore, 0, 100);
-
+    reasons.push(`Blocs tempo détectés : ${detected}/${expected} (≥ ${Math.round(minBlockSec)}s).`);
     reasons.push(`Cible : ${fmtPaceTarget(target, tol)}.`);
-    reasons.push(`Meilleure fenêtre ~1 min : ${paceStr(best)}/km.`);
-    reasons.push(`Pics dans la cible (fenêtres 1 min) : ${peaks} (attendu ~${expectedPeaks}+).`);
+    if (avgP !== null) reasons.push(`Allure blocs : moy ${paceStr(avgP)}/km (min ${paceStr(mm.min)}, max ${paceStr(mm.max)}).`);
 
-    if (peaks < expectedPeaks) notes.push(`Pics insuffisants : ${peaks} vs ~${expectedPeaks}+ attendus.`);
-    if (Math.abs(best - target) > tol) notes.push("Meilleure minute éloignée de la cible.");
+    const notes = [];
+    if (detected < expected) notes.push(`Nombre de blocs insuffisant : ${detected}/${expected}.`);
+    if (detected && within < detected) notes.push(`Blocs hors cible : ${detected-within}.`);
 
-    return { score, details:[{ label:"Best ~1 min", pace: paceStr(best), sec:"1m00" }], reasons, notes };
+    const details = blocks.map((b,i)=>({
+      label:`Bloc ${i+1} (~${spec.repMin} min)`,
+      pace:`${paceStr(b.avgPace)}/km`,
+      sec: durationStr(b.durSec)
+    }));
+
+    return { score, reasons, notes, details };
   }
 
+  // ===== Endurance / long / race scoring (simple et robuste) =====
   function scoreEndurance(samples, spec){
     const durSec = (samples[samples.length-1].tMs - samples[0].tMs)/1000;
     const distKm = samples[samples.length-1].distM / 1000;
@@ -879,11 +982,12 @@
     return { score: clamp(score,0,100), details:[{ label:"Allure moyenne", pace: paceStr(avgPace), sec: durationStr(durSec) }], reasons, notes };
   }
 
+  // ===== Evaluate compliance (new logic) =====
   function evaluateCompliance(samples, spec){
     let res;
-    if (spec.kind === "interval_dist") res = scoreIntervalDist(samples, spec);
-    else if (spec.kind === "tempo_time") res = scoreTempoTime(samples, spec);
-    else if (spec.kind === "interval_time") res = scoreIntervalTimeFallback(samples, spec);
+    if (spec.kind === "interval_time") res = score30_30(samples, spec);
+    else if (spec.kind === "interval_dist") res = score400m(samples, spec);
+    else if (spec.kind === "tempo_time") res = scoreTempoBlocks(samples, spec);
     else if (spec.kind === "endurance") res = scoreEndurance(samples, spec);
     else if (spec.kind === "long") res = scoreLong(samples, spec);
     else if (spec.kind === "race") res = scoreRace(samples, spec);
@@ -893,7 +997,7 @@
     return { ...res, verdict: v.text, verdictClass: v.cls, specLabel: spec.label };
   }
 
-  // ===== Raisons compactes (affichage dans le plan) =====
+  // ===== Reasons compact in plan =====
   function buildReasonsCompactHTML(workout){
     const rs = workout?.compliance?.reasons || [];
     if (!rs.length) return "";
@@ -975,7 +1079,10 @@
             <input type="checkbox" ${state.done[key] ? "checked" : ""} data-week="${w}" data-key="${key}">
             <span>${text}</span>
           </label>
-          ${workout ? `<div class="mini">Importé le ${workout.dateStr} • Durée ${workout.durationStr} • Réf: ${workout.compliance?.specLabel || "-"}</div>${reasonsCompact}` : `<div class="mini"></div>`}
+          ${workout
+            ? `<div class="mini">Importé le ${workout.dateStr} • Durée ${workout.durationStr} • Réf: ${workout.compliance?.specLabel || "-"}</div>${reasonsCompact}`
+            : `<div class="mini"></div>`
+          }
         `;
         details.appendChild(sec);
       });
@@ -1078,7 +1185,7 @@
     }
   }
 
-  // ===== GPX parsing / Import =====
+  // ===== Import UI =====
   const attachWeekEl = document.getElementById("attachWeek");
   const attachDayEl = document.getElementById("attachDay");
   const attachTypeEl = document.getElementById("attachType");
@@ -1101,52 +1208,6 @@
     }
     const cw = currentWeekIndex();
     if (cw>=1 && cw<=WEEKS) attachWeekEl.value = String(cw);
-  }
-
-  function parseGPX(xmlText){
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(xmlText, "application/xml");
-    if (doc.querySelector("parsererror")) throw new Error("Format XML non reconnu (pas un GPX).");
-
-    const pts = Array.from(doc.getElementsByTagName("trkpt"));
-    if (pts.length < 2) throw new Error("Pas assez de points GPX.");
-
-    const points = [];
-    for (const p of pts){
-      const lat = toNum(p.getAttribute("lat"));
-      const lon = toNum(p.getAttribute("lon"));
-      const timeEl = p.getElementsByTagName("time")[0];
-      const tMs = timeEl ? Date.parse(timeEl.textContent.trim()) : null;
-      if (isFinite(lat) && isFinite(lon) && typeof tMs === "number" && !Number.isNaN(tMs)){
-        points.push({ lat, lon, tMs });
-      }
-    }
-    if (points.length < 2) throw new Error("Timestamps manquants : impossible d'analyser l'allure/blocs.");
-
-    points.sort((a,b)=>a.tMs-b.tMs);
-    const { distM, samples } = computeDistanceTimeArrays(points);
-    const norm = normalizeSamples(samples);
-
-    const durSec = (norm[norm.length-1].tMs - norm[0].tMs)/1000;
-    const distKm = distM/1000;
-    const avgPaceSec = durSec / Math.max(0.01, distKm);
-
-    const dateStr = new Date(points[0].tMs).toLocaleString("fr-FR", {
-      weekday:"short", day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit"
-    });
-
-    const splits = computeKmSplits(norm);
-
-    return {
-      distKm,
-      durationSec: durSec,
-      durationStr: durationStr(durSec),
-      avgPaceSec,
-      avgPaceStr: paceStr(avgPaceSec),
-      dateStr,
-      splits,
-      _samples: norm
-    };
   }
 
   function renderParsedWorkout(w){
@@ -1187,78 +1248,77 @@
     }
   });
 
-  function verdictBadgeClass(verdictClass){
-    if (verdictClass === "ok") return "ok";
-    if (verdictClass === "warn") return "warn";
-    return "bad";
-  }
+  attachBtn.addEventListener("click", () => {
+    try {
+      if (!lastParsedWorkout) return;
 
-  document.getElementById("attachBtn").addEventListener("click", () => {
-    if (!lastParsedWorkout) return;
+      const week = parseInt(attachWeekEl.value, 10);
+      const day  = attachDayEl.value;
+      ensureWeek(week);
 
-    const week = parseInt(attachWeekEl.value, 10);
-    const day  = attachDayEl.value;
-    ensureWeek(week);
+      let spec = expectedSpec(week, day);
 
-    let spec = expectedSpec(week, day);
-
-    const override = attachTypeEl.value;
-    if (override !== "auto"){
-      if (override === "vma") spec = { kind:"interval_dist", reps:10, repDistM:400, paceTarget:250, paceTol:20, label:"(Override) VMA" };
-      if (override === "tempo") spec = { kind:"tempo_time", reps:2, repMin:15, paceTarget:300, paceTol:30, label:"(Override) Tempo/Seuil" };
-      if (override === "easy") spec = { kind:"endurance", minMin:40, label:"(Override) Endurance" };
-      if (override === "long") spec = { kind:"long", minMin:75, label:"(Override) Sortie longue" };
-      if (override === "race") spec = { kind:"race", distKm:21.1, tolKm:2.0, label:"(Override) Course" };
-    }
-
-    const evalRes = evaluateCompliance(lastParsedWorkout._samples, spec);
-    const badgeClass = verdictBadgeClass(evalRes.verdictClass);
-
-    const workoutStored = {
-      id: lastParsedWorkout.id,
-      sourceName: lastParsedWorkout.sourceName,
-      distKm: lastParsedWorkout.distKm,
-      durationSec: lastParsedWorkout.durationSec,
-      durationStr: lastParsedWorkout.durationStr,
-      avgPaceSec: lastParsedWorkout.avgPaceSec,
-      avgPaceStr: lastParsedWorkout.avgPaceStr,
-      dateStr: lastParsedWorkout.dateStr,
-      splits: lastParsedWorkout.splits?.slice(0, 25) || [],
-      compliance: {
-        score: evalRes.score,
-        verdict: evalRes.verdict,
-        badgeClass,
-        specLabel: evalRes.specLabel,
-        reasons: evalRes.reasons || [],
-        notes: evalRes.notes || [],
-        details: evalRes.details || []
+      const override = attachTypeEl.value;
+      if (override !== "auto"){
+        if (override === "vma30")  spec = { kind:"interval_time", repFastSec:30, repSlowSec:30, sets:2, repsPerSet:8, paceTarget:255, paceTol:20, label:"(Override) VMA 30/30" };
+        if (override === "vma400") spec = { kind:"interval_dist", reps:10, repDistM:400, paceTarget:250, paceTol:20, label:"(Override) VMA 400m" };
+        if (override === "tempo")  spec = { kind:"tempo_time", reps:2, repMin:8, paceTarget:305, paceTol:25, label:"(Override) Tempo/Seuil" };
+        if (override === "easy")   spec = { kind:"endurance", minMin:40, label:"(Override) Endurance" };
+        if (override === "long")   spec = { kind:"long", minMin:75, label:"(Override) Sortie longue" };
+        if (override === "race")   spec = { kind:"race", distKm:21.1, tolKm:2.0, label:"(Override) Course", paceTarget:300, paceTol:35 };
       }
-    };
 
-    data.workouts.push(workoutStored);
-    data.weeks[week].attached[day] = workoutStored.id;
-    data.weeks[week].done[day] = true;
-    saveData();
+      const evalRes = evaluateCompliance(lastParsedWorkout._samples, spec);
+      const badgeClass = verdictBadgeClass(evalRes.verdictClass);
 
-    const lines = [];
-    lines.push(`<span class="badge ${badgeClass}">${evalRes.verdict} • ${evalRes.score}/100</span> &nbsp; <span class="badge">${evalRes.specLabel}</span>`);
+      const workoutStored = {
+        id: lastParsedWorkout.id,
+        sourceName: lastParsedWorkout.sourceName,
+        distKm: lastParsedWorkout.distKm,
+        durationSec: lastParsedWorkout.durationSec,
+        durationStr: lastParsedWorkout.durationStr,
+        avgPaceSec: lastParsedWorkout.avgPaceSec,
+        avgPaceStr: lastParsedWorkout.avgPaceStr,
+        dateStr: lastParsedWorkout.dateStr,
+        splits: lastParsedWorkout.splits?.slice(0, 25) || [],
+        compliance: {
+          score: evalRes.score,
+          verdict: evalRes.verdict,
+          badgeClass,
+          specLabel: evalRes.specLabel,
+          reasons: evalRes.reasons || [],
+          notes: evalRes.notes || [],
+          details: evalRes.details || []
+        }
+      };
 
-    if (evalRes.reasons && evalRes.reasons.length){
-      lines.push(`<div class="mini" style="margin-top:10px;"><b>Raisons principales :</b></div>`);
-      lines.push(`<ul class="reasonsInline">${evalRes.reasons.slice(0, 8).map(r=>`<li>${r}</li>`).join("")}</ul>`);
+      data.workouts.push(workoutStored);
+      data.weeks[week].attached[day] = workoutStored.id;
+      data.weeks[week].done[day] = true;
+      saveData();
+
+      const lines = [];
+      lines.push(`<span class="badge ${badgeClass}">${evalRes.verdict} • ${evalRes.score}/100</span> &nbsp; <span class="badge">${evalRes.specLabel}</span>`);
+
+      if (evalRes.reasons && evalRes.reasons.length){
+        lines.push(`<div class="mini" style="margin-top:10px;"><b>Raisons principales :</b></div>`);
+        lines.push(`<ul class="reasonsInline">${evalRes.reasons.slice(0, 8).map(r=>`<li>${r}</li>`).join("")}</ul>`);
+      }
+      if (evalRes.details && evalRes.details.length){
+        lines.push(`<div class="mini" style="margin-top:10px;"><b>Détails détectés :</b></div>`);
+        lines.push(evalRes.details.map(d=>`<div class="split"><span>${d.label}</span><span>${d.pace}${d.dist?(" • "+d.dist):""}${d.sec?(" • "+d.sec):""}</span></div>`).join(""));
+      }
+      if (evalRes.notes && evalRes.notes.length){
+        lines.push(`<div class="mini" style="margin-top:10px;"><b>Conseils :</b> ${evalRes.notes.join(" ")}</div>`);
+      }
+      gpxComplianceEl.innerHTML = lines.join("");
+
+      attachBtn.disabled = true;
+      alert(`Séance attachée et cochée ✅\nRespect : ${evalRes.verdict} (${evalRes.score}/100)\nRéf : ${evalRes.specLabel}`);
+      show("plan");
+    } catch (err) {
+      alert("Erreur lors de l’attache (JS). Le plus simple : recharge la page.\n\nDétail: " + (err?.message || err));
     }
-    if (evalRes.details && evalRes.details.length){
-      lines.push(`<div class="mini" style="margin-top:10px;"><b>Détails détectés :</b></div>`);
-      lines.push(evalRes.details.map(d=>`<div class="split"><span>${d.label}</span><span>${d.pace}${d.dist?(" • "+d.dist):""}${d.sec?(" • "+d.sec):""}</span></div>`).join(""));
-    }
-    if (evalRes.notes && evalRes.notes.length){
-      lines.push(`<div class="mini" style="margin-top:10px;"><b>Conseils :</b> ${evalRes.notes.join(" ")}</div>`);
-    }
-    gpxComplianceEl.innerHTML = lines.join("");
-
-    attachBtn.disabled = true;
-    alert(`Séance attachée et cochée ✅\nRespect : ${evalRes.verdict} (${evalRes.score}/100)\nRéf : ${evalRes.specLabel}`);
-    show("plan");
   });
 
   // ===== Init =====
