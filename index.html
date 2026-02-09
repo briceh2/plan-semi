@@ -57,6 +57,8 @@
     .badge.warn { background:#fff7ed; color:#9a3412; }
     .badge.bad { background:#fef2f2; color:#991b1b; }
     code { background:#f3f4f6; padding:2px 6px; border-radius:6px; }
+    ul.reasons { margin:8px 0 0; padding-left:18px; }
+    ul.reasons li { margin:4px 0; }
   </style>
 </head>
 
@@ -100,7 +102,7 @@
     <div id="weeks"></div>
   </section>
 
-  <!-- IMPORT GPX -->
+  <!-- IMPORT -->
   <section id="importSection" class="hidden">
     <div class="card">
       <div class="s-title">&#128229; Importer une s&eacute;ance (GPX/GTX)</div>
@@ -111,7 +113,6 @@
       <div class="session">
         <div class="s-title">1) Choisir le fichier</div>
         <input type="file" id="fileInputGPX" accept=".gpx,.gtx,application/gpx+xml,application/xml,text/xml,*/*" />
-        <div class="mini">Si tes fichiers GTX restent grisés ailleurs : ici ils sont accept&eacute;s. Si l'analyse &eacute;choue, c'est que le GTX n'est pas un GPX "d&eacute;guis&eacute;".</div>
       </div>
 
       <div class="session">
@@ -145,7 +146,7 @@
         <div class="btns">
           <button class="primary" id="attachBtn" disabled>Attacher au plan + cocher</button>
         </div>
-        <div class="mini">Astuce : si tu as fait la s&eacute;ance le samedi alors qu'elle &eacute;tait pr&eacute;vue le jeudi, attache-la au <b>jeudi</b> pour que l'indicateur compare au bon objectif.</div>
+        <div class="mini">Astuce : si tu as fait la s&eacute;ance le samedi alors qu'elle &eacute;tait pr&eacute;vue le jeudi, attache-la au <b>jeudi</b> pour comparer au bon objectif.</div>
       </div>
 
       <div class="session">
@@ -198,8 +199,8 @@
 
 <script>
   // ===== Dates =====
-  const START = new Date("2026-02-02T00:00:00"); // lundi 2 fev 2026
-  const RACE  = new Date("2026-05-10T00:00:00"); // semi objectif
+  const START = new Date("2026-02-02T00:00:00");
+  const RACE  = new Date("2026-05-10T00:00:00");
   const WEEKS = 14;
 
   function fmtDate(d){ return d.toLocaleDateString("fr-FR", { day:"2-digit", month:"short", year:"numeric" }); }
@@ -212,7 +213,7 @@
     return "Aff\u00FBtage";
   }
 
-  // ===== PLAN (10 km + semi 29 mars) =====
+  // ===== Plan =====
   function sessionsForWeek(w){
     if (w === 2){
       return {
@@ -279,7 +280,7 @@
   }
 
   // ===== Storage =====
-  const KEY = "planSemiData_v8";
+  const KEY = "planSemiData_v9";
   const defaultData = { weeks: {}, workouts: [] };
 
   function loadData(){
@@ -428,10 +429,19 @@
   }
   function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
 
-  // ===== Analyse adaptative : construire une s&eacute;rie temps-distance propre =====
+  function mean(arr){ return arr.length ? (arr.reduce((a,x)=>a+x,0)/arr.length) : null; }
+  function minmax(arr){
+    if (!arr.length) return { min:null, max:null };
+    let mn=arr[0], mx=arr[0];
+    for (const x of arr){ if (x<mn) mn=x; if (x>mx) mx=x; }
+    return { min:mn, max:mx };
+  }
+  function fmtPaceTarget(target, tol){
+    return `${paceStr(target)}/km \u00B1 ${Math.round(tol)}s`;
+  }
+
+  // ===== Analyse adaptative =====
   function normalizeSamples(raw){
-    // raw: [{tMs, distM}] tri&eacute; par tMs
-    // Downsample ~1 point / 2 secondes pour garder l'info sans lourdeur.
     const out = [];
     let lastT = null;
     for (const p of raw){
@@ -441,14 +451,12 @@
         lastT = p.tMs;
       }
     }
-    // s&eacute;curit&eacute; : garder le dernier point
     const last = raw[raw.length-1];
     if (last && out.length && out[out.length-1].tMs !== last.tMs) out.push(last);
     return out;
   }
 
   function computeDistanceTimeArrays(points){
-    // points: [{lat,lon,tMs}] tri&eacute;
     let distM = 0;
     const samples = [];
     samples.push({ tMs: points[0].tMs, distM: 0 });
@@ -461,7 +469,6 @@
   }
 
   function computeKmSplits(samples){
-    // samples: [{tMs, distM}]
     const splits = [];
     let nextKm = 1;
     let lastCrossMs = samples[0].tMs;
@@ -483,11 +490,9 @@
   }
 
   function timeAtDistance(samples, targetDistM){
-    // retourne tMs interpol&eacute; pour une distance cumul&eacute;e targetDistM
     if (targetDistM <= samples[0].distM) return samples[0].tMs;
     const last = samples[samples.length-1];
     if (targetDistM >= last.distM) return last.tMs;
-    // recherche lin&eacute;aire (samples d&eacute;jà downsampl&eacute;s)
     for (let i=1;i<samples.length;i++){
       if (samples[i].distM >= targetDistM){
         const d0 = samples[i-1].distM, d1 = samples[i].distM;
@@ -499,14 +504,12 @@
     return last.tMs;
   }
 
-  // ===== Sp&eacute;cifications attendues selon la s&eacute;ance du plan =====
+  // ===== Spécifications attendues =====
   function expectedSpec(week, day){
-    // Courses
     if (week === 2 && day === "sun") return { kind:"race", distKm:10, tolKm:1.2, label:"Course 10 km" };
     if (week === 8 && day === "sun") return { kind:"race", distKm:21.1, tolKm:1.8, label:"Semi (r\u00E9p\u00E9tition)", paceTarget:300, paceTol:35 };
     if (week === 14 && day === "sun") return { kind:"race", distKm:21.1, tolKm:1.8, label:"Semi objectif", paceTarget:300, paceTol:25 };
 
-    // S2/S3/S8/S9 adapt&eacute;es
     if (week === 2){
       if (day === "tue") return { kind:"interval_time", repFastSec:30, repSlowSec:30, sets:2, repsPerSet:6, paceTarget:255, paceTol:20, label:"VMA 30/30 (2x6)" };
       if (day === "thu") return { kind:"tempo_time", reps:2, repMin:8, paceTarget:305, paceTol:25, label:"Seuil 2x8" };
@@ -532,7 +535,6 @@
       if (day === "sun") return { kind:"long", minMin:75, label:"Sortie longue facile" };
     }
 
-    // Plan standard
     if (week <= 5){
       if (day === "tue") return { kind:"interval_time", repFastSec:30, repSlowSec:30, sets:2, repsPerSet:8, paceTarget:255, paceTol:20, label:"VMA 30/30 (2x8)" };
       if (day === "thu") return { kind:"tempo_time", reps:3, repMin:8, paceTarget:305, paceTol:25, label:"Seuil 3x8" };
@@ -551,7 +553,6 @@
       if (day === "sat") return { kind:"endurance", minMin:35, label:"Footing facile" };
       if (day === "sun") return { kind:"long", minMin:60, label:"Sortie facile" };
     }
-    // Week 14
     if (day === "tue") return { kind:"endurance", minMin:35, label:"Footing + lignes droites" };
     if (day === "thu") return { kind:"tempo_time", reps:1, repMin:8, paceTarget:300, paceTol:30, label:"Rappel AS21 (8-10min)" };
     if (day === "sat") return { kind:"endurance", minMin:20, label:"Tr\u00E8s facile (optionnel)" };
@@ -559,35 +560,33 @@
     return { kind:"unknown", label:"S\u00E9ance" };
   }
 
-  // ===== Moteur d'&eacute;valuation adaptatif =====
+  // ===== Verdict =====
   function verdictFromScore(score){
     if (score >= 80) return { text:"✅ Tr&egrave;s proche", cls:"ok" };
     if (score >= 55) return { text:"🟠 Partiel", cls:"warn" };
     return { text:"🔴 Hors cible", cls:"bad" };
   }
 
+  // ===== Scoring (avec raisons chiffrées) =====
   function scoreIntervalDist(samples, spec){
-    // d&eacute;tecte les meilleurs segments non chevauchants de repDistM
     const rep = spec.repDistM;
     const maxDist = samples[samples.length-1].distM;
     const candidates = [];
-    // fen&ecirc;tres toutes les 50m pour robustesse
     for (let start=0; start+rep<=maxDist; start+=50){
       const t0 = timeAtDistance(samples, start);
       const t1 = timeAtDistance(samples, start+rep);
       const sec = (t1 - t0)/1000;
       if (sec > 20 && sec < 600) {
-        const pace = (sec / (rep/1000)); // sec/km
+        const pace = (sec / (rep/1000));
         candidates.push({ startM:start, endM:start+rep, sec, pace });
       }
     }
-    candidates.sort((a,b)=>a.pace - b.pace); // plus vite d'abord
+    candidates.sort((a,b)=>a.pace - b.pace);
 
     const chosen = [];
     const used = [];
     for (const c of candidates){
       if (chosen.length >= spec.reps) break;
-      // non chevauchement simple
       let ok = true;
       for (const u of used){
         if (!(c.endM <= u.startM || c.startM >= u.endM)) { ok=false; break; }
@@ -597,24 +596,42 @@
       used.push({ startM:c.startM, endM:c.endM });
     }
 
+    const reasons = [];
     const notes = [];
-    if (chosen.length === 0){
-      return { score: 20, details: [], notes:["Aucun bloc distance d\u00E9tect\u00E9 (donn\u00E9es GPX insuffisantes ?)"] };
+
+    if (!chosen.length){
+      reasons.push(`Blocs ${Math.round(rep)}m détectés : 0/${spec.reps}.`);
+      reasons.push(`Cible : ${fmtPaceTarget(spec.paceTarget, spec.paceTol)}.`);
+      return { score: 20, details: [], reasons, notes:["Aucun bloc distance détecté (données GPX insuffisantes ?)"] };
     }
 
-    // Score : nombre + qualit&eacute; d'allure
     const target = spec.paceTarget;
     const tol = spec.paceTol;
-    let good = 0;
-    for (const r of chosen){
-      if (Math.abs(r.pace - target) <= tol) good++;
+
+    const paces = chosen.map(x=>x.pace);
+    const avgP = mean(paces);
+    const mm = minmax(paces);
+
+    let within = 0, tooFast = 0, tooSlow = 0;
+    for (const p of paces){
+      if (Math.abs(p - target) <= tol) within++;
+      else if (p < target - tol) tooFast++;
+      else if (p > target + tol) tooSlow++;
     }
+
     const repScore = Math.round(60 * Math.min(1, chosen.length / spec.reps));
-    const paceScore = Math.round(40 * (good / Math.max(1, chosen.length)));
+    const paceScore = Math.round(40 * (within / Math.max(1, chosen.length)));
     const score = clamp(repScore + paceScore, 0, 100);
 
-    if (chosen.length < spec.reps) notes.push(`R\u00E9p\u00E9titions d\u00E9tect\u00E9es: ${chosen.length}/${spec.reps}.`);
-    notes.push(`Blocs dans la cible \u00B1${tol}s/km : ${good}/${chosen.length}.`);
+    // Raisons principales (avec valeurs)
+    reasons.push(`Blocs ${Math.round(rep)}m détectés : ${chosen.length}/${spec.reps}.`);
+    reasons.push(`Cible : ${fmtPaceTarget(target, tol)}.`);
+    reasons.push(`Allure blocs : moy ${paceStr(avgP)}/km (min ${paceStr(mm.min)}, max ${paceStr(mm.max)}).`);
+    reasons.push(`Dans la cible : ${within}/${chosen.length} (trop rapide : ${tooFast}, trop lent : ${tooSlow}).`);
+
+    if (chosen.length < spec.reps) notes.push(`Nombre de répétitions insuffisant : ${chosen.length}/${spec.reps}.`);
+    if (tooFast) notes.push(`Certaines répétitions sont trop rapides (${tooFast}).`);
+    if (tooSlow) notes.push(`Certaines répétitions sont trop lentes (${tooSlow}).`);
 
     return {
       score,
@@ -623,18 +640,17 @@
         pace: paceStr(r.pace),
         sec: durationStr(r.sec)
       })),
+      reasons,
       notes
     };
   }
 
   function scoreTempoTime(samples, spec){
-    // d&eacute;tecte des blocs continus de repMin minutes proches de l'allure cible
     const repSec = spec.repMin * 60;
-    const stepSec = 10; // pas glissant
+    const stepSec = 10;
     const target = spec.paceTarget;
     const tol = spec.paceTol;
 
-    // construire une fonction distance(t) par interpolation sur samples
     function distAtTime(tMs){
       if (tMs <= samples[0].tMs) return samples[0].distM;
       const last = samples[samples.length-1];
@@ -660,23 +676,27 @@
       const d1 = distAtTime(t1);
       const dKm = (d1 - d0)/1000;
       if (dKm < 0.4) continue;
-      const pace = repSec / dKm; // sec/km
-      // bloc "proche" si dans tol (on accepte un peu plus lent)
+      const pace = repSec / dKm;
       const within = Math.abs(pace - target) <= tol;
-      // score candidat = distance & proximit\u00E9
       const scoreLocal = within ? 1 : (Math.max(0, 1 - (Math.abs(pace-target) / (tol*2))));
       if (scoreLocal > 0.35){
         candidates.push({ t0, t1, dKm, pace, scoreLocal });
       }
     }
 
+    const reasons = [];
+    const notes = [];
+
+    reasons.push(`Attendu : ${spec.reps} bloc(s) de ${spec.repMin} min.`);
+    reasons.push(`Cible : ${fmtPaceTarget(target, tol)}.`);
+
     if (!candidates.length){
-      return { score: 25, details: [], notes:[`Aucun bloc continu de ${spec.repMin} min d\u00E9tect\u00E9 proche de l'allure cible.`] };
+      reasons.push(`Blocs détectés : 0/${spec.reps} (fenêtres ${spec.repMin} min).`);
+      return { score: 25, details: [], reasons, notes:[`Aucun bloc continu de ${spec.repMin} min proche de la cible.`] };
     }
 
     candidates.sort((a,b)=>b.scoreLocal - a.scoreLocal);
 
-    // choisir des blocs non chevauchants
     const chosen = [];
     for (const c of candidates){
       if (chosen.length >= spec.reps) break;
@@ -688,18 +708,30 @@
       chosen.push(c);
     }
 
-    const notes = [];
-    let good = 0;
-    for (const b of chosen){
-      if (Math.abs(b.pace - target) <= tol) good++;
+    const paces = chosen.map(x=>x.pace);
+    const avgP = mean(paces);
+    const mm = minmax(paces);
+
+    let within = 0, tooFast = 0, tooSlow = 0;
+    for (const p of paces){
+      if (Math.abs(p - target) <= tol) within++;
+      else if (p < target - tol) tooFast++;
+      else if (p > target + tol) tooSlow++;
     }
 
     const repScore = Math.round(60 * Math.min(1, chosen.length / spec.reps));
-    const paceScore = Math.round(40 * (good / Math.max(1, chosen.length)));
+    const paceScore = Math.round(40 * (within / Math.max(1, chosen.length)));
     const score = clamp(repScore + paceScore, 0, 100);
 
-    if (chosen.length < spec.reps) notes.push(`Blocs d\u00E9tect\u00E9s: ${chosen.length}/${spec.reps}.`);
-    notes.push(`Blocs dans la cible \u00B1${tol}s/km : ${good}/${chosen.length}.`);
+    reasons.push(`Blocs détectés : ${chosen.length}/${spec.reps}.`);
+    if (chosen.length){
+      reasons.push(`Allure blocs : moy ${paceStr(avgP)}/km (min ${paceStr(mm.min)}, max ${paceStr(mm.max)}).`);
+      reasons.push(`Dans la cible : ${within}/${chosen.length} (trop rapide : ${tooFast}, trop lent : ${tooSlow}).`);
+    }
+
+    if (chosen.length < spec.reps) notes.push(`Nombre de blocs insuffisant : ${chosen.length}/${spec.reps}.`);
+    if (tooFast) notes.push(`Blocs trop rapides : ${tooFast}.`);
+    if (tooSlow) notes.push(`Blocs trop lents : ${tooSlow}.`);
 
     return {
       score,
@@ -708,18 +740,18 @@
         pace: paceStr(b.pace),
         dist: `${b.dKm.toFixed(2)} km`
       })),
+      reasons,
       notes
     };
   }
 
   function scoreIntervalTimeFallback(samples, spec){
-    // Pour 30/30: on ne peut pas reconstruire parfaitement l'alternance avec un GPX parfois peu dense.
-    // On fait une approche robuste: regarder le "meilleur 1 min" (approx) et le nombre de pics.
+    // 30/30: approche robuste (fenêtres 1 min)
     const target = spec.paceTarget;
     const tol = spec.paceTol;
+    const reasons = [];
     const notes = [];
 
-    // construire points par 10s: vitesse moyenne
     const startMs = samples[0].tMs;
     const endMs = samples[samples.length-1].tMs;
 
@@ -749,27 +781,31 @@
       candidates.push({ t0, pace });
     }
     if (!candidates.length){
-      return { score: 30, details: [], notes:["Donn\u00E9es insuffisantes pour analyser la VMA (timestamps trop rares)."] };
+      reasons.push("Fenêtres 1 min analysables : 0 (timestamps trop rares).");
+      return { score: 30, details: [], reasons, notes:["Données insuffisantes pour analyser la VMA."] };
     }
+
     candidates.sort((a,b)=>a.pace-b.pace);
     const best = candidates[0].pace;
 
-    // compter des "pics" rapides (fen&ecirc;tres 1 min dans la cible)
     let peaks = 0;
     for (const c of candidates){
       if (Math.abs(c.pace - target) <= tol) peaks++;
     }
-
-    // attendu ~ sets*repsPerSet (mais en fen&ecirc;tres 1 min, on ne peut pas être strict)
     const expectedPeaks = Math.max(6, Math.round(spec.sets * spec.repsPerSet * 0.35));
+
     const repScore = Math.round(55 * Math.min(1, peaks / expectedPeaks));
     const paceScore = Math.round(45 * (Math.abs(best - target) <= tol ? 1 : Math.max(0, 1 - (Math.abs(best-target)/(tol*2)))));
     const score = clamp(repScore + paceScore, 0, 100);
 
-    notes.push(`Meilleure fen\u00EAtre ~1 min : ${paceStr(best)}/km.`);
-    notes.push(`Pics dans la cible (\u00B1${tol}s/km) : ${peaks} (attendu ~${expectedPeaks}+).`);
+    reasons.push(`Cible : ${fmtPaceTarget(target, tol)}.`);
+    reasons.push(`Meilleure fenêtre ~1 min : ${paceStr(best)}/km.`);
+    reasons.push(`Pics dans la cible (fenêtres 1 min) : ${peaks} (attendu ~${expectedPeaks}+).`);
 
-    return { score, details:[{ label:"Best ~1 min", pace: paceStr(best), sec:"1m00" }], notes };
+    if (peaks < expectedPeaks) notes.push(`Pics insuffisants : ${peaks} vs ~${expectedPeaks}+ attendus.`);
+    if (Math.abs(best - target) > tol) notes.push("Meilleure minute éloignée de la cible.");
+
+    return { score, details:[{ label:"Best ~1 min", pace: paceStr(best), sec:"1m00" }], reasons, notes };
   }
 
   function scoreEndurance(samples, spec){
@@ -778,18 +814,25 @@
     const avgPace = durSec / Math.max(0.01, distKm);
 
     let score = 60;
+    const reasons = [];
     const notes = [];
 
     if (spec.minMin){
       const minSec = spec.minMin * 60;
+      reasons.push(`Durée : ${durationStr(durSec)} (attendu ≥ ${spec.minMin} min).`);
       if (durSec >= minSec) score += 25;
-      else { score -= 20; notes.push(`Dur\u00E9e < ${spec.minMin} min.`); }
+      else { score -= 20; notes.push(`Durée trop courte : ${Math.round(durSec/60)} min.`); }
+    } else {
+      reasons.push(`Durée : ${durationStr(durSec)}.`);
     }
-    // En endurance, on ne p\u00E9nalise pas une allure trop lente. On p\u00E9nalise juste trop rapide.
-    if (avgPace < 320) { score -= 15; notes.push("Allure moyenne rapide pour une endurance (prudence si fatigue)."); }
+
+    // Trop rapide = risque
+    const fastThr = 320; // 5'20/km
+    reasons.push(`Allure moyenne : ${paceStr(avgPace)}/km (alerte si < ${paceStr(fastThr)}/km).`);
+    if (avgPace < fastThr) { score -= 15; notes.push("Allure moyenne rapide pour une endurance."); }
     else score += 5;
 
-    return { score: clamp(score,0,100), details:[{ label:"Allure moyenne", pace: paceStr(avgPace), sec: durationStr(durSec) }], notes };
+    return { score: clamp(score,0,100), details:[{ label:"Allure moyenne", pace: paceStr(avgPace), sec: durationStr(durSec) }], reasons, notes };
   }
 
   function scoreLong(samples, spec){
@@ -798,17 +841,20 @@
     const avgPace = durSec / Math.max(0.01, distKm);
 
     let score = 55;
+    const reasons = [];
     const notes = [];
     const minSec = (spec.minMin||75) * 60;
 
+    reasons.push(`Durée : ${durationStr(durSec)} (attendu ≥ ${Math.round(minSec/60)} min).`);
     if (durSec >= minSec) score += 35;
-    else { score -= 18; notes.push(`Dur\u00E9e < ${Math.round(minSec/60)} min.`); }
+    else { score -= 18; notes.push(`Durée trop courte : ${Math.round(durSec/60)} min.`); }
 
-    // Sortie longue: m\u00EAme logique: trop rapide = risque, trop lent = OK.
-    if (avgPace < 325) { score -= 10; notes.push("Sortie longue assez rapide : attention r\u00E9cup."); }
+    const fastThr = 325; // 5'25/km
+    reasons.push(`Allure moyenne : ${paceStr(avgPace)}/km (alerte si < ${paceStr(fastThr)}/km).`);
+    if (avgPace < fastThr) { score -= 10; notes.push("Sortie longue assez rapide : attention récupération."); }
     else score += 5;
 
-    return { score: clamp(score,0,100), details:[{ label:"Allure moyenne", pace: paceStr(avgPace), sec: durationStr(durSec) }], notes };
+    return { score: clamp(score,0,100), details:[{ label:"Allure moyenne", pace: paceStr(avgPace), sec: durationStr(durSec) }], reasons, notes };
   }
 
   function scoreRace(samples, spec){
@@ -817,22 +863,26 @@
     const avgPace = durSec / Math.max(0.01, distKm);
 
     let score = 55;
+    const reasons = [];
     const notes = [];
 
+    reasons.push(`Distance : ${distKm.toFixed(2)} km (cible ${spec.distKm} ± ${spec.tolKm}).`);
     if (Math.abs(distKm - spec.distKm) <= spec.tolKm) score += 30;
-    else { score -= 15; notes.push(`Distance atypique : ${distKm.toFixed(2)} km.`); }
+    else { score -= 15; notes.push(`Distance hors tolérance.`); }
 
     if (spec.paceTarget){
       const tol = spec.paceTol || 30;
+      reasons.push(`Allure moyenne : ${paceStr(avgPace)}/km (cible ${fmtPaceTarget(spec.paceTarget, tol)}).`);
       if (Math.abs(avgPace - spec.paceTarget) <= tol) score += 15;
-      else if (avgPace < spec.paceTarget - tol) { score += 6; notes.push("Plus rapide que la cible (OK si ma\u00EEtris\u00E9)."); }
-      else { score -= 8; notes.push("Plus lent que la cible (OK si mode prudence/r\u00E9cup)."); }
+      else if (avgPace < spec.paceTarget - tol) { score += 6; notes.push("Plus rapide que la cible (OK si maîtrisé)."); }
+      else { score -= 8; notes.push("Plus lent que la cible (OK si prudent/récup)."); }
     } else {
-      // 10 km : on ne juge pas l'allure, juste coh\u00E9rence
+      reasons.push(`Allure moyenne : ${paceStr(avgPace)}/km.`);
       if (avgPace < 330) score += 10;
     }
 
-    return { score: clamp(score,0,100), details:[{ label:"Allure moyenne", pace: paceStr(avgPace), sec: durationStr(durSec) }], notes };
+    reasons.push(`Durée : ${durationStr(durSec)}.`);
+    return { score: clamp(score,0,100), details:[{ label:"Allure moyenne", pace: paceStr(avgPace), sec: durationStr(durSec) }], reasons, notes };
   }
 
   function evaluateCompliance(samples, spec){
@@ -843,7 +893,7 @@
     else if (spec.kind === "endurance") res = scoreEndurance(samples, spec);
     else if (spec.kind === "long") res = scoreLong(samples, spec);
     else if (spec.kind === "race") res = scoreRace(samples, spec);
-    else res = { score: 40, details:[], notes:["Type de s\u00E9ance non reconnu."] };
+    else res = { score: 40, details:[], reasons:["Type de séance non reconnu."], notes:[] };
 
     const v = verdictFromScore(res.score);
     return { ...res, verdict: v.text, verdictClass: v.cls, specLabel: spec.label };
@@ -1080,7 +1130,6 @@
       avgPaceStr: paceStr(avgPaceSec),
       dateStr,
       splits,
-      // pour l'analyse (ne sera pas sauvegard&eacute; tel quel)
       _samples: norm
     };
   }
@@ -1130,10 +1179,8 @@
     const day  = attachDayEl.value;
     ensureWeek(week);
 
-    // Sp&eacute;c selon le plan (ou override simple si l'utilisateur force un type)
     let spec = expectedSpec(week, day);
 
-    // Override grossier par menu si besoin
     const override = attachTypeEl.value;
     if (override !== "auto"){
       if (override === "vma") spec = { kind:"interval_dist", reps:10, repDistM:400, paceTarget:250, paceTol:20, label:"(Override) VMA" };
@@ -1143,11 +1190,9 @@
       if (override === "race") spec = { kind:"race", distKm:21.1, tolKm:2.0, label:"(Override) Course" };
     }
 
-    // Calcul respect
     const evalRes = evaluateCompliance(lastParsedWorkout._samples, spec);
     const badgeClass = (evalRes.verdictClass === "ok") ? "ok" : (evalRes.verdictClass === "warn" ? "warn" : "bad");
 
-    // Stocker une version l&eacute;g&egrave;re
     const workoutStored = {
       id: lastParsedWorkout.id,
       sourceName: lastParsedWorkout.sourceName,
@@ -1163,8 +1208,9 @@
         verdict: evalRes.verdict,
         badgeClass,
         specLabel: evalRes.specLabel,
-        notes: evalRes.notes,
-        details: evalRes.details
+        reasons: evalRes.reasons || [],
+        notes: evalRes.notes || [],
+        details: evalRes.details || []
       }
     };
 
@@ -1173,16 +1219,24 @@
     data.weeks[week].done[day] = true;
     saveData();
 
-    // Affichage compliance dans l'onglet import
+    // Affichage détaillé (score + raisons + détails + notes)
     const lines = [];
     lines.push(`<span class="badge ${badgeClass}">${evalRes.verdict} &bull; ${evalRes.score}/100</span> &nbsp; <span class="badge">${evalRes.specLabel}</span>`);
+
+    if (evalRes.reasons && evalRes.reasons.length){
+      lines.push(`<div class="mini" style="margin-top:10px;"><b>Raisons principales (avec valeurs) :</b></div>`);
+      lines.push(`<ul class="reasons">${evalRes.reasons.slice(0, 8).map(r=>`<li>${r}</li>`).join("")}</ul>`);
+    }
+
     if (evalRes.details && evalRes.details.length){
-      lines.push(`<div class="mini" style="margin-top:8px;"><b>D\u00E9tails d\u00E9tect\u00E9s :</b></div>`);
+      lines.push(`<div class="mini" style="margin-top:10px;"><b>D\u00E9tails d\u00E9tect\u00E9s :</b></div>`);
       lines.push(evalRes.details.map(d=>`<div class="split"><span>${d.label}</span><span>${d.pace}${d.dist?(" &bull; "+d.dist):""}${d.sec?(" &bull; "+d.sec):""}</span></div>`).join(""));
     }
+
     if (evalRes.notes && evalRes.notes.length){
-      lines.push(`<div class="mini" style="margin-top:8px;"><b>Notes :</b> ${evalRes.notes.join(" ")}</div>`);
+      lines.push(`<div class="mini" style="margin-top:10px;"><b>Conseils :</b> ${evalRes.notes.join(" ")}</div>`);
     }
+
     gpxComplianceEl.innerHTML = lines.join("");
 
     attachBtn.disabled = true;
@@ -1194,6 +1248,13 @@
   function updateAll(){
     updateCountdown();
     updateHeaderKPI();
+
+    // stats
+    const k = computeKPI();
+    document.getElementById("globalPill").textContent = `Global : ${k.done}/${k.total} seances (${k.pct}%)`;
+    document.getElementById("sleepPill").textContent = `Semaines sommeil <6h : ${k.sleepLowWeeks}`;
+    document.getElementById("painPill").textContent = `Semaines avec douleurs : ${k.painWeeks}`;
+
     renderStats();
     renderPlan();
   }
