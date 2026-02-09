@@ -956,6 +956,16 @@
 
         const sec = document.createElement("div");
         sec.className = "session";
+        const reasonsInline = (workout && workout.compliance && workout.compliance.reasons && workout.compliance.reasons.length)
+          ? `
+          <details style="margin-top:6px;">
+          <summary class="mini"><b>Pourquoi ce score ?</b></summary>
+          <ul class="reasonsInline">
+          ${workout.compliance.reasons.slice(0, 6).map(r => `<li>${r}</li>`).join("")}
+          </ul>
+          </details>
+          `
+          : "";
         sec.innerHTML = `
           <div class="s-title">${dayName} ${badge1} ${badge2}</div>
           <label class="cb">
