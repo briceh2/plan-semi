@@ -961,31 +961,31 @@
         const sec = document.createElement("div");
         sec.className = "session";
         const reasonsInline = (workout && workout.compliance && workout.compliance.reasons && workout.compliance.reasons.length)
-  ? (() => {
-      const rs = workout.compliance.reasons;
-      const top2 = rs.slice(0, 2);
-      const rest = rs.slice(2, 8);
-
-      const topHtml = `
-        <div class="reasonsCompact">
-          ${top2.map(r => `<div class="line">• ${r}</div>`).join("")}
-        </div>
-      `;
-
-      if (!rest.length) return topHtml;
-
-      const moreHtml = `
-        <details style="margin-top:6px;">
-          <summary class="mini"><b>Voir plus</b></summary>
-          <ul class="reasonsInline">
-            ${rest.map(r => `<li>${r}</li>`).join("")}
-          </ul>
-        </details>
-      `;
-
-      return topHtml + moreHtml;
-    })()
-  : "";
+          ? (() => {
+              const rs = workout.compliance.reasons;
+              const top2 = rs.slice(0, 2);
+              const rest = rs.slice(2, 8);
+        
+              const topHtml = `
+                <div class="reasonsCompact">
+                  ${top2.map(r => `<div class="line">• ${r}</div>`).join("")}
+                </div>
+              `;
+        
+              if (!rest.length) return topHtml;
+        
+              const moreHtml = `
+                <details style="margin-top:6px;">
+                  <summary class="mini"><b>Voir plus</b></summary>
+                  <ul class="reasonsInline">
+                    ${rest.map(r => `<li>${r}</li>`).join("")}
+                  </ul>
+                </details>
+              `;
+        
+              return topHtml + moreHtml;
+            })()
+          : "";
         sec.innerHTML = `
           <div class="s-title">${dayName} ${badge1} ${badge2}</div>
           <label class="cb">
