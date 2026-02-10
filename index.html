@@ -891,7 +891,126 @@
 
     return { score, reasons, notes, details, intervals };
   }
+function score400m(samples, spec){
+  // spec: {reps, repDistM:400, paceTarget, paceTol}
+  const target = spec.paceTarget;
+  const tolFast = spec.paceTol;
 
+  const repM = spec.repDistM;
+  const distTolM = 35;        // plus strict car méthode distance (ajuste si route sinueuse)
+  const minRecoverSec = 25;   // récup minimale
+  const recoverSlack = 35;    // récup = au moins +35s/km plus lent que cible
+
+  const pts = smoothPace(buildPaceSeries(samples), 8);
+  if (!pts.length) return { score: 30, reasons:["Données insuffisantes."], notes:[], details:[], intervals:[] };
+
+  // Helpers: retrouver un index par distance
+  // pts est (tMs, distM, pace). distM est cumulée.
+  function findIndexByDist(startIdx, targetDist){
+    // cherche le premier i >= startIdx tel que pts[i].distM >= targetDist
+    for (let i=startIdx; i<pts.length; i++){
+      if (pts[i].distM >= targetDist) return i;
+    }
+    return -1;
+  }
+
+  function avgPaceBetween(i0, i1){
+    // moyenne simple des paces (OK pour indicateur)
+    let sum = 0, n=0;
+    for (let i=i0; i<=i1; i++){ sum += pts[i].pace; n++; }
+    return sum/Math.max(1,n);
+  }
+
+  const reps = [];
+  let i = 0;
+
+  while (i < pts.length-2 && reps.length < spec.reps){
+    // point de départ
+    const d0 = pts[i].distM;
+    const targetDist = d0 + repM;
+
+    const j = findIndexByDist(i+1, targetDist);
+    if (j < 0) break;
+
+    const dist = pts[j].distM - d0;
+    if (Math.abs(dist - repM) > distTolM){
+      // si fenêtre trop éloignée, on avance un peu
+      i++;
+      continue;
+    }
+
+    const t0 = pts[i].tMs;
+    const t1 = pts[j].tMs;
+    const durSec = (t1 - t0)/1000;
+    if (durSec <= 20) { i++; continue; } // anti-bruit
+
+    const pace = avgPaceBetween(i, j);
+    const inTarget = Math.abs(pace - target) <= tolFast;
+
+    // Récup: chercher un segment après j qui dure minRecoverSec et est plus lent
+    let recoverOk = false;
+    let recStart = j+1;
+    let recEnd = -1;
+
+    // on regarde les points jusqu'à atteindre minRecoverSec
+    for (let k=j+1; k<pts.length; k++){
+      const dt = (pts[k].tMs - pts[recStart].tMs)/1000;
+      if (dt >= minRecoverSec){
+        recEnd = k;
+        const recPace = avgPaceBetween(recStart, recEnd);
+        if (recPace >= target + recoverSlack || Math.abs(recPace - target) > tolFast){
+          recoverOk = true;
+        }
+        break;
+      }
+    }
+
+    if (inTarget){
+      reps.push({ t0, t1, distM: dist, durSec, pace, recoverOk });
+      // on saute après la récup si possible, sinon après le bloc
+      i = (recoverOk && recEnd>0) ? recEnd+1 : (j+1);
+    } else {
+      // si pas en cible, on avance doucement pour ne pas rater les suivants
+      i++;
+    }
+  }
+
+  const detected = reps.length;
+  const expected = spec.reps;
+
+  const within = reps.filter(r => Math.abs(r.pace - target) <= tolFast).length;
+  const recoverOkN = reps.filter(r => r.recoverOk).length;
+
+  const qtyScore = 55 * Math.min(1, detected / Math.max(1,expected));
+  const paceScore = 30 * (within / Math.max(1, detected));
+  const recScore  = 15 * (recoverOkN / Math.max(1, detected));
+  const score = Math.round(clamp(qtyScore + paceScore + recScore, 0, 100));
+
+  const paces = reps.map(r=>r.pace);
+  const mm = minmax(paces);
+  const avgP = paces.length ? mean(paces) : null;
+
+  const reasons = [];
+  reasons.push(`Blocs ~${Math.round(repM)}m détectés (ordre + récup) : ${detected}/${expected} (tol ± ${distTolM}m).`);
+  reasons.push(`Récup : ≥ ${minRecoverSec}s et plus lent (≈ +${recoverSlack}s/km).`);
+  reasons.push(`Cible : ${fmtPaceTarget(target, tolFast)}.`);
+  if (avgP !== null) reasons.push(`Allure blocs : moy ${paceStr(avgP)}/km (min ${paceStr(mm.min)}, max ${paceStr(mm.max)}).`);
+  reasons.push(`Récup OK : ${recoverOkN}/${Math.max(1,detected)}.`);
+
+  const notes = [];
+  if (detected < expected) notes.push(`Répétitions insuffisantes : ${detected}/${expected} (allure ou récup non conforme).`);
+  if (detected && recoverOkN < detected) notes.push(`Récup trop courte / trop rapide : ${detected-recoverOkN}.`);
+
+  const details = reps.slice(0, 12).map((r,i)=>({
+    label:`${Math.round(repM)}m #${i+1}`,
+    pace:`${paceStr(r.pace)}/km`,
+    sec:`${Math.round(r.durSec)}s • récup ${r.recoverOk ? "OK" : "NO"}`
+  }));
+
+  const intervals = reps.map(r => ({ t0:r.t0, t1:r.t1, kind:"work" }));
+
+  return { score, reasons, notes, details, intervals };
+}
   // ===== tempo/seuil blocks (intervals from good segments) =====
 function scoreTempoBlocks(samples, spec){
   // spec: {reps, repMin, paceTarget, paceTol}
