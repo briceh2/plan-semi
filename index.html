@@ -350,7 +350,7 @@
   }
 
   // ===== Storage =====
-  const KEY = "planSemiData_v13_manual";
+  const KEY = "planSemiData_v14_manual_recompute";
   const defaultData = { weeks: {}, workouts: [] };
 
   function loadData(){
@@ -523,7 +523,6 @@
   }
 
   function normalizeSamples(raw){
-    // on garde un point toutes les ~2s
     const out = [];
     let lastT = null;
     for (const p of raw){
@@ -616,7 +615,6 @@
   }
 
   function buildPaceSeries(samples){
-    // Retourne {tMs, distM, pace} (sec/km), lissé robuste
     const windowSec = 12;
     const medianWindow = 5;
     const minSpeedKmh = 2;
@@ -639,7 +637,6 @@
 
       const speedMps = dd / dt;
       const speedKmh = speedMps * 3.6;
-
       if (speedKmh < minSpeedKmh || speedKmh > maxSpeedKmh) continue;
 
       const pace = 3600 / speedKmh; // sec/km
@@ -707,7 +704,7 @@
     return segs.filter(s => s.durSec >= 5);
   }
 
-  // ===== Plan specs =====
+  // ===== Spec (plan) =====
   function expectedSpec(week, day){
     if (week === 2 && day === "sun") return { kind:"race", distKm:10, tolKm:1.2, label:"Course 10 km" };
     if (week === 8 && day === "sun") return { kind:"race", distKm:21.1, tolKm:1.8, label:"Semi (répétition)", paceTarget:300, paceTol:35 };
@@ -763,7 +760,7 @@
     return { kind:"unknown", label:"Séance" };
   }
 
-  // ===== Scoring =====
+  // ===== Verdict helpers =====
   function verdictFromScore(score){
     if (score >= 80) return { text:"✅ Très proche", cls:"ok" };
     if (score >= 55) return { text:"🟠 Partiel", cls:"warn" };
@@ -775,6 +772,7 @@
     return "bad";
   }
 
+  // ===== Scoring (auto) =====
   function score30_30(samples, spec){
     const target = spec.paceTarget;
     const tolFast = spec.paceTol;
@@ -819,7 +817,6 @@
 
     const totalExpected = spec.sets * spec.repsPerSet;
     const detected = pairs.length;
-
     const fastPaces = pairs.map(x=>x.fastPace);
     const avgFast = fastPaces.length ? mean(fastPaces) : null;
     const withinFast = fastPaces.filter(p => Math.abs(p - target) <= tolFast).length;
@@ -840,7 +837,7 @@
     if (detected && withinFast < detected) notes.push(`Phases rapides hors cible : ${detected-withinFast}.`);
 
     const intervals = pairs.map(p => ({ t0: p.fast_t0, t1: p.fast_t1, kind:"work" }));
-    return { score, reasons, notes, details:[], intervals };
+    return { score, reasons, notes, intervals };
   }
 
   function scoreTempoBlocks(samples, spec){
@@ -853,7 +850,7 @@
     const recoverSlack = 25;
 
     const pts = smoothPace(buildPaceSeries(samples), 6);
-    if (!pts.length) return { score: 30, reasons:["Données insuffisantes."], notes:[], details:[], intervals:[] };
+    if (!pts.length) return { score: 30, reasons:["Données insuffisantes."], notes:[], intervals:[] };
 
     const okPace = (p) => Math.abs(p.pace - target) <= tol;
     const segs = buildSegments(pts, okPace);
@@ -916,7 +913,7 @@
     if (detected && within < detected) notes.push(`Blocs hors cible : ${detected-within}.`);
 
     const intervals = blocks.map(b => ({ t0:b.t0, t1:b.t1, kind:"work" }));
-    return { score, reasons, notes, details:[], intervals };
+    return { score, reasons, notes, intervals };
   }
 
   function score400m(samples, spec){
@@ -977,7 +974,7 @@
     if (detected && recoverOkN < detected) notes.push(`Récup trop courte / trop rapide : ${detected-recoverOkN}.`);
 
     const intervals = reps.map(r => ({ t0:r.t0, t1:r.t1, kind:"work" }));
-    return { score, reasons, notes, details:[], intervals };
+    return { score, reasons, notes, intervals };
   }
 
   function scoreEndurance(samples, spec){
@@ -997,7 +994,7 @@
     reasons.push(`Allure moyenne : ${paceStr(avgPace)}/km.`);
     if (avgPace < fastThr) { score -= 15; notes.push("Allure moyenne rapide pour une endurance."); }
     else score += 5;
-    return { score: clamp(score,0,100), reasons, notes, details:[], intervals:[] };
+    return { score: clamp(score,0,100), reasons, notes, intervals:[] };
   }
 
   function scoreLong(samples, spec){
@@ -1012,7 +1009,7 @@
     if (durSec >= minSec) score += 35;
     else { score -= 18; notes.push(`Durée trop courte : ${Math.round(durSec/60)} min.`); }
     reasons.push(`Allure moyenne : ${paceStr(avgPace)}/km.`);
-    return { score: clamp(score,0,100), reasons, notes, details:[], intervals:[] };
+    return { score: clamp(score,0,100), reasons, notes, intervals:[] };
   }
 
   function scoreRace(samples, spec){
@@ -1033,7 +1030,7 @@
       else { score -= 8; notes.push("Plus lent que la cible."); }
     } else reasons.push(`Allure moyenne : ${paceStr(avgPace)}/km.`);
     reasons.push(`Durée : ${durationStr(durSec)}.`);
-    return { score: clamp(score,0,100), reasons, notes, details:[], intervals:[] };
+    return { score: clamp(score,0,100), reasons, notes, intervals:[] };
   }
 
   function evaluateCompliance(samples, spec){
@@ -1044,10 +1041,161 @@
     else if (spec.kind === "endurance") res = scoreEndurance(samples, spec);
     else if (spec.kind === "long") res = scoreLong(samples, spec);
     else if (spec.kind === "race") res = scoreRace(samples, spec);
-    else res = { score: 40, reasons:["Type de séance non reconnu."], notes:[], details:[], intervals:[] };
+    else res = { score: 40, reasons:["Type de séance non reconnu."], notes:[], intervals:[] };
 
     const v = verdictFromScore(res.score);
     return { ...res, verdict: v.text, verdictClass: v.cls, specLabel: spec.label };
+  }
+
+  // ===== Recompute score FROM intervals (auto+manual) =====
+  function getSeriesForStats(samples){
+    return smoothPace(buildPaceSeries(samples), 6);
+  }
+
+  function interpolateDistAt(pts, tMs){
+    // pts: [{tMs, distM, pace}]
+    if (!pts.length) return null;
+    if (tMs <= pts[0].tMs) return pts[0].distM;
+    if (tMs >= pts[pts.length-1].tMs) return pts[pts.length-1].distM;
+
+    // binary search
+    let lo = 0, hi = pts.length-1;
+    while (hi - lo > 1){
+      const mid = (lo + hi) >> 1;
+      if (pts[mid].tMs <= tMs) lo = mid; else hi = mid;
+    }
+    const a = pts[lo], b = pts[hi];
+    const dt = b.tMs - a.tMs;
+    if (dt <= 0) return a.distM;
+    const frac = (tMs - a.tMs) / dt;
+    return a.distM + frac * (b.distM - a.distM);
+  }
+
+  function intervalStats(pts, interval){
+    // returns {durSec, distM, avgPace}
+    const t0 = interval.t0, t1 = interval.t1;
+    const durSec = (t1 - t0) / 1000;
+    const d0 = interpolateDistAt(pts, t0);
+    const d1 = interpolateDistAt(pts, t1);
+    const distM = (d0!=null && d1!=null) ? (d1 - d0) : null;
+
+    // average pace from points within [t0,t1]
+    const sub = pts.filter(p => p.tMs >= t0 && p.tMs <= t1).map(p => p.pace);
+    let avgP = sub.length ? mean(sub) : null;
+    // fallback: compute from dist/time if pace not available
+    if ((avgP==null || !isFinite(avgP)) && distM!=null && distM>5 && durSec>1){
+      const speedKmh = (distM/durSec) * 3.6;
+      if (speedKmh > 0.1) avgP = 3600 / speedKmh;
+    }
+    return { durSec, distM, avgPace: avgP };
+  }
+
+  function recomputeFromIntervals(samples, spec, intervals){
+    // For endurance/long/race, keep global logic
+    if (spec.kind === "endurance") return scoreEndurance(samples, spec);
+    if (spec.kind === "long") return scoreLong(samples, spec);
+    if (spec.kind === "race") return scoreRace(samples, spec);
+
+    const pts = getSeriesForStats(samples);
+    const work = (intervals || []).filter(x => isFinite(x.t0) && isFinite(x.t1) && x.t1 > x.t0)
+      .sort((a,b)=>a.t0-b.t0);
+
+    if (!pts.length){
+      return { score: 30, reasons:["Données insuffisantes pour recalculer."], notes:["Réessaie avec un GPX plus complet."], intervals: work };
+    }
+    if (!work.length){
+      return { score: 20, reasons:["Aucun bloc de travail défini (auto + manuel)."], notes:["Ajoute des blocs gris puis sauvegarde."], intervals: work };
+    }
+
+    const stats = work.map(it => ({ it, ...intervalStats(pts, it) })).filter(x => x.avgPace!=null);
+
+    if (spec.kind === "interval_time"){
+      // Use number of work blocks + duration + pace
+      const expected = spec.sets * spec.repsPerSet;
+      const durTol = 12;
+      const inDur = stats.filter(s => Math.abs(s.durSec - spec.repFastSec) <= durTol).length;
+      const inPace = stats.filter(s => Math.abs(s.avgPace - spec.paceTarget) <= spec.paceTol).length;
+
+      const qtyScore = 55 * Math.min(1, stats.length / Math.max(1,expected));
+      const durScore = 20 * (inDur / Math.max(1, stats.length));
+      const paceScore = 25 * (inPace / Math.max(1, stats.length));
+      const score = Math.round(clamp(qtyScore + durScore + paceScore, 0, 100));
+
+      const paces = stats.map(s=>s.avgPace);
+      const mm = minmax(paces);
+      const avgP = mean(paces);
+
+      const reasons = [
+        `Blocs de travail (manuels + auto) : ${stats.length}/${expected}.`,
+        `Durée cible : ${spec.repFastSec}s (dans tolérance ±${durTol}s : ${inDur}/${stats.length}).`,
+        `Allure cible : ${fmtPaceTarget(spec.paceTarget, spec.paceTol)} (dans cible : ${inPace}/${stats.length}).`,
+        `Allure blocs : moy ${paceStr(avgP)}/km (min ${paceStr(mm.min)}, max ${paceStr(mm.max)}).`
+      ];
+      const notes = [];
+      if (stats.length < expected) notes.push(`Ajoute des blocs (actuel ${stats.length}/${expected}).`);
+      if (inDur < stats.length) notes.push(`Certaines durées de blocs sont atypiques (durée cible ${spec.repFastSec}s).`);
+      if (inPace < stats.length) notes.push(`Certaines allures de blocs sont hors cible.`);
+      return { score, reasons, notes, intervals: work };
+    }
+
+    if (spec.kind === "interval_dist"){
+      const expected = spec.reps;
+      const distTol = 70; // un poil plus permissif en manuel
+      const okDist = stats.filter(s => s.distM!=null && Math.abs(s.distM - spec.repDistM) <= distTol).length;
+      const okPace = stats.filter(s => Math.abs(s.avgPace - spec.paceTarget) <= spec.paceTol).length;
+
+      const qtyScore = 55 * Math.min(1, stats.length / Math.max(1,expected));
+      const distScore = 20 * (okDist / Math.max(1, stats.length));
+      const paceScore = 25 * (okPace / Math.max(1, stats.length));
+      const score = Math.round(clamp(qtyScore + distScore + paceScore, 0, 100));
+
+      const paces = stats.map(s=>s.avgPace);
+      const mm = minmax(paces);
+      const avgP = mean(paces);
+
+      const reasons = [
+        `Blocs de travail (manuels + auto) : ${stats.length}/${expected}.`,
+        `Distance cible : ${spec.repDistM}m (tol ±${distTol}m : ${okDist}/${stats.length}).`,
+        `Allure cible : ${fmtPaceTarget(spec.paceTarget, spec.paceTol)} (dans cible : ${okPace}/${stats.length}).`,
+        `Allure blocs : moy ${paceStr(avgP)}/km (min ${paceStr(mm.min)}, max ${paceStr(mm.max)}).`
+      ];
+      const notes = [];
+      if (stats.length < expected) notes.push(`Ajoute des blocs (actuel ${stats.length}/${expected}).`);
+      if (okDist < stats.length) notes.push(`Certaines distances de blocs sont atypiques (cible ${spec.repDistM}m).`);
+      if (okPace < stats.length) notes.push(`Certaines allures de blocs sont hors cible.`);
+      return { score, reasons, notes, intervals: work };
+    }
+
+    if (spec.kind === "tempo_time"){
+      const expected = spec.reps;
+      const repSec = spec.repMin * 60;
+      const durTol = Math.max(45, Math.round(repSec * 0.2)); // tol 20% (min 45s)
+      const okDur = stats.filter(s => Math.abs(s.durSec - repSec) <= durTol).length;
+      const okPace = stats.filter(s => Math.abs(s.avgPace - spec.paceTarget) <= spec.paceTol).length;
+
+      const qtyScore = 60 * Math.min(1, stats.length / Math.max(1,expected));
+      const durScore = 15 * (okDur / Math.max(1, stats.length));
+      const paceScore = 25 * (okPace / Math.max(1, stats.length));
+      const score = Math.round(clamp(qtyScore + durScore + paceScore, 0, 100));
+
+      const paces = stats.map(s=>s.avgPace);
+      const mm = minmax(paces);
+      const avgP = mean(paces);
+
+      const reasons = [
+        `Blocs tempo (manuels + auto) : ${stats.length}/${expected}.`,
+        `Durée cible : ${spec.repMin} min (tol ±${Math.round(durTol)}s : ${okDur}/${stats.length}).`,
+        `Allure cible : ${fmtPaceTarget(spec.paceTarget, spec.paceTol)} (dans cible : ${okPace}/${stats.length}).`,
+        `Allure blocs : moy ${paceStr(avgP)}/km (min ${paceStr(mm.min)}, max ${paceStr(mm.max)}).`
+      ];
+      const notes = [];
+      if (stats.length < expected) notes.push(`Ajoute des blocs (actuel ${stats.length}/${expected}).`);
+      if (okDur < stats.length) notes.push(`Certaines durées de blocs sont atypiques (cible ${spec.repMin} min).`);
+      if (okPace < stats.length) notes.push(`Certaines allures de blocs sont hors cible.`);
+      return { score, reasons, notes, intervals: work };
+    }
+
+    return { score: 40, reasons:["Type non supporté pour recalcul sur blocs."], notes:[], intervals: work };
   }
 
   // ===== Rendering plan + stats =====
@@ -1123,7 +1271,7 @@
           </label>
           ${workout
             ? `<div class="mini">Importé le ${workout.dateStr} • Durée ${workout.durationStr} • Réf: ${workout.compliance?.specLabel || "-"}</div>
-               ${workout.compliance?.manualAdjusted ? `<div class="mini">✍️ Blocs ajustés manuellement</div>` : ``}
+               ${workout.compliance?.manualAdjusted ? `<div class="mini">✍️ Blocs ajustés manuellement (score recalculé)</div>` : ``}
                ${reasonsCompact}`
             : `<div class="mini"></div>`
           }
@@ -1310,7 +1458,7 @@
   function openModal(state){
     modalState = state;
     pendingClickT = null;
-    manualIntervals = []; // on démarre propre à chaque ouverture
+    manualIntervals = [];
     document.body.style.overflow = "hidden";
     overlay.style.display = "flex";
     overlay.setAttribute("aria-hidden", "false");
@@ -1366,7 +1514,6 @@
   }
 
   function removeManualIntervalAtTime(tMs){
-    // supprime le premier bloc manuel contenant tMs
     const idx = manualIntervals.findIndex(it => tMs >= it.t0 && tMs <= it.t1);
     if (idx >= 0){
       manualIntervals.splice(idx, 1);
@@ -1383,14 +1530,14 @@
     const tMs = tMsFromCanvasY(y);
     if (!tMs) return;
 
-    // 1) si on tape dans un bloc gris -> supprimer
+    // Tap inside gray -> delete
     if (removeManualIntervalAtTime(tMs)){
       pendingClickT = null;
       renderModal();
       return;
     }
 
-    // 2) sinon : ajout (tap 1 / tap 2)
+    // else add (tap 1/tap 2)
     if (pendingClickT === null){
       pendingClickT = tMs;
     } else {
@@ -1400,10 +1547,7 @@
 
       const t0 = Math.min(a,b);
       const t1 = Math.max(a,b);
-      if ((t1 - t0) < 8000) { // min 8s
-        renderModal();
-        return;
-      }
+      if ((t1 - t0) < 8000) { renderModal(); return; }
       manualIntervals.push({ t0, t1, kind:"manual" });
     }
     renderModal();
@@ -1418,7 +1562,7 @@
   saveManualBtn.addEventListener("click", () => {
     if (!modalState) return;
 
-    // merge auto + manuel (sans doublons)
+    // merge auto + manual
     const auto = (modalState.intervals || []).map(x => ({ t0:x.t0, t1:x.t1, kind:"work" }));
     const man  = manualIntervals.map(x => ({ t0:x.t0, t1:x.t1, kind:"work" }));
 
@@ -1426,19 +1570,35 @@
       .filter(x => isFinite(x.t0) && isFinite(x.t1) && x.t1 > x.t0)
       .sort((a,b)=>a.t0-b.t0);
 
-    // sauve dans l'objet workout existant
+    // recompute score/reasons from merged blocks
+    const newRes = recomputeFromIntervals(modalState.samples, modalState.spec, merged);
+    const v = verdictFromScore(newRes.score);
+    const badgeClass = verdictBadgeClass(v.cls);
+
+    // persist to stored workout
     const idx = data.workouts.findIndex(w => w.id === modalState.workoutId);
     if (idx >= 0){
+      data.workouts[idx].compliance.score = newRes.score;
+      data.workouts[idx].compliance.verdict = v.text;
+      data.workouts[idx].compliance.badgeClass = badgeClass;
+      data.workouts[idx].compliance.reasons = newRes.reasons || [];
+      data.workouts[idx].compliance.notes = newRes.notes || [];
       data.workouts[idx].compliance.intervals = merged;
       data.workouts[idx].compliance.manualAdjusted = true;
       saveData();
     }
 
-    // update view
+    // update modal state too
+    modalState.score = newRes.score;
+    modalState.verdict = v.text;
+    modalState.badgeClass = badgeClass;
+    modalState.reasons = newRes.reasons || [];
+    modalState.notes = newRes.notes || [];
     modalState.intervals = merged;
+
     pendingClickT = null;
     renderModal();
-    alert("Blocs manuels sauvegardés ✅");
+    alert("Score recalculé et sauvegardé ✅");
   });
 
   function renderModal(){
@@ -1487,7 +1647,7 @@
     modalState._graph = { series, t0ms:t0, bounds, maxY };
     drawAxes(bounds);
 
-    // Auto intervals (blue bands)
+    // Auto intervals (blue)
     const det = modalState.intervals || [];
     ctx.globalAlpha = 0.18;
     ctx.fillStyle = "#2563eb";
@@ -1499,7 +1659,7 @@
     }
     ctx.globalAlpha = 1;
 
-    // Manual intervals (gray bands)
+    // Manual intervals (gray)
     ctx.globalAlpha = 0.22;
     ctx.fillStyle = "#6b7280";
     for (const it of manualIntervals){
@@ -1510,7 +1670,7 @@
     }
     ctx.globalAlpha = 1;
 
-    // Pending start marker
+    // Pending marker
     if (pendingClickT){
       const yp = yFromTMs(pendingClickT);
       if (yp!=null){
@@ -1574,6 +1734,7 @@
           verdict: evalRes.verdict,
           badgeClass,
           specLabel: evalRes.specLabel,
+          spec: spec, // store spec for reference
           reasons: evalRes.reasons || [],
           notes: evalRes.notes || [],
           intervals: evalRes.intervals || [],
@@ -1592,6 +1753,7 @@
       openModal({
         workoutId: workoutStored.id,
         week, day,
+        spec: spec,
         specLabel: evalRes.specLabel,
         score: evalRes.score,
         verdict: evalRes.verdict,
