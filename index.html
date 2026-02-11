@@ -40,6 +40,7 @@
     .btns { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
     button { border:1px solid #d1d5db; background:#fff; border-radius:10px; padding:10px 12px; font-size:14px; }
     button.primary { background:#111827; color:#fff; border-color:#111827; }
+    button:disabled { opacity:.55; }
     .muted { color:#555; font-size:12px; }
     .two { display:grid; grid-template-columns:1fr; gap:10px; }
     @media (min-width:720px){ .two{ grid-template-columns:1fr 1fr; } }
@@ -165,7 +166,9 @@
 
       <div class="session">
         <div class="s-title">1) Choisir le fichier</div>
-        <input type="file" id="fileInputGPX" accept=".gpx,.gtx,application/gpx+xml,application/xml,text/xml,*/*" />
+        <input type="file" id="fileInputGPX"
+               accept=".gpx,.gtx,application/gpx+xml,application/xml,text/xml,*/*" />
+        <div class="mini">Si les fichiers .gtx apparaissent grisés : essaye “Fichiers” → “Sur mon iPhone” et renomme .gtx en .gpx (copie), ou partage le fichier en GPX.</div>
       </div>
 
       <div class="session">
@@ -264,8 +267,9 @@
       <div class="hintBox">
         <div><b>Courbe :</b> axe X = <b>vitesse lissée (km/h)</b> • axe Y = <b>temps (min)</b>.</div>
         <div style="margin-top:6px;">
-          <b>Blocs détectés</b> en bleu.
-          <br><b>Ajouter un bloc</b> : tap 1 = <span class="kbd">début</span>, tap 2 = <span class="kbd">fin</span> (gris).
+          <b>Blocs auto</b> en bleu.
+          <br><b>Ajouter un bloc</b> : tap 1 = <span class="kbd">début</span>, tap 2 = <span class="kbd">fin</span>.
+          <br><b>Supprimer un bloc gris</b> : tap <span class="kbd">dans le bloc gris</span>.
         </div>
         <div class="mini" id="manualHint">Blocs manuels : 0</div>
       </div>
@@ -346,7 +350,7 @@
   }
 
   // ===== Storage =====
-  const KEY = "planSemiData_v12_smooth";
+  const KEY = "planSemiData_v13_manual";
   const defaultData = { weeks: {}, workouts: [] };
 
   function loadData(){
@@ -603,10 +607,7 @@
     };
   }
 
-  // ===== LISSAGE RENFORCÉ (clé du fix) =====
-  // 1) On calcule l'allure avec une fenêtre glissante sur la distance cumulée.
-  // 2) On enlève les pics avec un filtre médian.
-  // 3) On borne les vitesses irréalistes (GPS glitch).
+  // ===== LISSAGE RENFORCÉ =====
   function median(arr){
     if (!arr.length) return null;
     const a = [...arr].sort((x,y)=>x-y);
@@ -615,24 +616,19 @@
   }
 
   function buildPaceSeries(samples){
-    // Retourne une série {tMs, distM, pace} (sec/km), déjà lissée et robuste
-    // Paramètres:
-    const windowSec = 12;         // fenêtre glissante (augmenter si encore bruité)
-    const medianWindow = 5;       // filtre médian sur 5 points
-    const minSpeedKmh = 2;        // ignorer en dessous (arrêts)
-    const maxSpeedKmh = 22;       // ignorer au-dessus (spikes GPS)
+    // Retourne {tMs, distM, pace} (sec/km), lissé robuste
+    const windowSec = 12;
+    const medianWindow = 5;
+    const minSpeedKmh = 2;
+    const maxSpeedKmh = 22;
 
     if (!samples || samples.length < 5) return [];
-
     const pts = [];
-    const t0 = samples[0].tMs;
 
-    // pour chaque point i, on compare à un point précédent ~windowSec avant
     for (let i=1; i<samples.length; i++){
       const ti = samples[i].tMs;
       const targetT = ti - windowSec*1000;
 
-      // chercher j <= i tel que t[j] <= targetT, le plus proche
       let j = i-1;
       while (j > 0 && samples[j].tMs > targetT) j--;
 
@@ -649,24 +645,21 @@
       const pace = 3600 / speedKmh; // sec/km
       pts.push({ tMs: ti, distM: samples[i].distM, pace });
     }
-
     if (pts.length < 5) return pts;
 
-    // Filtre médian pour retirer les spikes
     const out = [];
+    const half = Math.floor(medianWindow/2);
     for (let i=0; i<pts.length; i++){
       const a = [];
-      for (let k=i - Math.floor(medianWindow/2); k<=i + Math.floor(medianWindow/2); k++){
+      for (let k=i-half; k<=i+half; k++){
         if (k>=0 && k<pts.length) a.push(pts[k].pace);
       }
       const mp = median(a);
       out.push({ ...pts[i], pace: mp ?? pts[i].pace });
     }
-
     return out;
   }
 
-  // smoothPace devient un “petit” lissage additionnel (moyenne) mais léger
   function smoothPace(pts, windowSec=6){
     if (!pts.length) return pts;
     const out = [];
@@ -770,7 +763,7 @@
     return { kind:"unknown", label:"Séance" };
   }
 
-  // ===== Scoring (même logique que ta version précédente, mais bénéficie du nouveau lissage) =====
+  // ===== Scoring =====
   function verdictFromScore(score){
     if (score >= 80) return { text:"✅ Très proche", cls:"ok" };
     if (score >= 55) return { text:"🟠 Partiel", cls:"warn" };
@@ -786,7 +779,7 @@
     const target = spec.paceTarget;
     const tolFast = spec.paceTol;
     const slowMinDelta = 35;
-    const durTol = 12; // un peu plus tolérant
+    const durTol = 12;
     const setGapMinSec = 90;
 
     const pts = smoothPace(buildPaceSeries(samples), 6);
@@ -809,8 +802,7 @@
       const okSlowType = (b.type === "slow" || b.avgPace > target + 20);
 
       if (okFastDur && okSlowDur && okSlowType){
-        pairs.push({ fastDur:a.durSec, slowDur:b.durSec, fastPace:a.avgPace, slowPace:b.avgPace,
-          t0:a.t0, t1:b.t1, fast_t0:a.t0, fast_t1:a.t1 });
+        pairs.push({ t0:a.t0, t1:b.t1, fast_t0:a.t0, fast_t1:a.t1, fastPace:a.avgPace });
       }
     }
 
@@ -848,7 +840,6 @@
     if (detected && withinFast < detected) notes.push(`Phases rapides hors cible : ${detected-withinFast}.`);
 
     const intervals = pairs.map(p => ({ t0: p.fast_t0, t1: p.fast_t1, kind:"work" }));
-
     return { score, reasons, notes, details:[], intervals };
   }
 
@@ -867,7 +858,6 @@
     const okPace = (p) => Math.abs(p.pace - target) <= tol;
     const segs = buildSegments(pts, okPace);
 
-    // Mark slow segments for recovery
     const segs2 = segs.map(s => {
       if (s.type === "fast") return s;
       return { ...s, type: (s.avgPace >= target + recoverSlack ? "slow" : "other") };
@@ -880,18 +870,15 @@
 
       blocks.push(s);
 
-      // need recovery before counting next block (if any)
       if (blocks.length < spec.reps){
         let ok = false;
         for (let j=i+1; j<segs2.length; j++){
           if (segs2[j].type === "slow" && segs2[j].durSec >= minRecoverSec){ ok = true; i = j; break; }
-          // if we hit another fast without recovery, treat as one continuous block -> merge
           if (segs2[j].type === "fast" && segs2[j].durSec >= minBlockSec){
             const last = blocks[blocks.length-1];
             blocks[blocks.length-1] = {
               type:"fast",
-              t0:last.t0,
-              t1:segs2[j].t1,
+              t0:last.t0, t1:segs2[j].t1,
               durSec:(segs2[j].t1 - last.t0)/1000,
               d0:last.d0, d1:segs2[j].d1,
               distM:(segs2[j].d1 - last.d0),
@@ -960,7 +947,7 @@
         if (b.type === "slow" && b.durSec >= slowMinSec) okRecover = true;
         else if (b.avgPace >= target + 20 && b.durSec >= slowMinSec) okRecover = true;
       }
-      reps.push({ distM:a.distM, pace:a.avgPace, durSec:a.durSec, t0:a.t0, t1:a.t1, recoverOk:okRecover });
+      reps.push({ t0:a.t0, t1:a.t1, distM:a.distM, pace:a.avgPace, durSec:a.durSec, recoverOk:okRecover });
     }
 
     const detected = reps.length;
@@ -1065,11 +1052,12 @@
 
   // ===== Rendering plan + stats =====
   const weeksEl = document.getElementById("weeks");
+
   function buildReasonsCompactHTML(workout){
     const rs = workout?.compliance?.reasons || [];
     if (!rs.length) return "";
     const top2 = rs.slice(0, 2);
-    const rest = rs.slice(2, 8);
+    const rest = rs.slice(2, 10);
     let html = `<div class="reasonsCompact">${top2.map(r=>`<div class="line">• ${r}</div>`).join("")}</div>`;
     if (rest.length){
       html += `<details style="margin-top:6px;"><summary class="mini"><b>Voir plus</b></summary>
@@ -1134,7 +1122,9 @@
             <span>${text}</span>
           </label>
           ${workout
-            ? `<div class="mini">Importé le ${workout.dateStr} • Durée ${workout.durationStr} • Réf: ${workout.compliance?.specLabel || "-"}</div>${reasonsCompact}`
+            ? `<div class="mini">Importé le ${workout.dateStr} • Durée ${workout.durationStr} • Réf: ${workout.compliance?.specLabel || "-"}</div>
+               ${workout.compliance?.manualAdjusted ? `<div class="mini">✍️ Blocs ajustés manuellement</div>` : ``}
+               ${reasonsCompact}`
             : `<div class="mini"></div>`
           }
         `;
@@ -1301,7 +1291,7 @@
     }
   });
 
-  // ===== Modal (simple: just show score + reasons, graph optional) =====
+  // ===== Modal + blocs manuels =====
   const overlay = document.getElementById("analysisOverlay");
   const canvas = document.getElementById("analysisCanvas");
   const ctx = canvas.getContext("2d");
@@ -1315,10 +1305,12 @@
 
   let modalState = null;
   let pendingClickT = null;
+  let manualIntervals = []; // {t0,t1,kind:"manual"}
 
   function openModal(state){
     modalState = state;
     pendingClickT = null;
+    manualIntervals = []; // on démarre propre à chaque ouverture
     document.body.style.overflow = "hidden";
     overlay.style.display = "flex";
     overlay.setAttribute("aria-hidden", "false");
@@ -1330,6 +1322,7 @@
     document.body.style.overflow = "";
     modalState = null;
     pendingClickT = null;
+    manualIntervals = [];
   }
   closeModalBtn.addEventListener("click", closeModal);
   overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
@@ -1343,7 +1336,6 @@
     ctx.fillStyle = "#6b7280";
     ctx.font = "12px -apple-system, system-ui, Arial";
 
-    // X ticks
     for (let i=0;i<=5;i++){
       const tx = x0 + (w*i/5);
       const val = (minX + (maxX-minX)*i/5);
@@ -1353,10 +1345,101 @@
       ctx.stroke();
       ctx.fillText(val.toFixed(1), tx-10, y0+h+20);
     }
-
     ctx.fillStyle = "#111";
     ctx.fillText("Vitesse lissée (km/h)", x0 + w/2 - 55, y0 + h + 38);
   }
+
+  function yFromTMs(tMs){
+    if (!modalState?._graph) return null;
+    const g = modalState._graph;
+    const tMin = (tMs - g.t0ms)/60000;
+    return g.bounds.y0 + (tMin / g.maxY) * g.bounds.h;
+  }
+
+  function tMsFromCanvasY(y){
+    if (!modalState?._graph) return null;
+    const g = modalState._graph;
+    const { bounds, maxY, t0ms } = g;
+    const yy = clamp(y, bounds.y0, bounds.y0 + bounds.h);
+    const tMin = ((yy - bounds.y0) / bounds.h) * maxY;
+    return t0ms + tMin * 60000;
+  }
+
+  function removeManualIntervalAtTime(tMs){
+    // supprime le premier bloc manuel contenant tMs
+    const idx = manualIntervals.findIndex(it => tMs >= it.t0 && tMs <= it.t1);
+    if (idx >= 0){
+      manualIntervals.splice(idx, 1);
+      return true;
+    }
+    return false;
+  }
+
+  canvas.addEventListener("click", (e) => {
+    if (!modalState?._graph) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+    const tMs = tMsFromCanvasY(y);
+    if (!tMs) return;
+
+    // 1) si on tape dans un bloc gris -> supprimer
+    if (removeManualIntervalAtTime(tMs)){
+      pendingClickT = null;
+      renderModal();
+      return;
+    }
+
+    // 2) sinon : ajout (tap 1 / tap 2)
+    if (pendingClickT === null){
+      pendingClickT = tMs;
+    } else {
+      const a = pendingClickT;
+      const b = tMs;
+      pendingClickT = null;
+
+      const t0 = Math.min(a,b);
+      const t1 = Math.max(a,b);
+      if ((t1 - t0) < 8000) { // min 8s
+        renderModal();
+        return;
+      }
+      manualIntervals.push({ t0, t1, kind:"manual" });
+    }
+    renderModal();
+  });
+
+  clearManualBtn.addEventListener("click", () => {
+    manualIntervals = [];
+    pendingClickT = null;
+    renderModal();
+  });
+
+  saveManualBtn.addEventListener("click", () => {
+    if (!modalState) return;
+
+    // merge auto + manuel (sans doublons)
+    const auto = (modalState.intervals || []).map(x => ({ t0:x.t0, t1:x.t1, kind:"work" }));
+    const man  = manualIntervals.map(x => ({ t0:x.t0, t1:x.t1, kind:"work" }));
+
+    const merged = [...auto, ...man]
+      .filter(x => isFinite(x.t0) && isFinite(x.t1) && x.t1 > x.t0)
+      .sort((a,b)=>a.t0-b.t0);
+
+    // sauve dans l'objet workout existant
+    const idx = data.workouts.findIndex(w => w.id === modalState.workoutId);
+    if (idx >= 0){
+      data.workouts[idx].compliance.intervals = merged;
+      data.workouts[idx].compliance.manualAdjusted = true;
+      saveData();
+    }
+
+    // update view
+    modalState.intervals = merged;
+    pendingClickT = null;
+    renderModal();
+    alert("Blocs manuels sauvegardés ✅");
+  });
 
   function renderModal(){
     if (!modalState) return;
@@ -1369,15 +1452,15 @@
     const verdictBadge = `<span class="badge ${modalState.badgeClass}">${modalState.verdict} • ${modalState.score}/100</span>`;
     analysisSummary.innerHTML = `${verdictBadge}
       <div class="mini" style="margin-top:8px;"><b>Raisons :</b></div>
-      <ul class="reasonsInline">${reasons.slice(0,10).map(r=>`<li>${r}</li>`).join("")}</ul>
+      <ul class="reasonsInline">${reasons.slice(0,12).map(r=>`<li>${r}</li>`).join("")}</ul>
       ${notes.length ? `<div class="mini" style="margin-top:8px;"><b>Conseils :</b> ${notes.join(" ")}</div>` : ""}`;
 
-    manualHint.textContent = "Blocs manuels : (désactivé ici)";
-    saveManualBtn.disabled = true;
-    clearManualBtn.disabled = true;
+    manualHint.textContent = `Blocs manuels : ${manualIntervals.length}` + (pendingClickT ? " (début posé)" : "");
+    clearManualBtn.disabled = manualIntervals.length === 0;
+    saveManualBtn.disabled = false;
 
-    // graph: speed vs time using smoothed pace series
     ctx.clearRect(0,0,canvas.width,canvas.height);
+
     const pacePts = smoothPace(buildPaceSeries(modalState.samples), 6);
     if (!pacePts.length){
       ctx.fillStyle = "#111";
@@ -1399,37 +1482,56 @@
     if (maxX - minX < 2) { minX -= 1; maxX += 1; }
 
     const bounds = { x0:60, y0:20, w:canvas.width-90, h:canvas.height-90, minX, maxX };
+    const maxY = series[series.length-1].tMin || 1;
+
+    modalState._graph = { series, t0ms:t0, bounds, maxY };
     drawAxes(bounds);
 
-    // draw detected intervals as blue horizontal bands
-    function yOfTMs(tMs){
-      const tMin = (tMs - t0)/60000;
-      const y0 = bounds.y0, h = bounds.h;
-      const maxY = series[series.length-1].tMin || 1;
-      return y0 + (tMin / maxY) * h;
-    }
+    // Auto intervals (blue bands)
     const det = modalState.intervals || [];
     ctx.globalAlpha = 0.18;
     ctx.fillStyle = "#2563eb";
     for (const it of det){
-      const y1 = yOfTMs(it.t0);
-      const y2 = yOfTMs(it.t1);
+      const y1 = yFromTMs(it.t0);
+      const y2 = yFromTMs(it.t1);
+      if (y1==null || y2==null) continue;
       ctx.fillRect(bounds.x0, Math.min(y1,y2), bounds.w, Math.max(1, Math.abs(y2-y1)));
     }
     ctx.globalAlpha = 1;
 
-    // curve
+    // Manual intervals (gray bands)
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = "#6b7280";
+    for (const it of manualIntervals){
+      const y1 = yFromTMs(it.t0);
+      const y2 = yFromTMs(it.t1);
+      if (y1==null || y2==null) continue;
+      ctx.fillRect(bounds.x0, Math.min(y1,y2), bounds.w, Math.max(1, Math.abs(y2-y1)));
+    }
+    ctx.globalAlpha = 1;
+
+    // Pending start marker
+    if (pendingClickT){
+      const yp = yFromTMs(pendingClickT);
+      if (yp!=null){
+        ctx.strokeStyle = "#9ca3af";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(bounds.x0, yp);
+        ctx.lineTo(bounds.x0 + bounds.w, yp);
+        ctx.stroke();
+      }
+    }
+
+    // Curve
     ctx.strokeStyle = "#111827";
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     for (let i=0;i<series.length;i++){
       const s = series[i];
       const x = bounds.x0 + (s.speed - minX) * bounds.w / (maxX - minX || 1);
-      const y0 = bounds.y0, h = bounds.h;
-      const maxY = series[series.length-1].tMin || 1;
-      const y = y0 + (s.tMin / maxY) * h;
-      if (i===0) ctx.moveTo(x,y);
-      else ctx.lineTo(x,y);
+      const y = bounds.y0 + (s.tMin / maxY) * bounds.h;
+      if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
     }
     ctx.stroke();
   }
@@ -1474,7 +1576,8 @@
           specLabel: evalRes.specLabel,
           reasons: evalRes.reasons || [],
           notes: evalRes.notes || [],
-          intervals: evalRes.intervals || []
+          intervals: evalRes.intervals || [],
+          manualAdjusted: false
         }
       };
 
@@ -1487,6 +1590,8 @@
       attachBtn.disabled = true;
 
       openModal({
+        workoutId: workoutStored.id,
+        week, day,
         specLabel: evalRes.specLabel,
         score: evalRes.score,
         verdict: evalRes.verdict,
@@ -1505,22 +1610,6 @@
       alert("Erreur lors de l’attache.\n\nDétail: " + (err?.message || err));
     }
   });
-
-  // ===== Week select =====
-  function fillWeekSelect(){
-    const el = document.getElementById("attachWeek");
-    el.innerHTML = "";
-    for (let w=1; w<=WEEKS; w++){
-      const start = addDays(START, (w-1)*7);
-      const end = addDays(start, 6);
-      const opt = document.createElement("option");
-      opt.value = String(w);
-      opt.textContent = `S${w} — ${fmtDate(start)} → ${fmtDate(end)}`;
-      el.appendChild(opt);
-    }
-    const cw = currentWeekIndex();
-    if (cw>=1 && cw<=WEEKS) el.value = String(cw);
-  }
 
   // ===== Init =====
   function updateAll(){
