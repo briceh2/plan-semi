@@ -1056,7 +1056,169 @@
     const intervals = picked.map(b => ({ t0:b.t0, t1:b.t1, kind:"work" }));
     return { score, reasons, notes, intervals };
   }
+function score400m(samples, spec){
+  const target = spec.paceTarget;       // sec/km (ex ~250 pour 4'10)
+  const tolSlow = spec.paceTol;         // sec/km (tolérance lenteur, ex 18-22)
+  const repM = spec.repDistM;           // 400
+  const expected = spec.reps;
 
+  const pts = smoothPace(buildPaceSeries(samples), 6);
+  if (!pts.length) return { score: 30, reasons:["Données insuffisantes."], notes:[], intervals:[] };
+
+  // ---- helpers
+  function std(arr){
+    if (!arr.length) return 0;
+    const m = arr.reduce((a,x)=>a+x,0)/arr.length;
+    const v = arr.reduce((a,x)=>a+(x-m)*(x-m),0)/arr.length;
+    return Math.sqrt(v);
+  }
+  function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+
+  // ---- build a candidate list: all possible 400m windows (by distance)
+  // We need dist at time; pts already has distM and tMs.
+  // We'll generate candidates from many start indices, and find end time when +400m is reached.
+  const candidates = [];
+  const minPtsPerWin = 8;          // avoid too small windows
+  const stepIdx = 3;               // subsampling for speed
+
+  for (let i=0; i<pts.length-2; i+=stepIdx){
+    const d0 = pts[i].distM;
+    const targetD = d0 + repM;
+
+    // find j such that dist >= targetD
+    let j = i+1;
+    while (j < pts.length && pts[j].distM < targetD) j++;
+    if (j >= pts.length) break;
+
+    // interpolate end time at exact target distance
+    const a = pts[j-1], b = pts[j];
+    const dd = (b.distM - a.distM);
+    if (dd <= 0) continue;
+    const frac = (targetD - a.distM) / dd;
+    const t1 = a.tMs + frac * (b.tMs - a.tMs);
+    const t0 = pts[i].tMs;
+    const durSec = (t1 - t0) / 1000;
+    if (durSec <= 30 || durSec >= 240) continue; // sanity
+
+    // collect pace samples in [t0,t1]
+    const inWin = pts.filter(p => p.tMs >= t0 && p.tMs <= t1);
+    if (inWin.length < minPtsPerWin) continue;
+
+    const paces = inWin.map(p=>p.pace);
+    const paceMean = mean(paces);
+    const paceStd  = std(paces);
+
+    // VMA dist: one-sided tolerance (too slow is bad, faster is fine)
+    const errSlow = Math.max(0, paceMean - target);
+    if (errSlow > tolSlow) continue;
+
+    // score 0..1: mostly pace (slowness), then stability
+    const paceScore = clamp01(1 - (errSlow / Math.max(1, tolSlow)));
+    const stdTol = 20; // GPS / 400m can be noisy
+    const stabScore = clamp01(1 - (paceStd / stdTol));
+    const score = 0.8*paceScore + 0.2*stabScore;
+
+    candidates.push({ t0, t1, score, paceMean, paceStd, durSec });
+  }
+
+  if (!candidates.length){
+    return {
+      score: 15,
+      reasons:[
+        `Aucun bloc ~${repM}m détecté.`,
+        `Critère: allure ≤ ${paceStr(target + tolSlow)}/km (cible ${paceStr(target)}/km).`
+      ],
+      notes:[
+        "Si tu es juste un peu plus lent, augmente la tolérance VMA 400m (ex +22s/km).",
+        "Ou vérifie que le GPX contient suffisamment de points (pas trop espacé)."
+      ],
+      intervals:[]
+    };
+  }
+
+  // ---- choose best N non-overlapping intervals
+  candidates.sort((a,b)=>b.score-a.score);
+
+  const picked = [];
+  const minGapSec = 25; // require some time between reps (avoid double counting)
+  for (const c of candidates){
+    if (picked.length >= expected) break;
+    const overlap = picked.some(p => !(c.t1 <= (p.t0 - minGapSec*1000) || c.t0 >= (p.t1 + minGapSec*1000)));
+    if (!overlap) picked.push(c);
+  }
+  picked.sort((a,b)=>a.t0-b.t0);
+
+  // ---- evaluate recovery between reps (optional penalty)
+  // Look between end of rep i and start of rep i+1:
+  // if we see a clear slowdown => good. Otherwise weak/bad.
+  const recInfos = [];
+  const recDeltaGood = 30; // +30s/km slower than target => good
+  const recDeltaWeak = 12; // +12s/km => weak but acceptable
+
+  for (let i=0; i<picked.length-1; i++){
+    const a = picked[i], b = picked[i+1];
+    const between = pts.filter(p => p.tMs >= a.t1 && p.tMs <= b.t0);
+    if (!between.length){
+      recInfos.push({ ok:false, weak:true, bestDelta:0, minPace:null });
+      continue;
+    }
+    const slowestPace = Math.max(...between.map(p=>p.pace)); // max pace = slowest
+    const delta = slowestPace - target;
+
+    const ok = delta >= recDeltaGood;
+    const weak = (!ok && delta >= recDeltaWeak);
+    recInfos.push({ ok, weak, bestDelta: delta, minPace: slowestPace });
+  }
+
+  const recOk = recInfos.filter(r=>r.ok).length;
+  const recWeak = recInfos.filter(r=>r.weak).length;
+  const recBad = recInfos.length - recOk - recWeak;
+
+  // ---- score final
+  const qtyScore = 55 * Math.min(1, picked.length / Math.max(1, expected));
+
+  const within = picked.filter(p => (Math.max(0, p.paceMean - target) <= tolSlow)).length;
+  const paceScore = 35 * (within / Math.max(1, picked.length));
+
+  const stabAvg = mean(picked.map(p=>p.paceStd));
+  const stabScore = 10 * clamp01(1 - (stabAvg / 22));
+
+  const recPenalty = (recWeak * 1) + (recBad * 4);
+  const score = Math.round(clamp(qtyScore + paceScore + stabScore - recPenalty, 0, 100));
+
+  // ---- reasons / notes
+  const reasons = [];
+  reasons.push(`Blocs ~${repM}m détectés : ${picked.length}/${expected} (fenêtres distance).`);
+  reasons.push(`Critère VMA: allure ≤ ${paceStr(target + tolSlow)}/km (cible ${paceStr(target)}/km).`);
+  if (picked.length){
+    const avgP = mean(picked.map(p=>p.paceMean));
+    const mm = minmax(picked.map(p=>p.paceMean));
+    const avgDur = mean(picked.map(p=>p.durSec));
+    reasons.push(`Allure blocs : moy ${paceStr(avgP)}/km (min ${paceStr(mm.min)}, max ${paceStr(mm.max)}).`);
+    reasons.push(`Durée blocs : moy ~ ${Math.round(avgDur)}s (stabilité ~ ${Math.round(stabAvg)} s/km).`);
+  }
+  if (recInfos.length){
+    const txt = recInfos.slice(0, 10).map((r,idx)=>{
+      const d = Math.round(r.bestDelta);
+      if (r.ok) return `Récup ${idx+1}: OK (+${d}s/km)`;
+      if (r.weak) return `Récup ${idx+1}: faible (+${d}s/km)`;
+      return `Récup ${idx+1}: insuff. (+${d}s/km)`;
+    }).join(" • ");
+    reasons.push(`Récup entre 400m : ${txt}${recInfos.length>10 ? " …" : ""}`);
+    if (recPenalty) reasons.push(`Pénalité récup : -${recPenalty} points.`);
+  }
+
+  const notes = [];
+  if (picked.length < expected) notes.push(`Répétitions insuffisantes : ${picked.length}/${expected} (GPS bruité ou allure trop lente).`);
+  if (recBad) notes.push("Récupérations trop “plates” : marche/trot plus lent pour mieux marquer la récup.");
+  if (picked.length){
+    const slowOnes = picked.filter(p => (p.paceMean > target)).length;
+    if (slowOnes) notes.push(`Blocs un peu lents : ${slowOnes}/${picked.length} (viser plus proche de ${paceStr(target)}/km).`);
+  }
+
+  const intervals = picked.map(b => ({ t0:b.t0, t1:b.t1, kind:"work" }));
+  return { score, reasons, notes, intervals };
+}
   function scoreEndurance(samples, spec){
     const durSec = (samples[samples.length-1].tMs - samples[0].tMs)/1000;
     const distKm = samples[samples.length-1].distM / 1000;
