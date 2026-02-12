@@ -1056,66 +1056,6 @@
     const intervals = picked.map(b => ({ t0:b.t0, t1:b.t1, kind:"work" }));
     return { score, reasons, notes, intervals };
   }
-  function score400m(samples, spec){
-    const target = spec.paceTarget;
-    const tolFast = spec.paceTol;
-    const distTolM = 60;
-    const slowMinSec = 20;
-    const slowMinDelta = 35;
-
-    const pts = smoothPace(buildPaceSeries(samples), 6);
-    const isFast = (p) => Math.abs(p.pace - target) <= tolFast;
-    const segs0 = buildSegments(pts, isFast);
-
-    const segs = segs0.map(s => {
-      if (s.type === "fast") return s;
-      return { ...s, type: (s.avgPace >= target + slowMinDelta ? "slow" : "other") };
-    });
-
-    const reps = [];
-    for (let i=0; i<segs.length; i++){
-      const a = segs[i];
-      if (a.type !== "fast") continue;
-      if (Math.abs(a.distM - spec.repDistM) > distTolM) continue;
-
-      const b = segs[i+1];
-      let okRecover = false;
-      if (b){
-        if (b.type === "slow" && b.durSec >= slowMinSec) okRecover = true;
-        else if (b.avgPace >= target + 20 && b.durSec >= slowMinSec) okRecover = true;
-      }
-      reps.push({ t0:a.t0, t1:a.t1, distM:a.distM, pace:a.avgPace, durSec:a.durSec, recoverOk:okRecover });
-    }
-
-    const detected = reps.length;
-    const expected = spec.reps;
-
-    const within = reps.filter(r => Math.abs(r.pace - target) <= tolFast).length;
-    const recoverOkN = reps.filter(r => r.recoverOk).length;
-
-    const qtyScore = 55 * Math.min(1, detected / Math.max(1,expected));
-    const paceScore = 30 * (within / Math.max(1, detected));
-    const recScore  = 15 * (recoverOkN / Math.max(1, detected));
-    const score = Math.round(clamp(qtyScore + paceScore + recScore, 0, 100));
-
-    const paces = reps.map(r=>r.pace);
-    const mm = minmax(paces);
-    const avgP = paces.length ? mean(paces) : null;
-
-    const reasons = [];
-    reasons.push(`Blocs ~${Math.round(spec.repDistM)}m détectés : ${detected}/${expected} (tol ± ${distTolM}m).`);
-    reasons.push(`Cible : ${fmtPaceTarget(target, tolFast)}.`);
-    if (avgP !== null) reasons.push(`Allure blocs : moy ${paceStr(avgP)}/km (min ${paceStr(mm.min)}, max ${paceStr(mm.max)}).`);
-    reasons.push(`Récup après bloc : OK ${recoverOkN}/${Math.max(1,detected)}.`);
-
-    const notes = [];
-    if (detected < expected) notes.push(`Répétitions insuffisantes : ${detected}/${expected}.`);
-    if (detected && within < detected) notes.push(`Blocs hors allure cible : ${detected-within}.`);
-    if (detected && recoverOkN < detected) notes.push(`Récup trop courte / trop rapide : ${detected-recoverOkN}.`);
-
-    const intervals = reps.map(r => ({ t0:r.t0, t1:r.t1, kind:"work" }));
-    return { score, reasons, notes, intervals };
-  }
 
   function scoreEndurance(samples, spec){
     const durSec = (samples[samples.length-1].tMs - samples[0].tMs)/1000;
