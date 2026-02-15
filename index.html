@@ -1367,6 +1367,7 @@ function score400m(samples, spec){
   function evaluateCompliance(samples, spec){
     let res;
     if (spec.kind === "interval_time") res = score30_30(samples, spec);
+    else if (spec.kind == "hill_reps") res = scoreHillReps(samples, spec);
     else if (spec.kind === "interval_dist") res = score400m(samples, spec);
     else if (spec.kind === "tempo_time") res = scoreTempoBlocks(samples, spec);
     else if (spec.kind === "endurance") res = scoreEndurance(samples, spec);
