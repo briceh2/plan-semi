@@ -301,53 +301,6 @@ un<!doctype html>
     return "Affûtage";
   }
 
-  function sessionsForWeek(w){
-    if (w === 2){
-      return { tue:"VMA allégée : 2 x (6 x 30/30) + récup 3 min",
-        thu:"Seuil : 2 x 8 min (récup 2 min) — autour de 5'10 → 5'00/km",
-        sat:"30–40 min très facile + 4 lignes droites",
-        sun:"🏁 COURSE 10 km (dim 15 fév)" };
-    }
-    if (w === 3){
-      return { tue:"45–55 min facile (pas de VMA)",
-        thu:"Rappel doux : 3 x 6 min tempo modéré (récup 2 min) OU 20 min continu doux",
-        sat:"45–60 min facile + 6 lignes droites (optionnel)",
-        sun:"Sortie longue sage : 1h15–1h25 facile" };
-    }
-    if (w === 8){
-      return { tue:"VMA courte : 8 x 400 m à ~4'10/km (récup 1'15)",
-        thu:"Allure semi : 2 x 10 min à 5'00/km (récup 3 min) — sans fatigue",
-        sat:"25–35 min très facile + 4 lignes droites",
-        sun:"🏁 SEMI (dim 29 mars) — répétition : 5 km faciles, puis 10–12 km à 5'00, fin propre" };
-    }
-    if (w === 9){
-      return { tue:"45–55 min facile",
-        thu:"Tempo léger : 2 x 8 min (récup 2 min) OU 20 min continu doux",
-        sat:"50–60 min facile + 6 lignes droites si jambes OK",
-        sun:"Sortie longue : 1h20–1h35 facile (sans blocs)" };
-    }
-    if (w <= 5) {
-      return { tue:"VMA : 2 x (8 x 30/30) (rapide ~4'05–4'15/km)",
-        thu:"Seuil : 3 x 8 min à ~5'10→5'00/km (récup 2 min)",
-        sat:"Endurance facile : 45–60 min (5'50–6'20/km) + 6 lignes droites",
-        sun:"Sortie longue : 1h20–1h35 (facile)" };
-    } else if (w <= 12) {
-      return { tue:"VMA : 10 x 400 m à ~4'10/km (récup 1'15)",
-        thu:"Allure semi : 2–3 x 15 min à 5'00/km (récup 3 min)",
-        sat:"Endurance facile : 50–60 min + 6 lignes droites",
-        sun:"Sortie longue : 1h30–1h45 avec blocs à 5'00/km (tester gel km 9–11)" };
-    } else if (w === 13) {
-      return { tue:"Rappel : 6 x 200 m rapide (récup 1 min) + footing facile",
-        thu:"Allure semi : 2 x 10 min à 5'00/km (récup 3 min)",
-        sat:"40–50 min très facile",
-        sun:"1h05–1h15 facile (sans forcer)" };
-    } else {
-      return { tue:"Footing 40–45 min + 4 lignes droites",
-        thu:"Rappel : 8–10 min allure semi (sans fatigue) + retour au calme",
-        sat:"25–35 min très facile (optionnel si fatigue)",
-        sun:"🏁 SEMI OBJECTIF (10 mai) — 1h45 (5'00/km) — Gel km 9–11 + eau" };
-    }
-  }
 
   // ===== Storage =====
   const KEY = "planSemiData_v14_manual_recompute";
