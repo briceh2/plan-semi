@@ -1145,6 +1145,124 @@ function expectedSpec(week, day){
     const intervals = picked.map(b => ({ t0:b.t0, t1:b.t1, kind:"work" }));
     return { score, reasons, notes, intervals };
   }
+  function scoreHillReps(samples, spec){
+  const expected = spec.reps || 10;
+  const repSec = spec.repSec || 45;
+  const contrastMin = spec.contrastMin ?? 12; // sec/km de contraste minimal effort vs récup
+
+  const pts = smoothPace(buildPaceSeries(samples), 6);
+  if (!pts.length) return { score: 30, reasons:["Données insuffisantes."], notes:[], intervals:[] };
+
+  function std(arr){
+    if (!arr.length) return 0;
+    const m = arr.reduce((a,x)=>a+x,0)/arr.length;
+    const v = arr.reduce((a,x)=>a+(x-m)*(x-m),0)/arr.length;
+    return Math.sqrt(v);
+  }
+  function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+
+  // Fenêtres candidates: 45s (glissant)
+  const stepSec = 5;                 // pas de 5s
+  const guardSec = 15;               // évite bord de séance
+  const contextSec = 25;             // récup locale avant/après pour mesurer le contraste
+  const candidates = [];
+
+  const tStart = pts[0].tMs + guardSec*1000;
+  const tEnd   = pts[pts.length-1].tMs - guardSec*1000;
+
+  for (let t0 = tStart; (t0 + repSec*1000) <= tEnd; t0 += stepSec*1000){
+    const t1 = t0 + repSec*1000;
+
+    const inWin = pts.filter(p => p.tMs >= t0 && p.tMs <= t1);
+    if (inWin.length < 8) continue;
+
+    const paces = inWin.map(p=>p.pace);
+    const paceMean = mean(paces);
+    const paceStd  = std(paces);
+
+    // contexte (avant et après) pour mesurer l'accélération relative
+    const before = pts.filter(p => p.tMs >= (t0 - contextSec*1000) && p.tMs < t0).map(p=>p.pace);
+    const after  = pts.filter(p => p.tMs > t1 && p.tMs <= (t1 + contextSec*1000)).map(p=>p.pace);
+
+    if (before.length < 4 || after.length < 4) continue;
+
+    const ctxMean = mean(before.concat(after)); // allure récup locale
+    const contrast = ctxMean - paceMean;        // + => bloc plus rapide que récup
+
+    // on veut un vrai “surge” (accélération) visible malgré bruit GPS
+    if (contrast < (contrastMin * 0.6)) continue;
+
+    // score 0..1 : contraste (principal) + stabilité
+    const contrastScore = clamp01(contrast / Math.max(1, contrastMin));
+    const stdTol = 22; // permissif en côte
+    const stabScore = clamp01(1 - (paceStd / stdTol));
+
+    const score = 0.8*contrastScore + 0.2*stabScore;
+
+    candidates.push({ t0, t1, score, paceMean, paceStd, contrast });
+  }
+
+  if (!candidates.length){
+    return {
+      score: 15,
+      reasons:[
+        `Aucune répétition ${repSec}s détectée (accélération pas assez nette dans le signal).`,
+        `Astuce: récup plus lente (marche) et effort plus franc en côte pour créer un contraste.`,
+      ],
+      notes:["Si tu as fait les côtes sur sentier très sinueux, le GPS peut lisser l’effort."],
+      intervals:[]
+    };
+  }
+
+  // Sélection des meilleurs blocs non chevauchants
+  candidates.sort((a,b)=>b.score-a.score);
+  const picked = [];
+  const minGapSec = Math.max(20, Math.round(repSec*0.4)); // évite double comptage
+
+  for (const c of candidates){
+    if (picked.length >= expected) break;
+    const overlap = picked.some(p => !(c.t1 <= (p.t0 - minGapSec*1000) || c.t0 >= (p.t1 + minGapSec*1000)));
+    if (!overlap) picked.push(c);
+  }
+  picked.sort((a,b)=>a.t0-b.t0);
+
+  // Score final
+  const qtyScore = 60 * Math.min(1, picked.length / Math.max(1, expected));
+
+  const contrasts = picked.map(p=>p.contrast);
+  const avgContrast = contrasts.length ? mean(contrasts) : 0;
+  const contrastScore = 25 * clamp01(avgContrast / Math.max(1, contrastMin));
+
+  const stabAvg = picked.length ? mean(picked.map(p=>p.paceStd)) : 999;
+  const stabScore = 15 * clamp01(1 - (stabAvg / 25));
+
+  // pénalités si “trop peu” ou contraste faible
+  const weak = picked.filter(p => p.contrast < contrastMin).length;
+  const penalty = weak * 2;
+
+  const score = Math.round(clamp(qtyScore + contrastScore + stabScore - penalty, 0, 100));
+
+  // Raisons
+  const paces = picked.map(p=>p.paceMean);
+  const mmP = minmax(paces);
+
+  const reasons = [];
+  reasons.push(`Répétitions détectées : ${picked.length}/${expected} (fenêtres ${repSec}s).`);
+  reasons.push(`Contraste effort/récup : moy +${Math.round(avgContrast)} s/km (cible ≥ +${contrastMin}).`);
+  if (picked.length){
+    reasons.push(`Allure effort (indicative) : moy ${paceStr(mean(paces))}/km (min ${paceStr(mmP.min)}, max ${paceStr(mmP.max)}).`);
+    reasons.push(`Stabilité effort : écart-type moyen ~ ${Math.round(stabAvg)} s/km.`);
+  }
+  if (weak) reasons.push(`Répétitions avec contraste faible : ${weak}/${picked.length} (pénalité -${penalty}).`);
+
+  const notes = [];
+  if (picked.length < expected) notes.push(`Répétitions manquantes : ${expected - picked.length}.`);
+  if (weak) notes.push("Pour mieux scorer : récup plus lente (marche) + effort plus franc sur la côte.");
+  notes.push("En côte : cherche l’effort (souffle/puissance), pas l’allure.");
+
+  const intervals = picked.map(b => ({ t0:b.t0, t1:b.t1, kind:"work" }));
+  return { score, reasons, notes, intervals };
+}
 function score400m(samples, spec){
   const target = spec.paceTarget;       // sec/km (ex ~250 pour 4'10)
   const tolSlow = spec.paceTol;         // sec/km (tolérance lenteur, ex 18-22)
