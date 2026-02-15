@@ -801,7 +801,15 @@ function expectedSpec(week, day){
       if (week % 2 === 0){
         // séance côtes : on la score comme "endurance" (ou on laisse non scorée si tu veux)
         // Ici on la classe "endurance" pour éviter 0/100 tant que l'algo n'analyse pas le dénivelé.
-        return { kind:"endurance", minMin:45, label:"Côtes courtes : 10×45s (récup descente) + footing" };
+        return {
+  kind:"hill_reps",
+  reps:10,
+  repSec:45,
+  // seuil de contraste : à quel point le bloc doit être plus rapide que la récup autour
+  // (en sec/km). 12 = raisonnable avec GPS bruité.
+  contrastMin:12,
+  label:"Côtes courtes : 10×45s (récup descente)"
+};
       } else {
         return { kind:"interval_dist", reps:10, repDistM:400, paceTarget:250, paceTol:22, label:"VMA 10×400m" };
       }
@@ -810,7 +818,15 @@ function expectedSpec(week, day){
       return { kind:"tempo_time", reps:3, repMin:8, paceTarget:305, paceTol:20, label:"Seuil vallonné 3×8 (effort constant)" };
     }
     if (day === "sat"){
-      return { kind:"endurance", minMin:50, label:"Footing facile + 4 descentes (1 min relâché)" };
+      return {
+  kind:"hill_reps",
+  reps:10,
+  repSec:45,
+  // seuil de contraste : à quel point le bloc doit être plus rapide que la récup autour
+  // (en sec/km). 12 = raisonnable avec GPS bruité.
+  contrastMin:12,
+  label:"Côtes courtes : 10×45s (récup descente)"
+};
     }
     if (day === "sun"){
       return { kind:"long", minMin:85, label:"Sortie longue vallonnée (blocs effort semi possibles)" };
