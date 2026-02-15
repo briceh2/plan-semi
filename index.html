@@ -705,60 +705,6 @@
   }
 
   // ===== Spec (plan) =====
-  function expectedSpec(week, day){
-    if (week === 2 && day === "sun") return { kind:"race", distKm:10, tolKm:1.2, label:"Course 10 km" };
-    if (week === 8 && day === "sun") return { kind:"race", distKm:21.1, tolKm:1.8, label:"Semi (répétition)", paceTarget:300, paceTol:35 };
-    if (week === 14 && day === "sun") return { kind:"race", distKm:21.1, tolKm:1.8, label:"Semi objectif", paceTarget:300, paceTol:25 };
-
-    if (week === 2){
-      if (day === "tue") return { kind:"interval_time", repFastSec:30, repSlowSec:30, sets:2, repsPerSet:6, paceTarget:255, paceTol:20, label:"VMA 30/30 (2x6)" };
-      if (day === "thu") return { kind:"tempo_time", reps:2, repMin:8, paceTarget:305, paceTol:25, label:"Seuil 2x8" };
-      if (day === "sat") return { kind:"endurance", minMin:25, label:"Footing très facile" };
-      if (day === "sun") return { kind:"race", distKm:10, tolKm:1.2, label:"Course 10 km" };
-    }
-    if (week === 3){
-      if (day === "tue") return { kind:"endurance", minMin:40, label:"Endurance (récup)" };
-      if (day === "thu") return { kind:"tempo_time", reps:3, repMin:6, paceTarget:310, paceTol:30, label:"Tempo doux 3x6" };
-      if (day === "sat") return { kind:"endurance", minMin:40, label:"Endurance" };
-      if (day === "sun") return { kind:"long", minMin:70, label:"Sortie longue sage" };
-    }
-    if (week === 8){
-      if (day === "tue") return { kind:"interval_dist", reps:8, repDistM:400, paceTarget:250, paceTol:18, label:"VMA 8x400" };
-      if (day === "thu") return { kind:"tempo_time", reps:2, repMin:10, paceTarget:300, paceTol:25, label:"AS21 2x10" };
-      if (day === "sat") return { kind:"endurance", minMin:20, label:"Footing très facile" };
-      if (day === "sun") return { kind:"race", distKm:21.1, tolKm:1.8, label:"Semi (répétition)", paceTarget:300, paceTol:35 };
-    }
-    if (week === 9){
-      if (day === "tue") return { kind:"endurance", minMin:40, label:"Endurance (récup)" };
-      if (day === "thu") return { kind:"tempo_time", reps:2, repMin:8, paceTarget:310, paceTol:35, label:"Tempo léger 2x8" };
-      if (day === "sat") return { kind:"endurance", minMin:45, label:"Endurance" };
-      if (day === "sun") return { kind:"long", minMin:75, label:"Sortie longue facile" };
-    }
-
-    if (week <= 5){
-      if (day === "tue") return { kind:"interval_time", repFastSec:30, repSlowSec:30, sets:2, repsPerSet:8, paceTarget:255, paceTol:20, label:"VMA 30/30 (2x8)" };
-      if (day === "thu") return { kind:"tempo_time", reps:3, repMin:8, paceTarget:305, paceTol:25, label:"Seuil 3x8" };
-      if (day === "sat") return { kind:"endurance", minMin:40, label:"Endurance facile" };
-      if (day === "sun") return { kind:"long", minMin:75, label:"Sortie longue" };
-    }
-    if (week <= 12){
-      if (day === "tue") return { kind:"interval_dist", reps:10, repDistM:400, paceTarget:250, paceTol:18, label:"VMA 10x400" };
-      if (day === "thu") return { kind:"tempo_time", reps:2, repMin:15, paceTarget:300, paceTol:25, label:"AS21 2x15" };
-      if (day === "sat") return { kind:"endurance", minMin:45, label:"Endurance facile" };
-      if (day === "sun") return { kind:"long", minMin:85, label:"Sortie longue (blocs AS21 possibles)" };
-    }
-    if (week === 13){
-      if (day === "tue") return { kind:"interval_dist", reps:6, repDistM:200, paceTarget:240, paceTol:20, label:"Rappel 6x200" };
-      if (day === "thu") return { kind:"tempo_time", reps:2, repMin:10, paceTarget:300, paceTol:25, label:"AS21 2x10" };
-      if (day === "sat") return { kind:"endurance", minMin:35, label:"Footing facile" };
-      if (day === "sun") return { kind:"long", minMin:60, label:"Sortie facile" };
-    }
-    if (day === "tue") return { kind:"endurance", minMin:35, label:"Footing + lignes droites" };
-    if (day === "thu") return { kind:"tempo_time", reps:1, repMin:8, paceTarget:300, paceTol:30, label:"Rappel AS21 (8-10min)" };
-    if (day === "sat") return { kind:"endurance", minMin:20, label:"Très facile (optionnel)" };
-    if (day === "sun") return { kind:"race", distKm:21.1, tolKm:1.8, label:"Semi objectif", paceTarget:300, paceTol:25 };
-    return { kind:"unknown", label:"Séance" };
-  }
 
   // ===== Verdict helpers =====
   function verdictFromScore(score){
