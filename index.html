@@ -301,7 +301,118 @@ un<!doctype html>
     return "Affûtage";
   }
 
+function sessionsForWeek(w){
 
+  const EASY = "Endurance : 5'55–6'30/km";
+  const AS21 = "Allure semi : ~5'00/km";
+  const SEUIL = "Seuil : 5'05–4'55/km";
+  const VMA30 = "30/30 : 4'05–4'25/km";
+  const VMA400 = "400m : 4'10–4'20/km";
+
+  let weekPlan = {};
+
+  // =========================
+  // Semaine course 10 km
+  // =========================
+  if (w === 2){
+    weekPlan = {
+      tue: `2 × (6 × 30/30) — ${VMA30}`,
+      thu: `2 × 8 min seuil — ${SEUIL}`,
+      sat: `Footing très facile — ${EASY}`,
+      sun: `🏁 Course 10 km`,
+      nutrition: `
+      • Hydratation : 1,5–2 L/jour  
+      • Veille course : dîner pâtes + protéines légères  
+      • Matin course : tartines + banane  
+      • Pendant : eau seulement`
+    };
+    return weekPlan;
+  }
+
+  // =========================
+  // Bloc vallonné Bayeux
+  // =========================
+  if (w <= 8){
+    weekPlan = {
+      tue: `VMA : 2 × (8 × 30/30) — ${VMA30}`,
+      thu: `Seuil vallonné : 3 × 8 min — ${SEUIL}`,
+      sat: `Endurance facile — ${EASY}`,
+      sun: `Sortie longue vallonnée`,
+      nutrition: `
+      • Avant séances qualité : collation glucides 1h avant  
+        (banane + yaourt ou tartine miel)  
+      • Après séance : 20 g protéines + glucides  
+      • Sortie longue : 1 gel à 45 min  
+      • Hydratation : 2 L/jour`
+    };
+
+    if (w === 8){
+      weekPlan.sun = `🏁 Semi Bayeux (vallonné)`;
+      weekPlan.nutrition = `
+      • 3 jours avant : augmenter glucides  
+      • Veille : pâtes + eau  
+      • Petit-déj : pain + miel + banane  
+      • Pendant course :  
+        gel km 7  
+        gel km 14  
+        eau à chaque ravito`;
+    }
+
+    return weekPlan;
+  }
+
+  // =========================
+  // Après Bayeux → semi objectif
+  // =========================
+  if (w <= 12){
+    weekPlan = {
+      tue: `10 × 400 m — ${VMA400}`,
+      thu: `2 × 15 min allure semi — ${AS21}`,
+      sat: `Endurance — ${EASY}`,
+      sun: `Sortie longue`,
+      nutrition: `
+      • Avant VMA : collation légère  
+      • Après : protéines + glucides  
+      • Sortie longue : gel à 50 min  
+      • Hydratation : 2 L/jour`
+    };
+    return weekPlan;
+  }
+
+  // =========================
+  // Affûtage
+  // =========================
+  if (w === 13){
+    return {
+      tue: `6 × 200 m`,
+      thu: `2 × 10 min allure semi`,
+      sat: `Footing facile`,
+      sun: `Sortie facile`,
+      nutrition: `
+      • Réduire fibres  
+      • Bien hydrater  
+      • Augmenter glucides`
+    };
+  }
+
+  // =========================
+  // Semaine course objectif
+  // =========================
+  return {
+    tue: `Footing + lignes droites`,
+    thu: `8 min allure semi`,
+    sat: `20 min très facile`,
+    sun: `🏁 Semi objectif 10 mai`,
+    nutrition: `
+    • 3 jours avant : pâtes/riz  
+    • Veille : dîner léger  
+    • Petit-déj : 3h avant  
+    • Pendant :  
+      gel km 8  
+      gel km 15  
+      eau régulière`
+  };
+}
   // ===== Storage =====
   const KEY = "planSemiData_v14_manual_recompute";
   const defaultData = { weeks: {}, workouts: [] };
