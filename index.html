@@ -1727,7 +1727,19 @@ function score400m(samples, spec){
     }
     return html;
   }
+function fmtDuration(minMin){
+  if (!minMin || !isFinite(minMin)) return "";
+  const h = Math.floor(minMin / 60);
+  const m = Math.round(minMin % 60);
+  if (h <= 0) return `${m} min`;
+  if (m === 0) return `${h}h`;
+  return `${h}h${String(m).padStart(2,"0")}`;
+}
 
+function hasDurationAlready(text){
+  // évite de doubler si tu as déjà écrit "45 min" ou "1h20"
+  return /\b\d+\s?min\b/i.test(text) || /\b\d+\s?h(\d{1,2})?\b/i.test(text);
+}
   function renderPlan(){
     weeksEl.innerHTML = "";
     for (let w=1; w<=WEEKS; w++){
