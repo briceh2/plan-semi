@@ -1774,6 +1774,15 @@ function hasDurationAlready(text){
       ];
 
       sessions.forEach(([key, dayName, text]) => {
+
+                // ---- Ajout auto de durée pour endurance / sortie longue
+        const spec = expectedSpec(w, key);
+        if (spec && (spec.kind === "endurance" || spec.kind === "long") && spec.minMin){
+          if (!hasDurationAlready(text)){
+            text = `${text} — ${fmtDuration(spec.minMin)}`;
+          }
+        }
+        
         const workoutId = state.attached[key];
         const workout = workoutId ? data.workouts.find(x => x.id === workoutId) : null;
 
