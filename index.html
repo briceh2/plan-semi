@@ -1740,6 +1740,89 @@ function hasDurationAlready(text){
   // évite de doubler si tu as déjà écrit "45 min" ou "1h20"
   return /\b\d+\s?min\b/i.test(text) || /\b\d+\s?h(\d{1,2})?\b/i.test(text);
 }
+
+  function paceStrFromSec(sec){
+  const m = Math.floor(sec/60);
+  const s = Math.round(sec%60);
+  return `${m}'${String(s).padStart(2,"0")}/km`;
+}
+
+function specTitleAndPaceText(spec, fallbackText){
+  // Titre court + 2e ligne (allure/détail) depuis la spec
+  if (!spec) return { line1: fallbackText || "", line2: "" };
+
+  if (spec.kind === "race"){
+    const line1 = spec.label || "Course";
+    const line2 = spec.paceTarget ? `🎯 ${paceStrFromSec(spec.paceTarget)}` : "";
+    return { line1, line2 };
+  }
+
+  if (spec.kind === "endurance"){
+    const line1 = `Endurance ${fmtDuration(spec.minMin||0)}`.trim();
+    return { line1, line2: "" };
+  }
+
+  if (spec.kind === "long"){
+    const line1 = `Sortie longue ${fmtDuration(spec.minMin||0)}`.trim();
+    return { line1, line2: "" };
+  }
+
+  if (spec.kind === "tempo_time"){
+    const line1 = `${spec.label || "Seuil/Tempo"}`;
+    const line2 = spec.paceTarget ? `${paceStrFromSec(spec.paceTarget)} (±${spec.paceTol||0}s)` : "";
+    return { line1, line2 };
+  }
+
+  if (spec.kind === "interval_time"){ // 30/30
+    const line1 = `${spec.label || "VMA 30/30"}`;
+    const line2 = spec.paceTarget ? `${paceStrFromSec(spec.paceTarget)} (≤ +${spec.paceTol||0}s)` : "";
+    return { line1, line2 };
+  }
+
+  if (spec.kind === "interval_dist"){ // 400m/200m etc
+    const line1 = `${spec.label || "VMA"}`
+    const line2 = spec.paceTarget ? `${paceStrFromSec(spec.paceTarget)} (≤ +${spec.paceTol||0}s)` : "";
+    return { line1, line2 };
+  }
+
+  if (spec.kind === "hill_reps"){
+    const line1 = spec.label || `Côtes ${spec.reps||""}×${spec.repSec||""}s`;
+    const line2 = "Effort 8/10 • récup descente très facile";
+    return { line1, line2 };
+  }
+
+  return { line1: (spec.label || fallbackText || "Séance"), line2: "" };
+}
+
+// Charge semaine: points simples (0–100+) selon séances prévues
+function estimateLoadPoints(spec){
+  if (!spec) return 0;
+  switch(spec.kind){
+    case "endurance": return 10 + Math.round((spec.minMin||0)/10);        // ex 50min ≈ 15
+    case "long":      return 20 + Math.round((spec.minMin||0)/8);         // ex 90min ≈ 31
+    case "tempo_time":return 28 + 4*(spec.reps||1);                       // ex 3×8 ≈ 40
+    case "interval_time": return 30 + 2*((spec.sets||1)*(spec.repsPerSet||0));
+    case "interval_dist": return 32 + 2*(spec.reps||0);
+    case "hill_reps": return 32 + 2*(spec.reps||0);
+    case "race":      return 60;                                          // course
+    default:          return 15;
+  }
+}
+
+function weekLoad(w){
+  const keys = ["tue","thu","sat","sun"];
+  return keys.reduce((sum,k)=> sum + estimateLoadPoints(expectedSpec(w,k)), 0);
+}
+
+// Nutrition compact (1 ligne) selon semaine/course
+function nutritionHintForWeek(w){
+  // Bayeux = semaine 8 (dans ton plan), objectif = semaine 14
+  if (w === 8)  return "🍌 Course: petit-déj 3h • gels km 7 & 14 • eau ravitos";
+  if (w === 14) return "🍌 Course: gels km 8 & 15 • eau régulière • pas tester du neuf";
+  // semaine avec sortie longue (presque toutes)
+  return "🍌 Long: 1 gel à 45–55 min • boire 2–3 gorgées/20 min";
+}
+  
   function renderPlan(){
     weeksEl.innerHTML = "";
     for (let w=1; w<=WEEKS; w++){
