@@ -1793,7 +1793,7 @@ function score400m(samples, spec){
         details.appendChild(sec);
       });
       // ===== Nutrition de la semaine =====
-      if (plan && plan.nutrition){
+      if (s && s.nutrition){
         const nut = document.createElement("div");
         nut.style.marginTop = "8px";
         nut.style.padding = "8px";
@@ -1803,7 +1803,7 @@ function score400m(samples, spec){
       
         nut.innerHTML = `
           <b>🍌 Conseils nutrition semaine</b><br>
-          ${plan.nutrition.replace(/\n/g,"<br>")}
+          ${s.nutrition.replace(/\n/g,"<br>")}
         `;
       
         details.appendChild(nut);
