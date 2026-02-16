@@ -1792,7 +1792,22 @@ function score400m(samples, spec){
         `;
         details.appendChild(sec);
       });
+// ===== Nutrition de la semaine =====
+if (plan && plan.nutrition){
+  const nut = document.createElement("div");
+  nut.style.marginTop = "8px";
+  nut.style.padding = "8px";
+  nut.style.background = "#f7f7f7";
+  nut.style.borderRadius = "8px";
+  nut.style.fontSize = "12px";
 
+  nut.innerHTML = `
+    <b>🍌 Conseils nutrition semaine</b><br>
+    ${plan.nutrition.replace(/\n/g,"<br>")}
+  `;
+
+  card.appendChild(nut);
+}
       const notes = document.createElement("div");
       notes.className = "session";
       notes.innerHTML = `
