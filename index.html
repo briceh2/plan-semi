@@ -1777,24 +1777,8 @@ function specTitleAndPaceText(spec, fallbackText){
     const line1 = `Sortie longue ${fmtDuration(spec.minMin||0)}`.trim();
     return { line1, line2: "" };
   }
-
-  if (spec.kind === "tempo_time"){
-    const line1 = `${spec.label || "Seuil/Tempo"}`;
-    const line2 = spec.paceTarget ? `${paceStrFromSec(spec.paceTarget)} (±${spec.paceTol||0}s)` : "";
-    return { line1, line2 };
-  }
-
-  if (spec.kind === "interval_time"){ // 30/30
-    const line1 = `${spec.label || "VMA 30/30"}`;
-    const line2 = spec.paceTarget ? `${paceStrFromSec(spec.paceTarget)} (≤ +${spec.paceTol||0}s)` : "";
-    return { line1, line2 };
-  }
-
-  if (spec.kind === "interval_dist"){ // 400m/200m etc
-    const line1 = `${spec.label || "VMA"}`
-    const line2 = spec.paceTarget ? `${paceStrFromSec(spec.paceTarget)} (≤ +${spec.paceTol||0}s)` : "";
-    return { line1, line2 };
-  }
+  // spec.kind === "tempo_time"
+  
 
   if (spec.kind === "hill_reps"){
     const line1 = spec.label || `Côtes ${spec.reps||""}×${spec.repSec||""}s`;
