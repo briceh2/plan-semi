@@ -1778,7 +1778,30 @@ function specTitleAndPaceText(spec, fallbackText){
     return { line1, line2: "" };
   }
   // spec.kind === "tempo_time"
-  
+  if (spec.kind === "tempo_time"){
+  const line1 = `${spec.label || "Seuil/Tempo"}`;
+  const pace = spec.paceTarget ? `${paceStrFromSec(spec.paceTarget)} (±${spec.paceTol||0}s)` : "";
+  const rec  = spec.recMin ? `• récup ${spec.recMin} min` : "";
+  const line2 = [pace, rec].filter(Boolean).join(" ");
+  return { line1, line2 };
+}
+
+if (spec.kind === "interval_time"){ // 30/30
+  const line1 = `${spec.label || "VMA 30/30"}`;
+  const pace = spec.paceTarget ? `${paceStrFromSec(spec.paceTarget)} (≤ +${spec.paceTol||0}s)` : "";
+  // récup implicite = repSlowSec
+  const rec = spec.repSlowSec ? `• récup ${spec.repSlowSec}s` : "";
+  const line2 = [pace, rec].filter(Boolean).join(" ");
+  return { line1, line2 };
+}
+
+if (spec.kind === "interval_dist"){ // 400m/200m
+  const line1 = `${spec.label || "VMA"}`;
+  const pace = spec.paceTarget ? `${paceStrFromSec(spec.paceTarget)} (≤ +${spec.paceTol||0}s)` : "";
+  const rec = spec.recSec ? `• récup ${Math.floor(spec.recSec/60)}'${String(spec.recSec%60).padStart(2,"0")}` : "";
+  const line2 = [pace, rec].filter(Boolean).join(" ");
+  return { line1, line2 };
+}
 
   if (spec.kind === "hill_reps"){
     const line1 = spec.label || `Côtes ${spec.reps||""}×${spec.repSec||""}s`;
