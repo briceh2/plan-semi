@@ -927,6 +927,19 @@ function expectedSpecWeekDay(week, day){
 
   return null;
 }
+  // ===== Verdict helpers (manquants) =====
+function verdictFromScore(score){
+  if (!isFinite(score)) score = 0;
+  if (score >= 85) return { verdict:"Très proche", badgeClass:"ok" };
+  if (score >= 60) return { verdict:"Partiel", badgeClass:"warn" };
+  return { verdict:"Hors cible", badgeClass:"bad" };
+}
+
+function verdictBadgeClass(cls){
+  if (cls === "ok") return "ok";
+  if (cls === "warn") return "warn";
+  return "bad";
+}
   function scoreTempoBlocks(samples, spec){
     const target = spec.paceTarget;         // sec/km
     const tol = spec.paceTol;               // sec/km (tu veux 20)
