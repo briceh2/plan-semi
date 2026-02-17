@@ -781,7 +781,152 @@ function sessionsForWeek(w){
 
   // ===== Spec (plan) =====
   // function expectedSpec(week, day)
+// Wrapper compatible : expectedSpec(week, "tue") OU expectedSpec("2026-02-04", "Mardi")
+function expectedSpec(a, b){
+  // --- Cas 1 : appel par semaine (week) + clé ("tue"/"thu"/"sat"/"sun")
+  if (typeof a === "number" && typeof b === "string") {
+    return expectedSpecWeekDay(a, b);
+  }
 
+  // --- Cas 2 : appel par date ISO ("YYYY-MM-DD") + nom de jour ("Mardi"/"Jeudi"...)
+  if (typeof a === "string" && /^\d{4}-\d{2}-\d{2}/.test(a) && typeof b === "string") {
+    const dateISO = a;
+    const dayName = b;
+
+    const dayKey =
+      /mar/i.test(dayName) ? "tue" :
+      /jeu/i.test(dayName) ? "thu" :
+      /sam/i.test(dayName) ? "sat" :
+      /dim/i.test(dayName) ? "sun" : null;
+
+    if (!dayKey) return null;
+
+    // Convertit dateISO -> numéro de semaine du plan (START = début du plan)
+    const d = new Date(dateISO + "T00:00:00");
+    const diffDays = Math.floor((stripTime(d) - stripTime(START)) / 86400000);
+    const week = Math.floor(diffDays / 7) + 1;
+
+    return expectedSpecWeekDay(week, dayKey);
+  }
+
+  // fallback : évite de casser le rendu
+  return null;
+}
+
+function stripTime(d){
+  const x = new Date(d);
+  x.setHours(0,0,0,0);
+  return x;
+}
+
+// -------------------------------------------------------
+// TA LOGIQUE (celle que je t’ai donnée) MAIS RENOMMÉE ICI
+// -------------------------------------------------------
+function expectedSpecWeekDay(week, day){
+  // ----- Dates repères
+  const TODAY = new Date("2026-02-15T00:00:00"); // bascule (tu peux mettre 2026-02-17 si tu veux)
+  const startOfWeek = addDays(START, (week-1)*7);
+
+  // Calcule la date du jour de séance dans cette semaine
+  const dayOffset = (day==="tue") ? 1 : (day==="thu") ? 3 : (day==="sat") ? 5 : 6; // Mar/Jeu/Sam/Dim
+  const sessionDate = addDays(startOfWeek, dayOffset);
+
+  const t = +sessionDate;
+  const tToday = +TODAY;
+
+  const tBayeux = +new Date("2026-03-29T00:00:00");
+  const tFinal  = +new Date("2026-05-10T00:00:00");
+
+  // =========================================================
+  // 1) SI C'EST DANS LE PASSÉ → ANCIEN PLAN
+  // =========================================================
+  if (t < tToday){
+
+    if (week === 2 && day === "sun") return { kind:"race", distKm:10, tolKm:1.2, label:"Course 10 km" };
+    if (week === 8 && day === "sun") return { kind:"race", distKm:21.1, tolKm:1.8, label:"Semi (répétition)", paceTarget:300, paceTol:35 };
+    if (week === 14 && day === "sun") return { kind:"race", distKm:21.1, tolKm:1.8, label:"Semi objectif", paceTarget:300, paceTol:25 };
+
+    if (week === 2){
+      if (day === "tue") return { kind:"interval_time", repFastSec:30, repSlowSec:30, sets:2, repsPerSet:6, paceTarget:255, paceTol:20, label:"VMA 30/30 (2×6)" };
+      if (day === "thu") return { kind:"tempo_time", reps:2, repMin:8, recMin:2, paceTarget:305, paceTol:20, label:"Seuil 2×8" };
+      if (day === "sat") return { kind:"endurance", minMin:25, label:"Footing très facile" };
+      if (day === "sun") return { kind:"race", distKm:10, tolKm:1.2, label:"Course 10 km" };
+    }
+
+    if (week === 3){
+      if (day === "tue") return { kind:"endurance", minMin:40, label:"Endurance (récup)" };
+      if (day === "thu") return { kind:"tempo_time", reps:3, repMin:6, recMin:2, paceTarget:310, paceTol:20, label:"Tempo doux 3×6" };
+      if (day === "sat") return { kind:"endurance", minMin:40, label:"Endurance" };
+      if (day === "sun") return { kind:"long", minMin:70, label:"Sortie longue sage" };
+    }
+
+    if (week <= 5){
+      if (day === "tue") return { kind:"interval_time", repFastSec:30, repSlowSec:30, sets:2, repsPerSet:8, paceTarget:255, paceTol:20, label:"VMA 30/30 (2×8)" };
+      if (day === "thu") return { kind:"tempo_time", reps:3, repMin:8, recMin:2, paceTarget:305, paceTol:20, label:"Seuil 3×8" };
+      if (day === "sat") return { kind:"endurance", minMin:40, label:"Endurance facile" };
+      if (day === "sun") return { kind:"long", minMin:75, label:"Sortie longue" };
+    }
+
+    if (week <= 12){
+      if (day === "tue") return { kind:"interval_dist", reps:10, repDistM:400, recSec:90, paceTarget:250, paceTol:20, label:"VMA 10×400" };
+      if (day === "thu") return { kind:"tempo_time", reps:2, repMin:15, recMin:3, paceTarget:300, paceTol:20, label:"AS21 2×15" };
+      if (day === "sat") return { kind:"endurance", minMin:45, label:"Endurance facile" };
+      if (day === "sun") return { kind:"long", minMin:85, label:"Sortie longue" };
+    }
+
+    if (week === 13){
+      if (day === "tue") return { kind:"interval_dist", reps:6, repDistM:200, recSec:60, paceTarget:240, paceTol:20, label:"Rappel 6×200" };
+      if (day === "thu") return { kind:"tempo_time", reps:2, repMin:10, recMin:3, paceTarget:300, paceTol:20, label:"AS21 2×10" };
+      if (day === "sat") return { kind:"endurance", minMin:35, label:"Footing facile" };
+      if (day === "sun") return { kind:"long", minMin:60, label:"Sortie facile" };
+    }
+
+    if (day === "tue") return { kind:"endurance", minMin:35, label:"Footing" };
+    if (day === "thu") return { kind:"tempo_time", reps:1, repMin:8, recMin:0, paceTarget:300, paceTol:20, label:"Rappel AS21 (8–10min)" };
+    if (day === "sat") return { kind:"endurance", minMin:20, label:"Très facile" };
+    if (day === "sun") return { kind:"race", distKm:21.1, tolKm:1.8, label:"Semi objectif", paceTarget:300, paceTol:25 };
+
+    return null;
+  }
+
+  // =========================================================
+  // 2) À PARTIR DE LA BASCULE → NOUVEAU PLAN
+  // =========================================================
+
+  // Courses
+  if (t === +new Date("2026-03-29T00:00:00") && day === "sun"){
+    return { kind:"race", distKm:21.1, tolKm:2.2, label:"🏁 Semi Bayeux (vallonné)", paceTarget:305, paceTol:25 };
+  }
+  if (t === +new Date("2026-05-10T00:00:00") && day === "sun"){
+    return { kind:"race", distKm:21.1, tolKm:1.8, label:"🏁 Semi objectif (plat)", paceTarget:300, paceTol:20 };
+  }
+
+  // Avant Bayeux
+  if (t < tBayeux){
+    if (day === "tue"){
+      if (week % 2 === 0){
+        return { kind:"hill_reps", reps:10, repSec:45, contrastMin:12, label:"Côtes courtes 10×45s" };
+      } else {
+        return { kind:"interval_dist", reps:10, repDistM:400, recSec:90, paceTarget:250, paceTol:22, label:"VMA 10×400" };
+      }
+    }
+    if (day === "thu"){
+      return { kind:"tempo_time", reps:3, repMin:8, recMin:2, paceTarget:305, paceTol:20, label:"Seuil vallonné 3×8" };
+    }
+    if (day === "sat") return { kind:"endurance", minMin:50, label:"Endurance + technique descente" };
+    if (day === "sun") return { kind:"long", minMin:85, label:"Sortie longue vallonnée" };
+  }
+
+  // Après Bayeux
+  if (t >= tBayeux && t < tFinal){
+    if (day === "tue") return { kind:"interval_dist", reps:10, repDistM:400, recSec:90, paceTarget:250, paceTol:20, label:"VMA 10×400" };
+    if (day === "thu") return { kind:"tempo_time", reps:3, repMin:10, recMin:2, paceTarget:300, paceTol:18, label:"Seuil 3×10" };
+    if (day === "sat") return { kind:"endurance", minMin:50, label:"Endurance + lignes droites" };
+    if (day === "sun") return { kind:"long", minMin:90, label:"Sortie longue" };
+  }
+
+  return null;
+}
   function clamp01(x){ return Math.max(0, Math.min(1, x)); }
 
   // --- candidates: sliding 30s windows
