@@ -298,6 +298,10 @@ un<!doctype html>
 </div>
 
 <script>
+  // afficher les erreurs
+  window.onerror = function(msg, src, line, col){
+  alert("Erreur JS: " + msg + "\nLigne: " + line + ":" + col);
+};
   // ===== Dates =====
   const START = new Date("2026-02-02T00:00:00");
   const RACE  = new Date("2026-05-10T00:00:00");
