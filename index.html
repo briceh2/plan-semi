@@ -1661,18 +1661,18 @@ function specTitleAndPaceText(spec, fallbackText){
     return { line1, line2: "" };
   }
   
-  // patch ok
+  /* patch pok
   if (spec.kind === "long"){
     const line1 = `Sortie longue ${fmtDuration(spec.minMin||0)}`.trim();
     const line2 = spec.paceRange ? spec.paceRange : (spec.effortHint || "");
     return { line1, line2 };
   }
-/*
+*/
   if (spec.kind === "long"){
     const line1 = `Sortie longue ${fmtDuration(spec.minMin||0)}`.trim();
     return { line1, line2: "" };
   }
-  */
+  
   // spec.kind === "tempo_time"
   if (spec.kind === "tempo_time"){
   const line1 = `${spec.label || "Seuil/Tempo"}`;
