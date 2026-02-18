@@ -1649,7 +1649,7 @@ function specTitleAndPaceText(spec, fallbackText){
     const line2 = spec.paceTarget ? `🎯 ${paceStrFromSec(spec.paceTarget)}` : "";
     return { line1, line2 };
   }
-
+/* patch
   if (spec.kind === "endurance"){
     const line1 = `Endurance ${fmtDuration(spec.minMin||0)}`.trim();
     const line2 = spec.paceRange ? spec.paceRange : (spec.effortHint || "");
@@ -1661,12 +1661,23 @@ function specTitleAndPaceText(spec, fallbackText){
     const line2 = spec.paceRange ? spec.paceRange : (spec.effortHint || "");
     return { line1, line2 };
   }
+*/
+  if (spec.kind === "endurance"){
+    const line1 = `Endurance ${fmtDuration(spec.minMin||0)}`.trim();
+    return { line1, line2: "" };
+  }
+
+  if (spec.kind === "long"){
+    const line1 = `Sortie longue ${fmtDuration(spec.minMin||0)}`.trim();
+    return { line1, line2: "" };
+  }
   // spec.kind === "tempo_time"
   if (spec.kind === "tempo_time"){
   const line1 = `${spec.label || "Seuil/Tempo"}`;
   const pace = spec.paceTarget ? `${paceStrFromSec(spec.paceTarget)} (±${spec.paceTol||0}s)` : "";
   const rec  = spec.recMin ? `• récup ${spec.recMin} min` : "";
-  const line2 = [pace, rec, hill].filter(Boolean).join(" ");
+  //const line2 = [pace, rec, hill].filter(Boolean).join(" ");
+  const line2 = [pace, rec].filter(Boolean).join(" ");
   return { line1, line2 };
 }
 
@@ -1689,8 +1700,9 @@ if (spec.kind === "interval_dist"){ // 400m/200m
 
   if (spec.kind === "hill_reps"){
     const line1 = spec.label || `Côtes ${spec.reps||""}×${spec.repSec||""}s`;
-    const line2 = spec.effortHint || "Effort 8/10 • récup descente très facile";
-    return { line1, line2 };
+    // patch
+    //const line2 = spec.effortHint || "Effort 8/10 • récup descente très facile";
+    return { line1, line2: "" };
   }
 
   return { line1: (spec.label || fallbackText || "Séance"), line2: "" };
