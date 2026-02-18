@@ -905,6 +905,7 @@ function expectedSpecWeekDay(week, day){
   if (t < tBayeux){
     if (day === "tue"){
       if (week % 2 === 0){
+        // patch
         //return { kind:"hill_reps", reps:10, repSec:45, contrastMin:12, effortHint:"Effort 8/10 . récupdescente (marche/trot) . viser régularité", label:"Côtes courtes 10×45s" };
         return { kind:"hill_reps", reps:10, repSec:45, contrastMin:12, label:"Côtes courtes 10×45s" };
       } else {
@@ -912,7 +913,9 @@ function expectedSpecWeekDay(week, day){
       }
     }
     if (day === "thu"){
-      return { kind:"tempo_time", reps:3, repMin:8, recMin:2, paceTarget:305, paceTol:20, hillHint:"côte = effort constant (+20 à +60s/km)", label:"Seuil vallonné 3×8" };
+      // patch
+      // return { kind:"tempo_time", reps:3, repMin:8, recMin:2, paceTarget:305, paceTol:20, hillHint:"côte = effort constant (+20 à +60s/km)", label:"Seuil vallonné 3×8" };
+      return { kind:"tempo_time", reps:3, repMin:8, recMin:2, paceTarget:305, paceTol:20, label:"Seuil vallonné 3×8" };
     }
     if (day === "sat") return { kind:"endurance", minMin:50, label:"Endurance + technique descente" };
     if (day === "sun") return { kind:"long", minMin:85, label:"Sortie longue vallonnée" };
