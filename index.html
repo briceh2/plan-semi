@@ -905,7 +905,8 @@ function expectedSpecWeekDay(week, day){
   if (t < tBayeux){
     if (day === "tue"){
       if (week % 2 === 0){
-        return { kind:"hill_reps", reps:10, repSec:45, contrastMin:12, effortHint:"Effort 8/10 . récupdescente (marche/trot) . viser régularité", label:"Côtes courtes 10×45s" };
+        //return { kind:"hill_reps", reps:10, repSec:45, contrastMin:12, effortHint:"Effort 8/10 . récupdescente (marche/trot) . viser régularité", label:"Côtes courtes 10×45s" };
+        return { kind:"hill_reps", reps:10, repSec:45, contrastMin:12, label:"Côtes courtes 10×45s" };
       } else {
         return { kind:"interval_dist", reps:10, repDistM:400, recSec:90, paceTarget:250, paceTol:22, label:"VMA 10×400" };
       }
