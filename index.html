@@ -938,12 +938,23 @@ function expectedSpecWeekDay(week, day){
   return null;
 }
   // ===== Verdict helpers (manquants) =====
+// patch ok 19/02
 function verdictFromScore(score){
   if (!isFinite(score)) score = 0;
-  if (score >= 85) return { verdict:"Très proche", badgeClass:"ok" };
-  if (score >= 60) return { verdict:"Partiel", badgeClass:"warn" };
-  return { verdict:"Hors cible", badgeClass:"bad" };
+  
+  let text, cls;
+  if (score >= 80) { text = "✅ Très proche"; cls = "ok"; }
+  else if (score >= 55) { text = "🟠 Partiel"; cls = "warn"; }
+  else { text = "🔴 Hors cible"; cls = "bad"; }
+  
+  // ✅ retourne les DEUX formats
+  return {
+    text, cls,
+    verdict: text,
+    badgeClass: cls
+  };
 }
+
 
 function verdictBadgeClass(cls){
   if (cls === "ok") return "ok";
@@ -1446,7 +1457,7 @@ function score400m(samples, spec){
     else res = { score: 40, reasons:["Type de séance non reconnu."], notes:[], intervals:[] };
 
     const v = verdictFromScore(res.score);
-    return { ...res, verdict: v.verdict, badgeClass: v.badgeClass, specLabel: spec.label };
+    return { ...res, verdict: (v.verdict || v.text), verdictClass: (v.cls || v.badgeClass), specLabel: spec.label };
   }
 
   // ===== Recompute score FROM intervals (auto+manual) =====
