@@ -870,35 +870,28 @@ function expectedSpecWeekDay(week, day){
       // patch ok 18/02
       if (day === "sat") return { kind:"endurance", minMin:40, paceRange:"5'50-6'20/km", label:"Endurance facile" };
       if (day === "sun") return { kind:"long", minMin:75, paceRange:"5'50-6'20/km", label:"Sortie longue" };
-      //if (day === "sat") return { kind:"endurance", minMin:40, label:"Endurance facile" };
-      //if (day === "sun") return { kind:"long", minMin:75, label:"Sortie longue" };
     }
 
     if (week <= 12){
       if (day === "tue") return { kind:"interval_dist", reps:10, repDistM:400, recSec:90, paceTarget:250, paceTol:20, label:"VMA 10×400" };
       if (day === "thu") return { kind:"tempo_time", reps:2, repMin:15, recMin:3, paceTarget:300, paceTol:20, label:"AS21 2×15" };
-      // patch
-      //if (day === "sat") return { kind:"endurance", minMin:45, paceRange:"5'50-6'20/km", label:"Endurance facile" };
-      //if (day === "sun") return { kind:"long", minMin:85, paceRange:"5'50-6'20/km", label:"Sortie longue" };
-      if (day === "sat") return { kind:"endurance", minMin:45, label:"Endurance facile" };
-      if (day === "sun") return { kind:"long", minMin:85, label:"Sortie longue" };
+      // patch ok 18/02
+      if (day === "sat") return { kind:"endurance", minMin:45, paceRange:"5'50-6'20/km", label:"Endurance facile" };
+      if (day === "sun") return { kind:"long", minMin:85, paceRange:"5'50-6'20/km", label:"Sortie longue" };
     }
 
     if (week === 13){
       if (day === "tue") return { kind:"interval_dist", reps:6, repDistM:200, recSec:60, paceTarget:240, paceTol:20, label:"Rappel 6×200" };
       if (day === "thu") return { kind:"tempo_time", reps:2, repMin:10, recMin:3, paceTarget:300, paceTol:20, label:"AS21 2×10" };
-      // patch
-      //if (day === "sat") return { kind:"endurance", minMin:35, paceRange:"5'50-6'20/km", label:"Footing facile" };
-      //if (day === "sun") return { kind:"long", minMin:60, paceRange:"5'50-6'20/km", label:"Sortie facile" };
-      if (day === "sat") return { kind:"endurance", minMin:35, label:"Footing facile" };
-      if (day === "sun") return { kind:"long", minMin:60, label:"Sortie facile" };
+      // patch ok 18/02
+      if (day === "sat") return { kind:"endurance", minMin:35, paceRange:"5'50-6'20/km", label:"Footing facile" };
+      if (day === "sun") return { kind:"long", minMin:60, paceRange:"5'50-6'20/km", label:"Sortie facile" };
     }
 
     if (day === "tue") return { kind:"endurance", minMin:35, label:"Footing" };
     if (day === "thu") return { kind:"tempo_time", reps:1, repMin:8, recMin:0, paceTarget:300, paceTol:20, label:"Rappel AS21 (8–10min)" };
-    // patch
-    // if (day === "sat") return { kind:"endurance", minMin:20, paceRange:"5'50-6'20/km", label:"Très facile" };
-    if (day === "sat") return { kind:"endurance", minMin:20, label:"Très facile" };
+    // patch ok 18/02
+    if (day === "sat") return { kind:"endurance", minMin:20, paceRange:"5'50-6'20/km", label:"Très facile" };
     if (day === "sun") return { kind:"race", distKm:21.1, tolKm:1.8, label:"Semi objectif", paceTarget:300, paceTol:25 };
 
     return null;
@@ -920,9 +913,9 @@ function expectedSpecWeekDay(week, day){
   if (t < tBayeux){
     if (day === "tue"){
       if (week % 2 === 0){
-        // patch
-        //return { kind:"hill_reps", reps:10, repSec:45, contrastMin:12, effortHint:"Effort 8/10 . récupdescente (marche/trot) . viser régularité", label:"Côtes courtes 10×45s" };
-        return { kind:"hill_reps", reps:10, repSec:45, contrastMin:12, label:"Côtes courtes 10×45s" };
+        // patch ok 18/02
+        return { kind:"hill_reps", reps:10, repSec:45, contrastMin:12, effortHint:"Effort 8/10 . récupdescente (marche/trot) . viser régularité", label:"Côtes courtes 10×45s" };
+        //return { kind:"hill_reps", reps:10, repSec:45, contrastMin:12, label:"Côtes courtes 10×45s" };
       } else {
         return { kind:"interval_dist", reps:10, repDistM:400, recSec:90, paceTarget:250, paceTol:22, label:"VMA 10×400" };
       }
