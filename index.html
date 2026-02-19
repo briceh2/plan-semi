@@ -1651,7 +1651,7 @@ function specTitleAndPaceText(spec, fallbackText){
     return { line1, line2 };
   }
   
-  /* patch ok 18/02
+  /* patch ok 18/02 */
   if (spec.kind === "long"){
     const line1 = `Sortie longue ${fmtDuration(spec.minMin||0)}`.trim();
     const line2 = spec.paceRange ? spec.paceRange : (spec.effortHint || "");
