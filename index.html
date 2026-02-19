@@ -861,7 +861,7 @@ function expectedSpecWeekDay(week, day){
       if (day === "tue") return { kind:"endurance", minMin:40, label:"Endurance (récup)" };
       if (day === "thu") return { kind:"tempo_time", reps:3, repMin:6, recMin:2, paceTarget:310, paceTol:20, label:"Tempo doux 3×6" };
       if (day === "sat") return { kind:"endurance", minMin:40, label:"Endurance" };
-      if (day === "sun") return { kind:"long", minMin:70, label:"Sortie longue sage" };
+      if (day === "sun") return { kind:"long", minMin:70, paceRange:"5'55-6'25/km", label:"Sortie longue sage" };
     }
 
     if (week <= 5){
@@ -924,7 +924,7 @@ function expectedSpecWeekDay(week, day){
       return { kind:"tempo_time", reps:3, repMin:8, recMin:2, paceTarget:305, paceTol:20, hillHint:"côte = effort constant (+20 à +60s/km)", label:"Seuil vallonné 3×8" };
     }
     if (day === "sat") return { kind:"endurance", minMin:50, label:"Endurance + technique descente" };
-    if (day === "sun") return { kind:"long", minMin:85, label:"Sortie longue vallonnée" };
+    if (day === "sun") return { kind:"long", minMin:85, paceRange:"5'50-6'20/km", label:"Sortie longue vallonnée" };
   }
 
   // Après Bayeux
@@ -932,7 +932,7 @@ function expectedSpecWeekDay(week, day){
     if (day === "tue") return { kind:"interval_dist", reps:10, repDistM:400, recSec:90, paceTarget:250, paceTol:20, label:"VMA 10×400" };
     if (day === "thu") return { kind:"tempo_time", reps:3, repMin:10, recMin:2, paceTarget:300, paceTol:18, label:"Seuil 3×10" };
     if (day === "sat") return { kind:"endurance", minMin:50, label:"Endurance + lignes droites" };
-    if (day === "sun") return { kind:"long", minMin:90, label:"Sortie longue" };
+    if (day === "sun") return { kind:"long", minMin:90, paceRange:"5'50-6'20/km", label:"Sortie longue" };
   }
 
   return null;
