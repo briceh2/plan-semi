@@ -1734,6 +1734,14 @@ function nutritionHintForWeek(w){
   // semaine avec sortie longue (presque toutes)
   return "🍌 Long: 1 gel à 45–55 min • boire 2–3 gorgées/20 min";
 }
+
+// récupère la semaine courante
+function getCurrentWeek(){
+  const today = new Date();
+  const diffDays = Math.floor((stripTimz(today) - stripTime(START)) / 86400000);
+  const week = Math.floor(diffDays / 7) + 1;
+  return Math.min( Math.max(week,1) , WEEKS);
+}
   
 function renderPlan(){
   weeksEl.innerHTML = "";
@@ -1754,7 +1762,8 @@ function renderPlan(){
     card.className = "card";
 
     const details = document.createElement("details");
-    details.open = (w <= 2);
+    const currentWeek = getCurrentWeek();
+    details.open = (w === currentWeek);
 
     const summary = document.createElement("summary");
     summary.innerHTML = `
