@@ -1740,7 +1740,7 @@ function getCurrentWeek(){
   const today = new Date();
   const diffDays = Math.floor((stripTime(today) - stripTime(START)) / 86400000);
   const week = Math.floor(diffDays / 7) + 1;
-  return Math.min( Math.max(week,1) , WEEKS);
+  return Math.min( Math.max(week, 1) , WEEKS);
 }
   
 function renderPlan(){
