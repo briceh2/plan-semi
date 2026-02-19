@@ -1674,7 +1674,7 @@ function specTitleAndPaceText(spec, fallbackText){
   const pace = spec.paceTarget ? `${paceStrFromSec(spec.paceTarget)} (±${spec.paceTol||0}s)` : "";
   const rec  = spec.recMin ? `• récup ${spec.recMin} min` : "";
   // patch ok 18/02
-  const hillPart = spec.hillHint ? '. ${spec.hillHint}' : "";
+  const hillPart = spec.hillHint ? `• ${spec.hillHint}` : "";
   const line2 = [pace, rec, hillPart].filter(Boolean).join(" ");
   return { line1, line2 };
 }
