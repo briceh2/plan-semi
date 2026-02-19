@@ -867,11 +867,11 @@ function expectedSpecWeekDay(week, day){
     if (week <= 5){
       if (day === "tue") return { kind:"interval_time", repFastSec:30, repSlowSec:30, sets:2, repsPerSet:8, paceTarget:255, paceTol:20, label:"VMA 30/30 (2×8)" };
       if (day === "thu") return { kind:"tempo_time", reps:3, repMin:8, recMin:2, paceTarget:305, paceTol:20, label:"Seuil 3×8" };
-      // patch
-      //if (day === "sat") return { kind:"endurance", minMin:40, paceRange:"5'50-6'20/km", label:"Endurance facile" };
-      //if (day === "sun") return { kind:"long", minMin:75, paceRange:"5'50-6'20/km", label:"Sortie longue" };
-      if (day === "sat") return { kind:"endurance", minMin:40, label:"Endurance facile" };
-      if (day === "sun") return { kind:"long", minMin:75, label:"Sortie longue" };
+      // patch ok 18/02
+      if (day === "sat") return { kind:"endurance", minMin:40, paceRange:"5'50-6'20/km", label:"Endurance facile" };
+      if (day === "sun") return { kind:"long", minMin:75, paceRange:"5'50-6'20/km", label:"Sortie longue" };
+      //if (day === "sat") return { kind:"endurance", minMin:40, label:"Endurance facile" };
+      //if (day === "sun") return { kind:"long", minMin:75, label:"Sortie longue" };
     }
 
     if (week <= 12){
