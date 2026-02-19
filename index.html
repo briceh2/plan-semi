@@ -1707,9 +1707,10 @@ if (spec.kind === "interval_dist"){ // 400m/200m
 
   if (spec.kind === "hill_reps"){
     const line1 = spec.label || `Côtes ${spec.reps||""}×${spec.repSec||""}s`;
-    // patch pok
-    //const line2 = spec.effortHint || "Effort 8/10 • récup descente très facile";
-    return { line1, line2: "" };
+    // patch pok 18/02
+    const line2 = spec.effortHint || "Effort 8/10 • récup descente très facile";
+    return { line1, line2 };
+    //return { line1, line2: "" };
   }
 
   return { line1: (spec.label || fallbackText || "Séance"), line2: "" };
