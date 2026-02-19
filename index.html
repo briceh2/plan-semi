@@ -1681,8 +1681,9 @@ function specTitleAndPaceText(spec, fallbackText){
   const line1 = `${spec.label || "Seuil/Tempo"}`;
   const pace = spec.paceTarget ? `${paceStrFromSec(spec.paceTarget)} (±${spec.paceTol||0}s)` : "";
   const rec  = spec.recMin ? `• récup ${spec.recMin} min` : "";
-  // patch pok 18/02
-  const line2 = [pace, rec, hill].filter(Boolean).join(" ");
+  // patch ok 18/02
+  const hillPart = spec.hillHint ? '. ${spec.hillHint}' : "";
+  const line2 = [pace, rec, hillPart].filter(Boolean).join(" ");
   //const line2 = [pace, rec].filter(Boolean).join(" ");
   return { line1, line2 };
 }
