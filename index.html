@@ -1446,7 +1446,7 @@ function score400m(samples, spec){
     else res = { score: 40, reasons:["Type de séance non reconnu."], notes:[], intervals:[] };
 
     const v = verdictFromScore(res.score);
-    return { ...res, verdict: v.text, verdictClass: v.cls, specLabel: spec.label };
+    return { ...res, verdict: v.verdict, badgeClass: v.badgeClass, specLabel: spec.label };
   }
 
   // ===== Recompute score FROM intervals (auto+manual) =====
