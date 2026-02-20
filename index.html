@@ -234,6 +234,7 @@
       <div class="row">
         <span class="pill" id="globalPill">—</span>
         <span class="pill" id="sleepPill">—</span>
+        <span class="pill" id="feelPill">—</span>
         <span class="pill" id="painPill">—</span>
         <span class="pill" id="fitnessPill">Forme: —</span>
       </div>
@@ -513,6 +514,7 @@ function sessionsForWeek(w){
     if (days < 0) return 0;
     return Math.floor(days / 7) + 1;
   }
+  /*
   function computeKPI(){
     let total=0, done=0, painWeeks=0, sleepLowWeeks=0;
     for (let w=1; w<=WEEKS; w++){
@@ -527,6 +529,59 @@ function sessionsForWeek(w){
     const pct = total ? Math.round(done*100/total) : 0;
     return { total, done, pct, painWeeks, sleepLowWeeks };
   }
+  */
+  // patch ok du 20/02
+  function computeKPI(){
+    let total=0, done=0;
+    
+    let sleepCount=0, sleepSum=0, sleepLowWeeks=0;
+    let feelCount=0, feelSum=0, feelLowWeeks=0;
+    let painCount=0, painSum=0, painWeeks=0;
+    
+    for (let w=1; w<=WEEKS; w++){
+      ensureWeek(w);
+      
+      // séances cochées
+      const d = data.weeks[w].done;
+      const count = ["tue","thu","sat","sun"].reduce((a,k)=>a+(d[k]?1:0),0);
+      total += 4; done += count;
+      
+      // sommeil (liste 5..8)
+      const sleep = parseInt(data.weeks[w].sleep, 10);
+      if (Number.isFinite(sleep)){
+      sleepSum += sleep; sleepCount++;
+      if (sleep <= 5) sleepLowWeeks++; // alerte si 5
+    }
+    
+    // sensations (liste 1..5)
+    const feel = parseInt(data.weeks[w].feel, 10);
+    if (Number.isFinite(feel)){
+      feelSum += feel; feelCount++;
+      if (feel <= 2) feelLowWeeks++; // 1-2 = mauvaises
+    }
+    
+    // douleurs (liste 1..5)
+    const pain = parseInt(data.weeks[w].pain, 10);
+    if (Number.isFinite(pain)){
+      painSum += pain; painCount++;
+      if (pain >= 3) painWeeks++; // 3-5 = douleurs notables
+      }
+    }
+    
+    const pct = total ? Math.round(done*100/total) : 0;
+    
+    const sleepAvg = sleepCount ? (sleepSum / sleepCount) : null;
+    const feelAvg = feelCount ? (feelSum / feelCount) : null;
+    const painAvg = painCount ? (painSum / painCount) : null;
+    
+    return {
+    total, done, pct,
+    sleepAvg, sleepLowWeeks,
+    feelAvg, feelLowWeeks,
+    painAvg, painWeeks
+    };
+  }
+
   function updateHeaderKPI(){
     const k = computeKPI();
     const w = currentWeekIndex();
@@ -539,9 +594,13 @@ function sessionsForWeek(w){
     ensureWeek(w);
     const d = data.weeks[w].done;
     const count = ["tue","thu","sat","sun"].reduce((a,k)=>a+(d[k]?1:0),0);
+    /*
     const pain = (data.weeks[w].pain||"").trim().length >= 3;
     const sleep = parseFloat(String(data.weeks[w].sleep||"").replace(",","."));
     const sleepLow = (!Number.isNaN(sleep) && sleep>0 && sleep<6);
+    */
+    // patch 3 ok du 20/02
+    
     const reasons = [];
     if (pain) reasons.push("Douleurs renseignées cette semaine.");
     if (sleepLow) reasons.push("Sommeil < 6h cette semaine.");
