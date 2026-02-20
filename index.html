@@ -600,14 +600,34 @@ function sessionsForWeek(w){
     const sleepLow = (!Number.isNaN(sleep) && sleep>0 && sleep<6);
     */
     // patch 3 ok du 20/02
+    const pain = parseInt(data.weeks[w].pain, 10);
+    const painHigh = Number.isFinite(pain) && pain >= 3;
     
+    const sleep = parseInt(data.weeks[w].sleep, 10);
+    const sleepLow = Number.isFinite(sleep) && sleep <= 5;
+    
+    const feel = parseInt(data.weeks[w].feel, 10);
+    const feelLow = Number.isFinite(feel) && feel <= 2;
+
     const reasons = [];
+    if (painHigh) reasons.push("Douleurs ≥ 3/5 cette semaine.");
+    if (sleepLow) reasons.push("Sommeil = 5h cette semaine.");
+    if (feelLow) reasons.push("Sensations ≤ 2/5 cette semaine.");
     if (pain) reasons.push("Douleurs renseignées cette semaine.");
-    if (sleepLow) reasons.push("Sommeil < 6h cette semaine.");
     if (count === 4) reasons.push("4 séances cochées : OK si récupération bonne.");
+
+    if ((painHigh && count>=3) || (sleepLow && count>=3) || (feelLow && count>=3))
+    return { level:"warn", label:"🔴 Vigilance (allège)", reasons: reasons.length?reasons:["Charge élevée avec signaux faibles."] };
+    
+    if (painHigh || sleepLow || feelLow)
+    return { level:"warn", label:"🟠 Attention (prudence)", reasons: reasons.length?reasons:["Surveille la récup."] };
+    
+    return { level:"ok", label:"🟢 OK (continue)", reasons:["Bon équilibre charge / récupération."] };
+    /*
     if ((pain && count>=3) || (sleepLow && count>=3)) return { level:"warn", label:"🔴 Vigilance (allège)", reasons: reasons.length?reasons:["Charge élevée avec signaux faibles."] };
     if (pain || sleepLow) return { level:"warn", label:"🟠 Attention (prudence)", reasons: reasons.length?reasons:["Surveille la récup."] };
     return { level:"ok", label:"🟢 OK (continue)", reasons:["Bon équilibre charge / récupération."] };
+    */
   }
 
   // ===== Tabs =====
@@ -2002,11 +2022,34 @@ function renderPlan(){
   });
 }
   function renderStats(){
+    /*
     const k = computeKPI();
     document.getElementById("globalPill").textContent = `Global : ${k.done}/${k.total} séances (${k.pct}%)`;
     document.getElementById("sleepPill").textContent = `Semaines sommeil <6h : ${k.sleepLowWeeks}`;
     document.getElementById("painPill").textContent = `Semaines avec douleurs : ${k.painWeeks}`;
-
+*/
+    // patch 3 ok du 20/02
+    const k = computeKPI();
+    document.getElementById("globalPill").textContent = `Global : ${k.done}/${k.total} séances (${k.pct}%)`;
+    
+    document.getElementById("sleepPill").textContent =
+      (k.sleepAvg != null)
+      ? `😴 Sommeil moy : ${k.sleepAvg.toFixed(1)}/8 • semaines à 5h : ${k.sleepLowWeeks}`
+      : `😴 Sommeil : —`;
+    
+    const feelEl = document.getElementById("feelPill");
+    if (feelEl){
+      feelEl.textContent =
+      (k.feelAvg != null)
+      ? `🙂 Sensations moy : ${k.feelAvg.toFixed(1)}/5 • semaines ≤2 : ${k.feelLowWeeks}`
+      : `🙂 Sensations : —`;
+    }
+    
+    document.getElementById("painPill").textContent =
+      (k.painAvg != null)
+        ? `🦵 Douleurs moy : ${k.painAvg.toFixed(1)}/5 • semaines ≥3 : ${k.painWeeks}`
+        : `🦵 Douleurs : —`;
+    
     const barsEl = document.getElementById("bars");
     barsEl.innerHTML = "";
     for (let w=1; w<=WEEKS; w++){
@@ -2049,6 +2092,54 @@ function renderPlan(){
     } else {
       fitnessPill.textContent = "Forme: importe 2-3 séances";
     }
+    // patch 3 ok du 20/02
+    // --- Corrélation simple : score séances vs récup (sleep/feel/pain)
+    (function(){
+      const pairs = [];
+      for (let w=1; w<=WEEKS; w++){
+        ensureWeek(w);
+        const sleep = parseInt(data.weeks[w].sleep, 10);
+        const feel = parseInt(data.weeks[w].feel, 10);
+        const pain = parseInt(data.weeks[w].pain, 10);
+        
+        // score moyen des séances importées attachées à la semaine
+        const keys = ["tue","thu","sat","sun"];
+        const scores = [];
+        keys.forEach(k=>{
+          const id = data.weeks[w].attached?.[k];
+          if (!id) return;
+          const wo = data.workouts.find(x=>x.id===id);
+          const sc = wo?.compliance?.score;
+          if (Number.isFinite(sc)) scores.push(sc);
+        });
+        if (!scores.length) continue;
+        
+        const scoreAvg = scores.reduce((a,x)=>a+x,0)/scores.length;
+        
+        if (Number.isFinite(sleep) || Number.isFinite(feel) || Number.isFinite(pain)){
+        pairs.push({ w, sleep, feel, pain, scoreAvg });
+      }
+    }
+    
+    // Compare: bonnes semaines (sleep>=7 & feel>=4 & pain<=2) vs autres
+    const good = pairs.filter(p => (p.sleep>=7) && (p.feel>=4) && (p.pain<=2));
+    const other = pairs.filter(p => !(p.sleep>=7 && p.feel>=4 && p.pain<=2));
+    
+    function avg(arr){ return arr.length ? (arr.reduce((a,x)=>a+x,0)/arr.length) : null; }
+    
+    const goodAvg = avg(good.map(x=>x.scoreAvg));
+    const othAvg = avg(other.map(x=>x.scoreAvg));
+    
+    let txt = "Corrélation récup ↔ score : ";
+    if (goodAvg==null && othAvg==null) txt += "— (pas assez de séances attachées).";
+    else if (goodAvg!=null && othAvg!=null) txt += `semaines “bonnes” ~${Math.round(goodAvg)}/100 vs autres ~${Math.round(othAvg)}/100.`;
+    else txt += "partiel (données insuffisantes).";
+    
+    // Affiche dans fitnessPill en 2e info (compact)
+    const fp = document.getElementById("fitnessPill");
+    if (fp) fp.textContent = fp.textContent + " • " + txt;
+    })();
+
   }
 
   // ===== Import UI =====
