@@ -1847,6 +1847,7 @@ function renderPlan(){
 
     const notes = document.createElement("div");
     notes.className = "session";
+    /*
     notes.innerHTML = `
       <div class="s-title">Notes de la semaine</div>
       <div class="grid3">
@@ -1865,6 +1866,54 @@ function renderPlan(){
         </div>
       </div>
     `;
+    */
+    // patch ok du 20/02
+    notes.innerHTML = `
+      <div class="s-title">Notes de la semaine</div>
+      <div class="grid3">
+      
+        <div>
+          <div class="meta">😴 Sommeil</div>
+            <select data-week="${w}" data-field="sleep">
+              ${[5,6,7,8].map(v =>
+              `<option value="${v}" ${state.sleep==v?"selected":""}>${v}</option>`
+              ).join("")}
+            </select>
+        </div>
+          
+        <div>
+          <div class="meta">🙂 Sensations</div>
+          <select data-week="${w}" data-field="feel">
+            ${[
+            [1,"Très mauvaises"],
+            [2,"Fatigué"],
+            [3,"Correct"],
+            [4,"Bonnes"],
+            [5,"Excellentes"]
+            ].map(([v,label]) =>
+            `<option value="${v}" ${state.feel==v?"selected":""}>${label}</option>`
+            ).join("")}
+          </select>
+        </div>
+        
+        <div>
+          <div class="meta">🦵 Douleurs</div>
+            <select data-week="${w}" data-field="pain">
+              ${[
+              [1,"Aucune"],
+              [2,"Légères"],
+              [3,"Modérées"],
+              [4,"Importantes"],
+              [5,"Fortes"]
+              ].map(([v,label]) =>
+              `<option value="${v}" ${state.pain==v?"selected":""}>${label}</option>`
+              ).join("")}
+            </select>
+        </div>
+      </div>
+    `;
+    // fin patch ok du 20/02
+
     details.appendChild(notes);
 
     card.appendChild(details);
@@ -1882,7 +1931,8 @@ function renderPlan(){
     });
   });
 
-  weeksEl.querySelectorAll('textarea, input[type="number"]').forEach(el => {
+  //weeksEl.querySelectorAll('textarea, input[type="number"]').forEach(el => {
+  weeksEl.querySelectorAll('select').forEach(el => {
     el.addEventListener("input", (e) => {
       const w = parseInt(e.target.getAttribute("data-week"),10);
       const f = e.target.getAttribute("data-field");
