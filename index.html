@@ -2071,7 +2071,7 @@ function renderPlan(){
       const r = weekAvgComplianceScore(w);
       
       // patch ok du 21/02
-      const pct = Math.round(r.avg);
+      const pct = Math.max(0, Math.min(100, Math.round(r.avg)));
       
       let cls;
       if (pct >= 80) cls = "green";
@@ -2085,7 +2085,7 @@ function renderPlan(){
       row.innerHTML = `
         <div class="muted">S${w}</div>
         <div class="bar">
-        <span style="width:${pct}%; background:${color};"></span>
+          <span style="width:${pct}%; background:${color};"></span>
         </div>
         <div class="muted">${rightTxt}</div>
       `;
