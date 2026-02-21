@@ -2071,6 +2071,8 @@ function renderPlan(){
       const r = weekAvgComplianceScore(w);
       
       // patch ok du 21/02
+      const pct = Math.round(r.avg);
+      
       let cls;
       if (pct >= 80) cls = "green";
       else if (pct >= 60) cls = "orange";
