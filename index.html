@@ -2077,15 +2077,19 @@ function renderPlan(){
       if (pct >= 80) cls = "green";
       else if (pct >= 60) cls = "orange";
       else cls = "red";
-      
-        row.innerHTML = `
+
+      const rightTxt = `${pct}/100 • ${r.doneCount}/4`;
+
+      const row = document.createElement("div");
+      row.className = "barrow";
+      row.innerHTML = `
         <div class="muted">S${w}</div>
         <div class="bar">
-        <span class="${cls}" style="width:${pct}%"></span>
+        <span style="width:${pct}%; background:${color};"></span>
         </div>
         <div class="muted">${rightTxt}</div>
       `;
-
+      barsEl.appendChild(row);
     }
 
     const f = fatigueStatus();
