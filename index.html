@@ -61,6 +61,11 @@
     .reasonsInline li { margin:3px 0; font-size:11px; color:#444; }
     .reasonsCompact { margin-top:6px; font-size:11px; color:#444; }
     .reasonsCompact .line { margin:2px 0; }
+    // couleur des barres Stats
+    .bar span.green { background:#2ecc71; }
+    .bar span.orange { background:#f39c12; }
+    .bar span.red { background:#e74c3c; }
+
 
     /* Modal fix iPhone */
     .modalOverlay{
@@ -2005,56 +2010,36 @@ function renderPlan(){
   // patch ok du 21/02
   function weekAvgComplianceScore(w){
     ensureWeek(w);
-    const keys = ["tue","thu","sat","sun"];
-    const scores = [];
-    
-    for (const k of keys){
-      const id = data.weeks[w]?.attached?.[k];
-      if (!id) continue;
-      const wo = data.workouts.find(x => x.id === id);
-      const sc = wo?.compliance?.score;
-      if (Number.isFinite(sc)) scores.push(sc);
-    }
-    
-      if (!scores.length) return { avg: null, n: 0 };
-      const avg = scores.reduce((a,x)=>a+x,0) / scores.length;
-      return { avg, n: scores.length };
-    }
-
-    // patch ok du 21/02
-  function weekAvgComplianceScore(w){
-    ensureWeek(w);
     
     const keys = ["tue","thu","sat","sun"];
     const scores = [];
+    let doneCount = 0;
     
     for (const k of keys){
-    const attachedId = data.weeks[w]?.attached?.[k];
-    const done = data.weeks[w]?.done?.[k];
-    
-    // 1️⃣ séance importée → score réel
-    if (attachedId){
-      const wo = data.workouts.find(x => x.id === attachedId);
-      const sc = wo?.compliance?.score;
-      if (Number.isFinite(sc)){
-        scores.push(sc);
+      const attachedId = data.weeks[w]?.attached?.[k];
+      const done = !!data.weeks[w]?.done?.[k];
+      if (done) doneCount++;
+      
+      if (attachedId){
+        const wo = data.workouts.find(x => x.id === attachedId);
+        const sc = wo?.compliance?.score;
+        if (Number.isFinite(sc)){
+          scores.push(sc);
+          continue;
+        }
+      }
+      
+      if (done){
+        scores.push(75);
         continue;
       }
+      
+      scores.push(25);
+      }
+    
+      const avg = scores.reduce((a,x)=>a+x,0) / scores.length;
+      return { avg, doneCount };
     }
-
-    // 2️⃣ cochée sans import
-    if (done){
-      scores.push(75);
-      continue;
-    }
-
-    // 3️⃣ non cochée
-    scores.push(25);
-    }
-
-    const avg = scores.reduce((a,x)=>a+x,0) / scores.length;
-    return { avg, n: scores.length };
-  }
 
   function renderStats(){
     // patch 3 ok du 20/02
@@ -2085,15 +2070,20 @@ function renderPlan(){
     for (let w=1; w<=WEEKS; w++){
       const r = weekAvgComplianceScore(w);
       
-      const pct = (r.avg == null) ? 0 : Math.round(r.avg); // barre = score moyen /100
-      const rightTxt = (r.avg == null) ? "—" : `${Math.round(r.avg)}/100 (${r.n})`;
+      // patch ok du 21/02
+      let cls;
+      if (pct >= 80) cls = "green";
+      else if (pct >= 60) cls = "orange";
+      else cls = "red";
       
-      const row = document.createElement("div");
-      row.className = "barrow";
-      row.innerHTML = `<div class="muted">S${w}</div>
-      <div class="bar"><span style="width:${pct}%"></span></div>
-      <div class="muted">${rightTxt}</div>`;
-      barsEl.appendChild(row);
+        row.innerHTML = `
+        <div class="muted">S${w}</div>
+        <div class="bar">
+        <span class="${cls}" style="width:${pct}%"></span>
+        </div>
+        <div class="muted">${rightTxt}</div>
+      `;
+
     }
 
     const f = fatigueStatus();
