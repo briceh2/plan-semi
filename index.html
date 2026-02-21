@@ -2001,14 +2001,27 @@ function renderPlan(){
     });
   });
 
-}
+  }
+  // patch ok du 21/02
+  function weekAvgComplianceScore(w){
+    ensureWeek(w);
+    const keys = ["tue","thu","sat","sun"];
+    const scores = [];
+    
+    for (const k of keys){
+      const id = data.weeks[w]?.attached?.[k];
+      if (!id) continue;
+      const wo = data.workouts.find(x => x.id === id);
+      const sc = wo?.compliance?.score;
+      if (Number.isFinite(sc)) scores.push(sc);
+    }
+    
+      if (!scores.length) return { avg: null, n: 0 };
+      const avg = scores.reduce((a,x)=>a+x,0) / scores.length;
+      return { avg, n: scores.length };
+    }
+  
   function renderStats(){
-    /*
-    const k = computeKPI();
-    document.getElementById("globalPill").textContent = `Global : ${k.done}/${k.total} séances (${k.pct}%)`;
-    document.getElementById("sleepPill").textContent = `Semaines sommeil <6h : ${k.sleepLowWeeks}`;
-    document.getElementById("painPill").textContent = `Semaines avec douleurs : ${k.painWeeks}`;
-*/
     // patch 3 ok du 20/02
     const k = computeKPI();
     document.getElementById("globalPill").textContent = `Global : ${k.done}/${k.total} séances (${k.pct}%)`;
@@ -2033,16 +2046,18 @@ function renderPlan(){
     
     const barsEl = document.getElementById("bars");
     barsEl.innerHTML = "";
+
     for (let w=1; w<=WEEKS; w++){
-      ensureWeek(w);
-      const d = data.weeks[w].done;
-      const count = ["tue","thu","sat","sun"].reduce((a,k)=>a+(d[k]?1:0),0);
-      const pct = Math.round(count*100/4);
+      const r = weekAvgComplianceScore(w);
+      
+      const pct = (r.avg == null) ? 0 : Math.round(r.avg); // barre = score moyen /100
+      const rightTxt = (r.avg == null) ? "—" : `${Math.round(r.avg)}/100 (${r.n})`;
+      
       const row = document.createElement("div");
       row.className = "barrow";
       row.innerHTML = `<div class="muted">S${w}</div>
-                       <div class="bar"><span style="width:${pct}%"></span></div>
-                       <div class="muted">${count}/4</div>`;
+      <div class="bar"><span style="width:${pct}%"></span></div>
+      <div class="muted">${rightTxt}</div>`;
       barsEl.appendChild(row);
     }
 
