@@ -1926,26 +1926,7 @@ function renderPlan(){
 
     const notes = document.createElement("div");
     notes.className = "session";
-    /*
-    notes.innerHTML = `
-      <div class="s-title">Notes de la semaine</div>
-      <div class="grid3">
-        <div>
-          <div class="meta">Sommeil (heures)</div>
-          <input type="number" min="0" step="0.5" inputmode="decimal"
-            value="${state.sleep}" data-week="${w}" data-field="sleep" placeholder="ex: 7.5" />
-        </div>
-        <div>
-          <div class="meta">Sensations</div>
-          <textarea data-week="${w}" data-field="feel">${state.feel||""}</textarea>
-        </div>
-        <div>
-          <div class="meta">Douleurs</div>
-          <textarea data-week="${w}" data-field="pain">${state.pain||""}</textarea>
-        </div>
-      </div>
-    `;
-    */
+
     // patch ok du 20/02
     notes.innerHTML = `
       <div class="s-title">Notes de la semaine</div>
@@ -2009,17 +1990,17 @@ function renderPlan(){
       saveData();
     });
   });
-
-  //weeksEl.querySelectorAll('textarea, input[type="number"]').forEach(el => {
-  weeksEl.querySelectorAll('select').forEach(el => {
-    el.addEventListener("input", (e) => {
+  // patch ok du 21/02
+  weeksEl.querySelectorAll('select[data-week][data-field]').forEach(el => {
+    el.addEventListener("change", (e) => {
       const w = parseInt(e.target.getAttribute("data-week"),10);
       const f = e.target.getAttribute("data-field");
       ensureWeek(w);
-      data.weeks[w][f] = e.target.value;
-      saveData();
+      data.weeks[w][f] = e.target.value; // stocke "5","6","7","8" ou "1".."5"
+      saveData(); // persiste dans localStorage
     });
   });
+
 }
   function renderStats(){
     /*
