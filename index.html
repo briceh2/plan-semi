@@ -1192,6 +1192,107 @@ function verdictBadgeClass(cls){
     const intervals = picked.map(b => ({ t0:b.t0, t1:b.t1, kind:"work" }));
     return { score, reasons, notes, intervals };
   }
+  // patch du 24/02
+  function scoreHillReps(samples, spec){
+    const expected = spec.reps || 10;
+    const repSec = spec.repSec || 45;
+    
+    // On part de ta série d'allure déjà gérée (pace en sec/km)
+    const pts = smoothPace(buildPaceSeries(samples), 6);
+    if (!pts.length) return { score: 30, reasons:["Données insuffisantes."], notes:[], intervals:[] };
+    
+    // Convertit pace -> vitesse km/h (plus stable pour détecter des “pics”)
+    const v = pts.map(p => {
+      const pace = p.pace;
+      const kmh = (Number.isFinite(pace) && pace > 0) ? (3600 / pace) : 0;
+      return { tMs: p.tMs, kmh };
+    });
+    
+    // Lissage supplémentaire (moyenne mobile ~15s) pour stabiliser le signal en côte
+    const winSec = 15;
+    const vs = [];
+    let j = 0;
+    for (let i=0; i<v.length; i++){
+      const t = v[i].tMs;
+      while (j < i && (t - v[j].tMs) > winSec*1000) j++;
+      let sum = 0, n = 0;
+      for (let k=j; k<=i; k++){ sum += v[k].kmh; n++; }
+      vs.push({ tMs: t, kmh: sum/Math.max(1,n) });
+    }
+    
+    // Baseline = percentile 30 de la vitesse (représente récup/endurance dans la séance)
+    const sorted = vs.map(x=>x.kmh).filter(Number.isFinite).sort((a,b)=>a-b);
+    if (!sorted.length) return { score: 30, reasons:["Signal vitesse vide."], notes:[], intervals:[] };
+    const base = sorted[Math.floor(0.30*(sorted.length-1))];
+    
+    // Seuils relatifs + hystérésis (on entre sur un pic net, on sort plus bas)
+    const enter = base + 1.4; // km/h au-dessus du fond pour entrer en effort
+    const exit = base + 0.6; // km/h pour sortir
+    
+    // Détection segments effort via hystérésis
+    const segs = [];
+    let i = 0;
+    while (i < vs.length){
+      if (vs[i].kmh >= enter){
+        let a = i;
+        while (a > 0 && vs[a-1].kmh >= exit) a--;
+        let b = i;
+        while (b < vs.length && vs[b].kmh >= exit) b++;
+        segs.push({ a, b: b-1, t0: vs[a].tMs, t1: vs[b-1].tMs });
+        i = b;
+      } else i++;
+    }
+    
+    // Filtre durée autour de repSec (tolérance large)
+    const minDur = Math.max(20, Math.floor(repSec * 0.55));
+    const maxDur = Math.floor(repSec * 1.65);
+    
+    let cand = segs
+    .map(s => ({ ...s, durSec: (s.t1 - s.t0)/1000 }))
+    .filter(s => s.durSec >= minDur && s.durSec <= maxDur);
+    
+    // Intensité: vitesse moyenne dans le segment
+    cand = cand.map(s=>{
+    let sum=0, n=0;
+      for (let k=s.a; k<=s.b; k++){ sum += vs[k].kmh; n++; }
+      s.meanKmh = sum/Math.max(1,n);
+      return s;
+    });
+    
+    // Garde les N meilleurs pics, puis trie par temps
+    cand.sort((x,y)=>y.meanKmh - x.meanKmh);
+    cand = cand.slice(0, expected).sort((x,y)=>x.t0 - y.t0);
+    
+    const intervals = cand.map(s => ({ t0:s.t0, t1:s.t1, kind:"work" }));
+    
+    // Scoring
+    const repFound = cand.length;
+    const repScore = Math.min(1, repFound / expected);
+    
+    const durAvg = repFound ? cand.reduce((a,x)=>a+x.durSec,0)/repFound : 0;
+    const durErr = repSec ? Math.abs(durAvg - repSec) / repSec : 1;
+    const durScore = Math.max(0, 1 - durErr);
+    
+    const meanWork = repFound ? cand.reduce((a,x)=>a+x.meanKmh,0)/repFound : 0;
+    const contrastKmh = Math.max(0, meanWork - base);
+    const contrastScore = Math.max(0, Math.min(1, contrastKmh / 2.0)); // 2 km/h = très bon
+    
+    const score = Math.round(100 * (0.55*repScore + 0.25*durScore + 0.20*contrastScore));
+    
+    const reasons = [];
+    reasons.push(`Répétitions détectées : ${repFound}/${expected} (cible ${repSec}s).`);
+    if (repFound) reasons.push(`Durée moyenne : ${Math.round(durAvg)}s.`);
+    reasons.push(`Baseline ≈ ${base.toFixed(1)} km/h • seuils enter ${enter.toFixed(1)} / exit ${exit.toFixed(1)} km/h.`);
+    if (repFound) reasons.push(`Vitesse effort moy ≈ ${meanWork.toFixed(1)} km/h (Δ ${contrastKmh.toFixed(1)}).`);
+    
+    const notes = [];
+    if (repFound < expected) notes.push(`Blocs manquants : ${expected - repFound}.`);
+    notes.push("Conseil : récup très lente en descente (marche/trot) pour mieux séparer les blocs.");
+    
+    return { score, reasons, notes, intervals };
+  }
+
+  /*
   function scoreHillReps(samples, spec){
   const expected = spec.reps || 10;
   const repSec = spec.repSec || 45;
@@ -1310,6 +1411,7 @@ function verdictBadgeClass(cls){
   const intervals = picked.map(b => ({ t0:b.t0, t1:b.t1, kind:"work" }));
   return { score, reasons, notes, intervals };
 }
+  */
 function score400m(samples, spec){
   const target = spec.paceTarget;       // sec/km (ex ~250 pour 4'10)
   const tolSlow = spec.paceTol;         // sec/km (tolérance lenteur, ex 18-22)
