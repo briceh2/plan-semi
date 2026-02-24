@@ -2457,7 +2457,55 @@ function renderPlan(){
   saveManualBtn.addEventListener("click", () => {
     if (!modalState) return;
 
+      // patch du 24/02
+      // merge auto + manual
+    const auto = (modalState.intervals || []).map(x => ({ t0:x.t0, t1:x.t1, kind:"work" }));
+    const man = manualIntervals.map(x => ({ t0:x.t0, t1:x.t1, kind:"work" }));
+    
+    // ✅ concat correcte
+    const merged = [...auto, ...man]
+    .filter(x => isFinite(x.t0) && isFinite(x.t1) && x.t1 > x.t0)
+    .sort((a,b)=>a.t0-b.t0);
+    
+    // ✅ si l’utilisateur n’a rien ajouté/supprimé, on ne “force” pas un manuel
+    const hasManualChanges = man.length > 0;
+    
+    // recompute score/reasons from merged blocks
+    const newRes = recomputeFromIntervals(modalState.samples, modalState.spec, merged);
+    const v = verdictFromScore(newRes.score);
+    const badgeClass = verdictBadgeClass(v.cls);
+    
+    // persist to stored workout
+    const idx = data.workouts.findIndex(w => w.id === modalState.workoutId);
+    if (idx >= 0){
+      data.workouts[idx].compliance.score = newRes.score;
+      data.workouts[idx].compliance.verdict = v.text;
+      data.workouts[idx].compliance.badgeClass = badgeClass;
+      data.workouts[idx].compliance.reasons = newRes.reasons || [];
+      data.workouts[idx].compliance.notes = newRes.notes || [];
+      data.workouts[idx].compliance.intervals = merged;
+      
+      // ✅ seulement si l'utilisateur a réellement modifié des blocs
+      data.workouts[idx].compliance.manualAdjusted = hasManualChanges;
+      
+      saveData();
+    }
+    
+    // update modal state too
+    modalState.score = newRes.score;
+    modalState.verdict = v.text;
+    modalState.badgeClass = badgeClass;
+    modalState.reasons = newRes.reasons || [];
+    modalState.notes = newRes.notes || [];
+    modalState.intervals = merged;
+    
+    pendingClickT = null;
+    renderModal();
+    
+    alert(hasManualChanges ? "Score recalculé et sauvegardé ✅" : "Aucun changement manuel → score auto conservé ✅");
+    
     // merge auto + manual
+    /*
     const auto = (modalState.intervals || []).map(x => ({ t0:x.t0, t1:x.t1, kind:"work" }));
     const man  = manualIntervals.map(x => ({ t0:x.t0, t1:x.t1, kind:"work" }));
 
@@ -2494,7 +2542,9 @@ function renderPlan(){
     pendingClickT = null;
     renderModal();
     alert("Score recalculé et sauvegardé ✅");
+    */
   });
+  
 
   function renderModal(){
     if (!modalState) return;
