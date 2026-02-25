@@ -1167,6 +1167,7 @@ function verdictBadgeClass(cls){
     const reasons = [];
     reasons.push(`Blocs tempo détectés (fenêtres) : ${picked.length}/${expected} (durée ${spec.repMin} min).`);
     reasons.push(`Cible : ${fmtPaceTarget(target, tol)}.`);
+    reasons.push(`Baseline km/h = ${base.toFixed(1)} (seuil enter ${enter.toFixed(1)}, exit ${exit.toFixed(1)}) `);
     if (picked.length){
       const avgP = mean(picked.map(p=>p.paceMean));
       const mm = minmax(picked.map(p=>p.paceMean));
