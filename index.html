@@ -2349,7 +2349,8 @@ function renderPlan(){
   let modalState = null;
   let pendingClickT = null;
   let manualIntervals = []; // {t0,t1,kind:"manual"}
-
+  let manualDirty = false; // ✅ true uniquement si l'utilisateur a vraiment modifié les blocs
+  
   function openModal(state){
     modalState = state;
     pendingClickT = null;
@@ -2444,106 +2445,76 @@ function renderPlan(){
       const t1 = Math.max(a,b);
       if ((t1 - t0) < 8000) { renderModal(); return; }
       manualIntervals.push({ t0, t1, kind:"manual" });
+      manualDirty = true;
     }
     renderModal();
   });
 
   clearManualBtn.addEventListener("click", () => {
     manualIntervals = [];
+    manualDirty = true; // ✅ action manuelle réelle
     pendingClickT = null;
     renderModal();
   });
-
-  saveManualBtn.addEventListener("click", () => {
-    if (!modalState) return;
-
-      // patch du 24/02
-      // merge auto + manual
-    const auto = (modalState.intervals || []).map(x => ({ t0:x.t0, t1:x.t1, kind:"work" }));
-    const man = manualIntervals.map(x => ({ t0:x.t0, t1:x.t1, kind:"work" }));
-    
-    // ✅ concat correcte
-    const merged = [...auto, ...man]
-    .filter(x => isFinite(x.t0) && isFinite(x.t1) && x.t1 > x.t0)
-    .sort((a,b)=>a.t0-b.t0);
-    
-    // ✅ si l’utilisateur n’a rien ajouté/supprimé, on ne “force” pas un manuel
-    const hasManualChanges = man.length > 0;
-    
-    // recompute score/reasons from merged blocks
-    const newRes = recomputeFromIntervals(modalState.samples, modalState.spec, merged);
-    const v = verdictFromScore(newRes.score);
-    const badgeClass = verdictBadgeClass(v.cls);
-    
-    // persist to stored workout
-    const idx = data.workouts.findIndex(w => w.id === modalState.workoutId);
-    if (idx >= 0){
-      data.workouts[idx].compliance.score = newRes.score;
-      data.workouts[idx].compliance.verdict = v.text;
-      data.workouts[idx].compliance.badgeClass = badgeClass;
-      data.workouts[idx].compliance.reasons = newRes.reasons || [];
-      data.workouts[idx].compliance.notes = newRes.notes || [];
-      data.workouts[idx].compliance.intervals = merged;
-      
-      // ✅ seulement si l'utilisateur a réellement modifié des blocs
-      data.workouts[idx].compliance.manualAdjusted = hasManualChanges;
-      
+  
+saveManualBtn.addEventListener("click", () => {
+  if (!modalState) return;
+  
+  // ✅ Si aucun changement manuel réel → on conserve le score automatique
+  if (!manualDirty || !manualIntervals || manualIntervals.length === 0){
+    // On s'assure que manualAdjusted reste false
+    const idx0 = data.workouts.findIndex(w => w.id === modalState.workoutId);
+    if (idx0 >= 0 && data.workouts[idx0].compliance){
+      data.workouts[idx0].compliance.manualAdjusted = false;
       saveData();
     }
-    
-    // update modal state too
-    modalState.score = newRes.score;
-    modalState.verdict = v.text;
-    modalState.badgeClass = badgeClass;
-    modalState.reasons = newRes.reasons || [];
-    modalState.notes = newRes.notes || [];
-    modalState.intervals = merged;
-    
-    pendingClickT = null;
-    renderModal();
-    
-    alert(hasManualChanges ? "Score recalculé et sauvegardé ✅" : "Aucun changement manuel → score auto conservé ✅");
-    
-    // merge auto + manual
-    /*
-    const auto = (modalState.intervals || []).map(x => ({ t0:x.t0, t1:x.t1, kind:"work" }));
-    const man  = manualIntervals.map(x => ({ t0:x.t0, t1:x.t1, kind:"work" }));
+    alert("Aucune modification manuelle → score automatique conservé ✅");
+    // (optionnel) ferme la modal si tu as une fonction dédiée :
+    // closeAnalysisModal();
+    return;
+  }
+  
+  // merge auto + manual (✅ concat correcte)
+  const auto = (modalState.intervals || []).map(x => ({ t0:x.t0, t1:x.t1, kind:"work" }));
+  const man = manualIntervals.map(x => ({ t0:x.t0, t1:x.t1, kind:"work" }));
+  
+  const merged = [...auto, ...man]
+  .filter(x => isFinite(x.t0) && isFinite(x.t1) && x.t1 > x.t0)
+  .sort((a,b)=>a.t0-b.t0);
+  
+  // recompute score/reasons from merged blocks
+  const newRes = recomputeFromIntervals(modalState.samples, modalState.spec, merged);
+  const v = verdictFromScore(newRes.score);
+  const badgeClass = verdictBadgeClass(v.cls);
+  
+  // persist to stored workout
+  const idx = data.workouts.findIndex(w => w.id === modalState.workoutId);
+  if (idx >= 0){
+    data.workouts[idx].compliance.score = newRes.score;
+    data.workouts[idx].compliance.verdict = v.text;
+    data.workouts[idx].compliance.badgeClass = badgeClass;
+    data.workouts[idx].compliance.reasons = newRes.reasons || [];
+    data.workouts[idx].compliance.notes = newRes.notes || [];
+    data.workouts[idx].compliance.intervals = merged;
+    data.workouts[idx].compliance.manualAdjusted = true; // ✅ seulement si dirty
+    saveData();
+  }
+  
+  // update modal state too
+  modalState.score = newRes.score;
+  modalState.verdict = v.text;
+  modalState.badgeClass = badgeClass;
+  modalState.reasons = newRes.reasons || [];
+  modalState.notes = newRes.notes || [];
+  modalState.intervals = merged;
+  
+  // ✅ reset dirty
+  manualDirty = false;
+  pendingClickT = null;
+  renderModal();
+  alert("Score recalculé et sauvegardé ✅");
+});
 
-    const merged = [...auto, ...man]
-      .filter(x => isFinite(x.t0) && isFinite(x.t1) && x.t1 > x.t0)
-      .sort((a,b)=>a.t0-b.t0);
-
-    // recompute score/reasons from merged blocks
-    const newRes = recomputeFromIntervals(modalState.samples, modalState.spec, merged);
-    const v = verdictFromScore(newRes.score);
-    const badgeClass = verdictBadgeClass(v.cls);
-
-    // persist to stored workout
-    const idx = data.workouts.findIndex(w => w.id === modalState.workoutId);
-    if (idx >= 0){
-      data.workouts[idx].compliance.score = newRes.score;
-      data.workouts[idx].compliance.verdict = v.text;
-      data.workouts[idx].compliance.badgeClass = badgeClass;
-      data.workouts[idx].compliance.reasons = newRes.reasons || [];
-      data.workouts[idx].compliance.notes = newRes.notes || [];
-      data.workouts[idx].compliance.intervals = merged;
-      data.workouts[idx].compliance.manualAdjusted = true;
-      saveData();
-    }
-
-    // update modal state too
-    modalState.score = newRes.score;
-    modalState.verdict = v.text;
-    modalState.badgeClass = badgeClass;
-    modalState.reasons = newRes.reasons || [];
-    modalState.notes = newRes.notes || [];
-    modalState.intervals = merged;
-
-    pendingClickT = null;
-    renderModal();
-    alert("Score recalculé et sauvegardé ✅");
-    */
-  });
   
 
   function renderModal(){
@@ -2716,6 +2687,8 @@ function renderPlan(){
     } catch (err) {
       alert("Erreur lors de l’attache.\n\nDétail: " + (err?.message || err));
     }
+    saveManualBtn.disabled = (!manualDirty || !manualIntervals || manualIntervals.length === 0);
+    saveManualBtn.style.opacity = saveManualBtn.disabled ? "0.5" : "1";
   });
 
   // ===== Init =====
