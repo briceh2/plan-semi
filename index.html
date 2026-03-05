@@ -1062,253 +1062,175 @@ function verdictFromScore(score){
     return "bad";
   }
   function scoreTempoBlocks(samples, spec){
-    const target = spec.paceTarget;         // sec/km
-    const tol = spec.paceTol;               // sec/km (tu veux 20)
-    const repSec = spec.repMin * 60;        // ex 8min => 480s
-    const expected = spec.reps;
-  
-    const pts = smoothPace(buildPaceSeries(samples), 6);
-    if (!pts.length) return { score: 30, reasons:["Données insuffisantes."], notes:[], intervals:[] };
-  
-    // ---- helpers
-    function std(arr){
-      if (!arr.length) return 0;
-      const m = arr.reduce((a,x)=>a+x,0)/arr.length;
-      const v = arr.reduce((a,x)=>a+(x-m)*(x-m),0)/arr.length;
-      return Math.sqrt(v);
+    const target = spec.paceTarget; // sec/km
+    const tol = spec.paceTol || 20; // sec/km
+    const repSec = (spec.repMin || 8) * 60;
+    const expected = spec.reps || 3;
+    
+    // Lissage un peu plus fort que 6 pour stabiliser le tempo
+    const pts = smoothPace(buildPaceSeries(samples), 10);
+      if (!pts.length || !isFinite(target)){
+      return { score: 30, reasons:["Données insuffisantes ou cible manquante."], notes:[], intervals:[] };
     }
-    function clamp01(x){ return Math.max(0, Math.min(1, x)); }
-  
-    // ---- build candidate windows (glissantes)
-    // On échantillonne une fenêtre toutes les ~10s (suffisant sur iPhone)
-    const stepSec = 10;
-    const candidates = [];
-  
-    const tStart = pts[0].tMs;
-    const tEnd = pts[pts.length-1].tMs;
-  
-    for (let t0 = tStart; (t0 + repSec*1000) <= tEnd; t0 += stepSec*1000){
-      const t1 = t0 + repSec*1000;
-  
-      // points dans la fenêtre
-      const inWin = pts.filter(p => p.tMs >= t0 && p.tMs <= t1);
-      if (inWin.length < 10) continue;
-  
-      const paces = inWin.map(p => p.pace);
-      const paceMean = mean(paces);
-      const paceStd  = std(paces);
-  
-      const err = Math.abs(paceMean - target);
-  
-      // score 0..1 : proximité allure + stabilité
-      const paceScore = clamp01(1 - (err / Math.max(1, tol)));
-      const stdTol = 12; // ~12s/km d'écart-type toléré (signal propre)
-      const stabScore = clamp01(1 - (paceStd / stdTol));
-  
-      // un peu plus de poids sur l'allure
-      const score = 0.75*paceScore + 0.25*stabScore;
-  
-      candidates.push({ t0, t1, score, paceMean, paceStd, err });
+    
+    // --- seuils avec hystérésis
+    // "fast" = on est dans le bloc (<= target + tol)
+    // "slowExit" = on sort du bloc quand on devient clairement plus lent
+    const fastThresh = target + tol;
+    const slowExitThresh = target + tol + 18; // sortie plus “large” pour éviter de sortir trop tôt
+    
+    // --- tolérance durée
+    const durMin = repSec * 0.65; // accepte si un peu court (GPS/bruit)
+    const durMax = repSec * 1.45; // accepte si un peu long (si tu continues un peu)
+    
+    // --- détection brute de segments "tempo"
+    const segments = [];
+    let inSeg = false;
+    let segStart = null;
+    let lastGoodT = null;
+    
+    // on demande un minimum de persistance pour entrer/sortir
+    const enterHoldSec = 15; // rester 15s sous le seuil pour "entrer"
+    const exitHoldSec = 20; // rester 20s au-dessus du seuil de sortie pour "sortir"
+    
+    let enterCounter = 0;
+    let exitCounter = 0;
+    
+    for (let i=0; i<pts.length; i++){
+      const p = pts[i];
+      const pace = p.pace;
+      const t = p.tMs;
+      
+      const isFast = isFinite(pace) && pace <= fastThresh;
+      const isSlowExit = isFinite(pace) && pace >= slowExitThresh;
+      
+      if (!inSeg){
+      if (isFast){
+        enterCounter += 1;
+        if (enterCounter * 1 >= enterHoldSec){ // ~1 point ~1s la plupart du temps
+          inSeg = true;
+          segStart = t - enterHoldSec*1000;
+          lastGoodT = t;
+          exitCounter = 0;
+        }
+        } else {
+          enterCounter = 0;
+        }
+      } else {
+        if (!isSlowExit){
+          // on reste dans le bloc
+          lastGoodT = t;
+          exitCounter = 0;
+        } else {
+        exitCounter += 1;
+          if (exitCounter * 1 >= exitHoldSec){
+            // on termine le bloc
+            const segEnd = lastGoodT || t;
+            const dur = (segEnd - segStart)/1000;
+            segments.push({ t0: segStart, t1: segEnd, durSec: dur });
+            inSeg = false;
+            segStart = null;
+            lastGoodT = null;
+            enterCounter = 0;
+            exitCounter = 0;
+          }
+        }
+      }
     }
-  
-    if (!candidates.length){
+    // fin de fichier : fermer si bloc ouvert
+    if (inSeg && segStart != null){
+      const segEnd = pts[pts.length-1].tMs;
+      const dur = (segEnd - segStart)/1000;
+      segments.push({ t0: segStart, t1: segEnd, durSec: dur });
+    }
+    
+    // --- garder segments plausibles en durée
+    let cand = segments.filter(s => s.durSec >= durMin && s.durSec <= durMax);
+    
+    // Si rien (cas récup très rapide / signal difficile), fallback :
+    // on prend les meilleurs segments même un peu courts
+    if (!cand.length) cand = segments.filter(s => s.durSec >= repSec*0.45);
+    
+    if (!cand.length){
       return {
         score: 20,
         reasons:[
-          `Aucune fenêtre ${spec.repMin} min exploitable (signal trop court / trop bruité).`,
-          `Cible : ${fmtPaceTarget(target, tol)}.`
+        `Aucun bloc seuil détecté.`,
+        `Cible : ${fmtPaceTarget(target, tol)} • attendu ${expected}×${spec.repMin}min.`
         ],
-        notes:["Essaie de refaire l’import (ou lissage plus fort)."],
+        notes:[
+        "Astuce : ralentir davantage en récup (au moins +20 à +40s/km) aide énormément la détection."
+        ],
         intervals:[]
       };
     }
-  
-    // ---- pick best N non-overlapping windows
-    candidates.sort((a,b)=>b.score - a.score);
-  
+    
+    // --- stats segments (allure moyenne)
+    function mean(arr){ return arr.reduce((a,x)=>a+x,0)/Math.max(1,arr.length); }
+    function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+    
+    function segMeanPace(t0, t1){
+      const sub = pts.filter(p => p.tMs >= t0 && p.tMs <= t1).map(p => p.pace).filter(x=>isFinite(x));
+      return sub.length ? mean(sub) : null;
+    }
+    
+    const scored = cand.map(s => {
+    const mp = segMeanPace(s.t0, s.t1);
+    const durErr = Math.abs(s.durSec - repSec);
+    const paceErr = (mp==null) ? 9999 : Math.abs(mp - target);
+    
+    // score 0..1 : priorité allure, puis durée
+    const paceScore = clamp01(1 - (paceErr / Math.max(1, tol)));
+    const durTol = repSec * 0.25; // ±25%
+    const durScore = clamp01(1 - (durErr / Math.max(1, durTol)));
+    const score01 = 0.7*paceScore + 0.3*durScore;
+    
+    return { ...s, paceMean: mp, paceErr, durErr, score01 };
+    }).filter(x => x.paceMean != null);
+    
+    if (!scored.length){
+      return { score: 20, reasons:["Blocs détectés mais allure moyenne indisponible."], notes:["GPX trop bruité ou données manquantes."], intervals:[] };
+    }
+    
+    // --- sélectionner les N meilleurs, en évitant les chevauchements
+    scored.sort((a,b)=>b.score01 - a.score01);
+    
     const picked = [];
-    const minGapSec = 45; // on évite que 2 blocs soient collés artificiellement
-    for (const c of candidates){
+    const minGapSec = 30; // plus permissif que 45s pour ne pas rater un 3×8 avec récup active
+    for (const c of scored){
       if (picked.length >= expected) break;
-  
       const overlap = picked.some(p => !(c.t1 <= (p.t0 - minGapSec*1000) || c.t0 >= (p.t1 + minGapSec*1000)));
-      if (!overlap){
-        picked.push(c);
-      }
+      if (!overlap) picked.push(c);
     }
-  
     picked.sort((a,b)=>a.t0 - b.t0);
-  
-    // ---- separation quality (on n'exige plus une récup parfaite)
-    // On regarde dans l'intervalle entre blocs si on observe un "creux" (allure plus lente)
-    const sepInfos = [];
-    const sepDeltaGood = 25; // +25s/km plus lent => séparation ok
-    const sepDeltaWeak = 15; // +15s/km => séparation faible mais acceptable
-  
-    for (let i=0; i<picked.length-1; i++){
-      const a = picked[i], b = picked[i+1];
-      const between = pts.filter(p => p.tMs >= a.t1 && p.tMs <= b.t0);
-      if (!between.length){
-        sepInfos.push({ ok:false, weak:true, bestDelta:0, minPace:null });
-        continue;
-      }
-      const minPace = Math.max(...between.map(p=>p.pace)); // plus grand = plus lent
-      const bestDelta = (minPace - target); // >0 = plus lent que cible
-  
-      const ok = bestDelta >= sepDeltaGood;
-      const weak = (!ok && bestDelta >= sepDeltaWeak);
-      sepInfos.push({ ok, weak, bestDelta, minPace });
-    }
-  
-    const sepOk = sepInfos.filter(s=>s.ok).length;
-    const sepWeak = sepInfos.filter(s=>s.weak).length;
-    const sepBad = sepInfos.length - sepOk - sepWeak;
-  
-    // ---- score final
-    // Base : quantité + allure + stabilité
+    
+    // --- scoring final
     const qtyScore = 55 * Math.min(1, picked.length / Math.max(1, expected));
-  
-    const within = picked.filter(p => p.err <= tol).length;
+    const within = picked.filter(p => p.paceErr <= tol).length;
     const paceScore = 30 * (within / Math.max(1, picked.length));
-  
-    const stabAvg = mean(picked.map(p => p.paceStd));
-    const stabScore = 15 * clamp01(1 - (stabAvg / 14)); // 14s/km => score 0
-  
-    // pénalité séparation : faible = petite, mauvaise = plus forte
-    const sepPenalty = (sepWeak * 3) + (sepBad * 7);
-  
-    let score = Math.round(clamp(qtyScore + paceScore + stabScore - sepPenalty, 0, 100));
-  
-    // ---- reasons / notes
+    
+    const durTolSec = repSec * 0.25;
+    const inDur = picked.filter(p => Math.abs(p.durSec - repSec) <= durTolSec).length;
+    const durScore = 15 * (inDur / Math.max(1, picked.length));
+    
+    let score = Math.round(Math.max(0, Math.min(100, qtyScore + paceScore + durScore)));
+    
+    // --- raisons
     const reasons = [];
-    reasons.push(`Blocs tempo détectés (fenêtres) : ${picked.length}/${expected} (durée ${spec.repMin} min).`);
+    reasons.push(`Blocs seuil détectés : ${picked.length}/${expected} (cible ${expected}×${spec.repMin} min).`);
     reasons.push(`Cible : ${fmtPaceTarget(target, tol)}.`);
-    // patch du 05/03
-    //reasons.push(`Baseline km/h = ${base.toFixed(1)} (seuil enter ${enter.toFixed(1)}, exit ${exit.toFixed(1)}) `);
     if (picked.length){
       const avgP = mean(picked.map(p=>p.paceMean));
-      const mm = minmax(picked.map(p=>p.paceMean));
-      reasons.push(`Allure blocs : moy ${paceStr(avgP)}/km (min ${paceStr(mm.min)}, max ${paceStr(mm.max)}).`);
-      reasons.push(`Stabilité blocs : écart-type moyen ~ ${Math.round(stabAvg)} s/km.`);
+      reasons.push(`Allure blocs : moy ${paceStr(avgP)}/km.`);
     }
-    if (sepInfos.length){
-      const txt = sepInfos.map((s,idx)=>{
-        const d = Math.round(s.bestDelta);
-        if (s.ok) return `Récup ${idx+1}: OK (min +${d}s/km)`;
-        if (s.weak) return `Récup ${idx+1}: faible (min +${d}s/km)`;
-        return `Récup ${idx+1}: insuffisante (min +${d}s/km)`;
-      }).join(" • ");
-      reasons.push(`Séparation : ${txt}.`);
-    }
-    if (sepPenalty) reasons.push(`Pénalité séparation : -${sepPenalty} points.`);
-  
     const notes = [];
     if (picked.length < expected) notes.push(`Nombre de blocs insuffisant : ${picked.length}/${expected}.`);
     if (picked.length && within < picked.length) notes.push(`Allure hors tolérance sur ${picked.length - within} bloc(s).`);
-    if (sepBad) notes.push(`Récupérations trop “plates” : ralentir davantage entre blocs.`);
-  
+    if (picked.length && inDur < picked.length) notes.push(`Durée hors tolérance sur ${picked.length - inDur} bloc(s).`);
+    
     const intervals = picked.map(b => ({ t0:b.t0, t1:b.t1, kind:"work" }));
     return { score, reasons, notes, intervals };
-  }
-  // patch du 24/02
-  function scoreHillReps(samples, spec){
-    const expected = spec.reps || 10;
-    const repSec = spec.repSec || 45;
-    
-    // On part de ta série d'allure déjà gérée (pace en sec/km)
-    const pts = smoothPace(buildPaceSeries(samples), 6);
-    if (!pts.length) return { score: 30, reasons:["Données insuffisantes."], notes:[], intervals:[] };
-    
-    // Convertit pace -> vitesse km/h (plus stable pour détecter des “pics”)
-    const v = pts.map(p => {
-      const pace = p.pace;
-      const kmh = (Number.isFinite(pace) && pace > 0) ? (3600 / pace) : 0;
-      return { tMs: p.tMs, kmh };
-    });
-    
-    // Lissage supplémentaire (moyenne mobile ~15s) pour stabiliser le signal en côte
-    const winSec = 15;
-    const vs = [];
-    let j = 0;
-    for (let i=0; i<v.length; i++){
-      const t = v[i].tMs;
-      while (j < i && (t - v[j].tMs) > winSec*1000) j++;
-      let sum = 0, n = 0;
-      for (let k=j; k<=i; k++){ sum += v[k].kmh; n++; }
-      vs.push({ tMs: t, kmh: sum/Math.max(1,n) });
-    }
-    
-    // Baseline = percentile 30 de la vitesse (représente récup/endurance dans la séance)
-    const sorted = vs.map(x=>x.kmh).filter(Number.isFinite).sort((a,b)=>a-b);
-    if (!sorted.length) return { score: 30, reasons:["Signal vitesse vide."], notes:[], intervals:[] };
-    const base = sorted[Math.floor(0.30*(sorted.length-1))];
-    
-    // Seuils relatifs + hystérésis (on entre sur un pic net, on sort plus bas)
-    const enter = base + 1.4; // km/h au-dessus du fond pour entrer en effort
-    const exit = base + 0.6; // km/h pour sortir
-    
-    // Détection segments effort via hystérésis
-    const segs = [];
-    let i = 0;
-    while (i < vs.length){
-      if (vs[i].kmh >= enter){
-        let a = i;
-        while (a > 0 && vs[a-1].kmh >= exit) a--;
-        let b = i;
-        while (b < vs.length && vs[b].kmh >= exit) b++;
-        segs.push({ a, b: b-1, t0: vs[a].tMs, t1: vs[b-1].tMs });
-        i = b;
-      } else i++;
-    }
-    
-    // Filtre durée autour de repSec (tolérance large)
-    const minDur = Math.max(20, Math.floor(repSec * 0.55));
-    const maxDur = Math.floor(repSec * 1.65);
-    
-    let cand = segs
-    .map(s => ({ ...s, durSec: (s.t1 - s.t0)/1000 }))
-    .filter(s => s.durSec >= minDur && s.durSec <= maxDur);
-    
-    // Intensité: vitesse moyenne dans le segment
-    cand = cand.map(s=>{
-    let sum=0, n=0;
-      for (let k=s.a; k<=s.b; k++){ sum += vs[k].kmh; n++; }
-      s.meanKmh = sum/Math.max(1,n);
-      return s;
-    });
-    
-    // Garde les N meilleurs pics, puis trie par temps
-    cand.sort((x,y)=>y.meanKmh - x.meanKmh);
-    cand = cand.slice(0, expected).sort((x,y)=>x.t0 - y.t0);
-    
-    const intervals = cand.map(s => ({ t0:s.t0, t1:s.t1, kind:"work" }));
-    
-    // Scoring
-    const repFound = cand.length;
-    const repScore = Math.min(1, repFound / expected);
-    
-    const durAvg = repFound ? cand.reduce((a,x)=>a+x.durSec,0)/repFound : 0;
-    const durErr = repSec ? Math.abs(durAvg - repSec) / repSec : 1;
-    const durScore = Math.max(0, 1 - durErr);
-    
-    const meanWork = repFound ? cand.reduce((a,x)=>a+x.meanKmh,0)/repFound : 0;
-    const contrastKmh = Math.max(0, meanWork - base);
-    const contrastScore = Math.max(0, Math.min(1, contrastKmh / 2.0)); // 2 km/h = très bon
-    
-    const score = Math.round(100 * (0.55*repScore + 0.25*durScore + 0.20*contrastScore));
-    
-    const reasons = [];
-    reasons.push(`Répétitions détectées : ${repFound}/${expected} (cible ${repSec}s).`);
-    if (repFound) reasons.push(`Durée moyenne : ${Math.round(durAvg)}s.`);
-    reasons.push(`Baseline ≈ ${base.toFixed(1)} km/h • seuils enter ${enter.toFixed(1)} / exit ${exit.toFixed(1)} km/h.`);
-    if (repFound) reasons.push(`Vitesse effort moy ≈ ${meanWork.toFixed(1)} km/h (Δ ${contrastKmh.toFixed(1)}).`);
-    
-    const notes = [];
-    if (repFound < expected) notes.push(`Blocs manquants : ${expected - repFound}.`);
-    notes.push("Conseil : récup très lente en descente (marche/trot) pour mieux séparer les blocs.");
-    
-    return { score, reasons, notes, intervals };
-  }
+}
 
 function score400m(samples, spec){
   const target = spec.paceTarget;       // sec/km (ex ~250 pour 4'10)
