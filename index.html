@@ -2514,6 +2514,7 @@ saveManualBtn.addEventListener("click", () => {
         if (override === "race")   spec = { kind:"race", distKm:21.1, tolKm:2.0, label:"(Override) Course", paceTarget:300, paceTol:35 };
       }
 
+      console.log(spec);
       const evalRes = evaluateCompliance(lastParsedWorkout._samples, spec);
       const badgeClass = verdictBadgeClass(evalRes.verdictClass);
 
