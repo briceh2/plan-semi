@@ -1063,13 +1063,17 @@ function verdictFromScore(score){
   }
   function scoreTempoBlocks(samples, spec){
     const target = spec.paceTarget; // sec/km
-    const tol = spec.paceTol || 20; // sec/km
+    const tol = isFinite(spec.paceTol) ? spec.paceTol : 25; // sec/km
     const repSec = (spec.repMin || 8) * 60;
     const expected = spec.reps || 3;
+
+    if (!isFinite(target)) {
+      return { score : 20, reasons:["Cible allure manquante (paceTarget)."], notes:["Vérifie expectedSpec pour ce jour."], intervals:[] };
+    }
     
     // Lissage un peu plus fort que 6 pour stabiliser le tempo
     const pts = smoothPace(buildPaceSeries(samples), 10);
-      if (!pts.length || !isFinite(target)){
+    if (!pts.length){
       return { score: 30, reasons:["Données insuffisantes ou cible manquante."], notes:[], intervals:[] };
     }
     
