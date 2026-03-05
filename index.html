@@ -353,6 +353,34 @@ function sessionsForWeek(w){
   // =========================
   // Bloc vallonné Bayeux
   // =========================
+  // =========================
+  // Semaine 8 → semi Bayeux (allégée)
+  // =========================
+  if (w === 8){
+    weekPlan = {
+    tue: `6 × 400 m — 4'10–4'20/km (récup 1'30)`,
+    thu: `2 × 8 min seuil — 5'05/km (récup 2 min)` ,
+    sat: `Footing très facile — 25–30 min — 6'00–6'20/km`,
+    sun: `🏁 Semi Bayeux (vallonné)`,
+    nutrition: `
+    • 3 jours avant : augmenter glucides
+    • Veille : pâtes + hydratation
+    • Petit-déj : pain + miel + banane
+    • Pendant course :
+    gel km 7
+    gel km 14`
+    };
+    weekPlan.sun = `🏁 Semi Bayeux (vallonné)`;
+    weekPlan.nutrition = `
+      • 3 jours avant : augmenter glucides  
+      • Veille : pâtes + eau  
+      • Petit-déj : pain + miel + banane  
+      • Pendant course :  
+        gel km 7  
+        gel km 14  
+        eau à chaque ravito`;
+    return weekPlan;
+  }
   if (w <= 8){
     weekPlan = {
       tue: `VMA : 2 × (8 × 30/30) — ${VMA30}`,
@@ -366,25 +394,28 @@ function sessionsForWeek(w){
       • Sortie longue : 1 gel à 45 min  
       • Hydratation : 2 L/jour`
     };
-
-    if (w === 8){
-      weekPlan.sun = `🏁 Semi Bayeux (vallonné)`;
-      weekPlan.nutrition = `
-      • 3 jours avant : augmenter glucides  
-      • Veille : pâtes + eau  
-      • Petit-déj : pain + miel + banane  
-      • Pendant course :  
-        gel km 7  
-        gel km 14  
-        eau à chaque ravito`;
-    }
-
     return weekPlan;
   }
 
   // =========================
   // Après Bayeux → semi objectif
   // =========================
+  // =========================
+// Semaine 9 → récupération
+// =========================
+  if (w === 9){
+    weekPlan = {
+      tue: `Footing récupération — 40 min — 6'00–6'30/km`,
+      thu: `Seuil léger : 2 × 10 min — 5'05/km (récup 2 min)`,
+      sat: `Endurance facile — 45 min — 5'55–6'20/km`,
+      sun: `Sortie longue — 1h20 — 5'50–6'20/km`,
+      nutrition: `
+      • Après la course : protéines + glucides
+      • Hydratation importante
+      • Reprendre alimentation normale progressivement`
+    };
+    return weekPlan;
+  }
   if (w <= 12){
     weekPlan = {
       tue: `10 × 400 m — ${VMA400}`,
