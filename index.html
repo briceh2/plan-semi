@@ -893,7 +893,7 @@ function sessionsForWeek(w){
 function expectedSpec(a, b){
   // --- Cas 1 : appel par semaine (week) + clé ("tue"/"thu"/"sat"/"sun")
   if (typeof a === "number" && typeof b === "string") {
-    return expectedSpecWeekDay(a, b);
+    return (a, b);
   }
 
   // --- Cas 2 : appel par date ISO ("YYYY-MM-DD") + nom de jour ("Mardi"/"Jeudi"...)
@@ -930,160 +930,114 @@ function stripTime(d){
 // -------------------------------------------------------
 // TA LOGIQUE (celle que je t’ai donnée) MAIS RENOMMÉE ICI
 // -------------------------------------------------------
-function expectedSpecWeekDay(week, day){
-  // ----- Dates repères
-  const TODAY = new Date("2026-02-15T00:00:00"); // bascule (tu peux mettre 2026-02-17 si tu veux)
-  const startOfWeek = addDays(START, (week-1)*7);
-
-  // Calcule la date du jour de séance dans cette semaine
-  const dayOffset = (day==="tue") ? 1 : (day==="thu") ? 3 : (day==="sat") ? 5 : 6; // Mar/Jeu/Sam/Dim
-  const sessionDate = addDays(startOfWeek, dayOffset);
-
-  const t = +sessionDate;
-  const tToday = +TODAY;
-
-  const tBayeux = +new Date("2026-03-29T00:00:00");
-  const tFinal  = +new Date("2026-05-10T00:00:00");
-
-  // =========================================================
-  // 1) SI C'EST DANS LE PASSÉ → ANCIEN PLAN
-  // =========================================================
-  if (t < tToday){
-
-    if (week === 2 && day === "sun") return { kind:"race", distKm:10, tolKm:1.2, label:"Course 10 km" };
-    if (week === 8 && day === "sun") return { kind:"race", distKm:21.1, tolKm:1.8, label:"Semi (répétition)", paceTarget:300, paceTol:35 };
-    if (week === 14 && day === "sun") return { kind:"race", distKm:21.1, tolKm:1.8, label:"Semi objectif", paceTarget:300, paceTol:25 };
-
-    if (week === 2){
-      if (day === "tue") return { kind:"interval_time", repFastSec:30, repSlowSec:30, sets:2, repsPerSet:6, paceTarget:255, paceTol:20, label:"VMA 30/30 (2×6)" };
-      if (day === "thu") return { kind:"tempo_time", reps:2, repMin:8, recMin:2, paceTarget:305, paceTol:20, label:"Seuil 2×8" };
-      if (day === "sat") return { kind:"endurance", minMin:25, label:"Footing très facile" };
-      if (day === "sun") return { kind:"race", distKm:10, tolKm:1.2, label:"Course 10 km" };
+  function expectedSpecWeekDay(week, day){
+    // ----- Dates repères
+    const TODAY = new Date(); // ✅ dynamique (au lieu d'une date figée)
+    TODAY.setHours(0,0,0,0);
+    
+    const startOfWeek = addDays(START, (week-1)*7);
+    
+    // Calcule la date du jour de séance dans cette semaine
+    const dayOffset = (day==="tue") ? 1 : (day==="thu") ? 3 : (day==="sat") ? 5 : 6; // Mar/Jeu/Sam/Dim
+    const sessionDate = addDays(startOfWeek, dayOffset);
+    
+    const t = +sessionDate;
+    const tToday = +TODAY;
+    
+    // =========================================================
+    // 1) SI C'EST DANS LE PASSÉ → ANCIEN PLAN (inchangé)
+    // =========================================================
+    if (t < tToday){
+      // Courses repères
+      if (week === 2 && day === "sun") return { kind:"race", distKm:10, tolKm:1.2, label:"Course 10 km" };
+      if (week === 8 && day === "sun") return { kind:"race", distKm:21.1, tolKm:1.8, label:"Semi (Bayeux)", paceTarget:300, paceTol:35 };
+      
+      // Plan "historique" générique (comme tu avais)
+      if (week <= 5){
+        if (day === "tue") return { kind:"interval_time", repFastSec:30, repSlowSec:30, sets:2, repsPerSet:8, paceTarget:255, paceTol:20, label:"VMA 30/30 (2×8)" };
+        if (day === "thu") return { kind:"tempo_time", reps:3, repMin:8, recMin:2, paceTarget:305, paceTol:20, label:"Seuil 3×8" };
+        if (day === "sat") return { kind:"endurance", minMin:40, paceRange:"5'50-6'20/km", label:"Endurance facile" };
+        if (day === "sun") return { kind:"long", minMin:75, paceRange:"5'50-6'20/km", label:"Sortie longue" };
+      }
+      
+      if (week <= 12){
+        if (day === "tue") return { kind:"interval_dist", reps:10, repDistM:400, recSec:90, paceTarget:250, paceTol:20, label:"VMA 10×400" };
+        if (day === "thu") return { kind:"tempo_time", reps:2, repMin:15, recMin:3, paceTarget:300, paceTol:20, label:"AS21 2×15" };
+        if (day === "sat") return { kind:"endurance", minMin:45, paceRange:"5'50-6'20/km", label:"Endurance facile" };
+        if (day === "sun") return { kind:"long", minMin:85, paceRange:"5'50-6'20/km", label:"Sortie longue" };
+      }
+      
+      if (week === 13){
+        if (day === "tue") return { kind:"interval_dist", reps:6, repDistM:200, recSec:60, paceTarget:240, paceTol:20, label:"Rappel 6×200" };
+        if (day === "thu") return { kind:"tempo_time", reps:2, repMin:10, recMin:3, paceTarget:300, paceTol:20, label:"AS21 2×10" };
+        if (day === "sat") return { kind:"endurance", minMin:35, paceRange:"5'50-6'20/km", label:"Footing facile" };
+        if (day === "sun") return { kind:"long", minMin:60, paceRange:"5'50-6'20/km", label:"Sortie facile" };
+      }
+      
+      if (day === "tue") return { kind:"endurance", minMin:35, paceRange:"5'50-6'20/km", label:"Footing" };
+      if (day === "thu") return { kind:"tempo_time", reps:1, repMin:8, recMin:0, paceTarget:300, paceTol:20, label:"Rappel AS21 (8–10min)" };
+      if (day === "sat") return { kind:"endurance", minMin:20, paceRange:"5'50-6'20/km", label:"Footing très facile" };
+      if (day === "sun") return { kind:"race", distKm:21.1, tolKm:2.0, label:"Course", paceTarget:300, paceTol:35 };
+      return null;
     }
-
-    if (week === 3){
-      if (day === "tue") return { kind:"endurance", minMin:40, label:"Endurance (récup)" };
-      if (day === "thu") return { kind:"tempo_time", reps:3, repMin:6, recMin:2, paceTarget:310, paceTol:20, label:"Tempo doux 3×6" };
-      if (day === "sat") return { kind:"endurance", minMin:40, label:"Endurance" };
-      if (day === "sun") return { kind:"long", minMin:70, paceRange:"5'50-6'20/km", label:"Sortie longue sage" };
+    
+    // =========================================================
+    // 2) FUTUR / À VENIR → PLAN ADAPTÉ AVANT & APRÈS BAYEUX
+    // =========================================================
+    
+    // --- Semaine 8 : TAPER pour être frais à Bayeux (Semi vallonné)
+    // Objectif : garder du rythme, baisser volume & fatigue
+    if (week === 8){
+      if (day === "tue") return {
+        kind:"hill_reps",
+        reps:10, repSec:45,
+        label:"Côtes courtes 10×45s",
+        effortHint:"Effort 8/10 (puissant, propre) • récup descente très facile"
+      };
+      if (day === "thu") return {
+        kind:"tempo_time",
+        reps:2, repMin:8, recMin:3,
+        paceTarget:305, paceTol:20,
+        label:"Seuil vallonné 2×8",
+        hillHint:"en côte = effort constant (RPE 7/10), pas l’allure"
+      };
+      if (day === "sat") return { kind:"endurance", minMin:25, paceRange:"5'55-6'35/km", label:"Footing très facile + 3 lignes droites" };
+      if (day === "sun") return { kind:"race", distKm:21.1, tolKm:1.8, label:"🏁 Semi de Bayeux", paceTarget:305, paceTol:35 };
     }
-
-    if (week <= 5){
-      if (day === "tue") return { kind:"interval_time", repFastSec:30, repSlowSec:30, sets:2, repsPerSet:8, paceTarget:255, paceTol:20, label:"VMA 30/30 (2×8)" };
-      if (day === "thu") return { kind:"tempo_time", reps:3, repMin:8, recMin:2, paceTarget:305, paceTol:20, label:"Seuil 3×8" };
-      // patch ok 18/02
-      if (day === "sat") return { kind:"endurance", minMin:40, paceRange:"5'50-6'20/km", label:"Endurance facile" };
-      if (day === "sun") return { kind:"long", minMin:75, paceRange:"5'50-6'20/km", label:"Sortie longue" };
+    
+    // --- Semaine 9 : RÉCUP après Bayeux (on relance progressivement)
+    if (week === 9){
+      if (day === "tue") return { kind:"endurance", minMin:35, paceRange:"6'00-6'45/km", label:"Footing récup" };
+      if (day === "thu") return { kind:"endurance", minMin:45, paceRange:"5'55-6'35/km", label:"Endurance facile (souple)" };
+      if (day === "sat") return { kind:"endurance", minMin:30, paceRange:"6'00-6'45/km", label:"Footing très facile" };
+      if (day === "sun") return { kind:"long", minMin:70, paceRange:"5'55-6'35/km", label:"Sortie longue facile" };
     }
-
+    
+    // --- Par défaut (si tu veux ensuite compléter au-delà)
+    // on retombe sur ton modèle standard "futur"
     if (week <= 12){
       if (day === "tue") return { kind:"interval_dist", reps:10, repDistM:400, recSec:90, paceTarget:250, paceTol:20, label:"VMA 10×400" };
       if (day === "thu") return { kind:"tempo_time", reps:2, repMin:15, recMin:3, paceTarget:300, paceTol:20, label:"AS21 2×15" };
-      // patch ok 18/02
       if (day === "sat") return { kind:"endurance", minMin:45, paceRange:"5'50-6'20/km", label:"Endurance facile" };
       if (day === "sun") return { kind:"long", minMin:85, paceRange:"5'50-6'20/km", label:"Sortie longue" };
     }
-
+    
     if (week === 13){
       if (day === "tue") return { kind:"interval_dist", reps:6, repDistM:200, recSec:60, paceTarget:240, paceTol:20, label:"Rappel 6×200" };
       if (day === "thu") return { kind:"tempo_time", reps:2, repMin:10, recMin:3, paceTarget:300, paceTol:20, label:"AS21 2×10" };
-      // patch ok 18/02
       if (day === "sat") return { kind:"endurance", minMin:35, paceRange:"5'50-6'20/km", label:"Footing facile" };
       if (day === "sun") return { kind:"long", minMin:60, paceRange:"5'50-6'20/km", label:"Sortie facile" };
     }
-
+    
+    // fallback
     if (day === "tue") return { kind:"endurance", minMin:35, paceRange:"5'50-6'20/km", label:"Footing" };
     if (day === "thu") return { kind:"tempo_time", reps:1, repMin:8, recMin:0, paceTarget:300, paceTol:20, label:"Rappel AS21 (8–10min)" };
-    // patch ok 18/02
-    if (day === "sat") return { kind:"endurance", minMin:20, paceRange:"5'50-6'20/km", label:"Très facile" };
-    if (day === "sun") return { kind:"race", distKm:21.1, tolKm:1.8, label:"Semi objectif", paceTarget:300, paceTol:25 };
-
+    if (day === "sat") return { kind:"endurance", minMin:20, paceRange:"5'50-6'20/km", label:"Footing très facile" };
+    if (day === "sun") return { kind:"race", distKm:21.1, tolKm:2.0, label:"Course", paceTarget:300, paceTol:35 };
     return null;
-  }
-
-  // =========================================================
-  // 2) À PARTIR DE LA BASCULE → NOUVEAU PLAN
-  // =========================================================
-
-  // Courses
-  if (t === +new Date("2026-03-29T00:00:00") && day === "sun"){
-    return { kind:"race", distKm:21.1, tolKm:2.2, label:"🏁 Semi Bayeux (vallonné)", paceTarget:305, paceTol:25 };
-  }
-  if (t === +new Date("2026-05-10T00:00:00") && day === "sun"){
-    return { kind:"race", distKm:21.1, tolKm:1.8, label:"🏁 Semi objectif (plat)", paceTarget:300, paceTol:20 };
-  }
-  // =========================================================
-  // Override Semaine 8 = affûtage pour être frais à Bayeux
-  // =========================================================
-  // (La course du dimanche est déjà gérée par le bloc "Courses")
-  if (week === 8 && t < tBayeux){
-    if (day === "tue"){
-      // mardi allégé : côtes courtes mais volume réduit (8 au lieu de 10)
-      return {
-        kind:"hill_reps",
-        reps:8, repSec:45, contrastMin:12,
-        effortHint:"Effort 8/10 • récup descente (marche/trot) • rester RELÂCHÉ",
-        label:"Côtes courtes 8×45s (affûtage)"
-      };
-    }
-    if (day === "thu"){
-      // jeudi allégé : 2 blocs au lieu de 3
-      return {
-        kind:"tempo_time",
-        reps:2, repMin:8, recMin:2,
-        paceTarget:305, paceTol:20,
-        hillHint:"vallonné = effort constant (+20 à +60s/km)",
-        label:"Seuil vallonné 2×8 (affûtage)"
-      };
-    }
-    if (day === "sat"){
-      return {
-      kind:"endurance",
-      minMin:30,
-      paceRange:"6'05-6'40/km",
-      label:"Footing très facile + 4 lignes droites"
-      };
-    }
-  }
-  // Avant Bayeux
-  if (t < tBayeux){
-    if (day === "tue"){
-      if (week % 2 === 0){
-        // patch ok 18/02
-        return { kind:"hill_reps", reps:10, repSec:45, contrastMin:12, effortHint:"Effort 8/10 . récupdescente (marche/trot) . viser régularité", label:"Côtes courtes 10×45s" };
-      } else {
-        return { kind:"interval_dist", reps:10, repDistM:400, recSec:90, paceTarget:250, paceTol:22, label:"VMA 10×400" };
-      }
-    }
-    if (day === "thu"){
-      // patch ok 18/06
-      return { kind:"tempo_time", reps:3, repMin:8, recMin:2, paceTarget:305, paceTol:20, hillHint:"côte = effort constant (+20 à +60s/km)", label:"Seuil vallonné 3×8" };
-    }
-    if (day === "sat") return { kind:"endurance", minMin:50, label:"Endurance + technique descente" };
-    if (day === "sun") return { kind:"long", minMin:85, paceRange:"5'50-6'20/km", label:"Sortie longue vallonnée" };
-  }
-
-  // Après Bayeux
-  if (t >= tBayeux && t < tFinal){
-    // =========================================================
-    // Override Semaine 9 = récupération post-course
-    // =========================================================
-    if (week === 9){
-      if (day === "tue") return { kind:"endurance", minMin:45, paceRange:"6'05-6'45/km", label:"Récup active" };
-      if (day === "thu") return { kind:"tempo_time", reps:2, repMin:8, recMin:2, paceTarget:315, paceTol:25, label:"Tempo relâché 2×8" };
-      if (day === "sat") return { kind:"endurance", minMin:45, paceRange:"6'05-6'45/km", label:"Endurance facile" };
-      if (day === "sun") return { kind:"long", minMin:75, paceRange:"6'05-6'45/km", label:"Sortie longue facile (récup)" };
-    }
-    
-    // Plan normal après Bayeux (semaines 10+)
-    if (day === "tue") return { kind:"interval_dist", reps:10, repDistM:400, recSec:90, paceTarget:250, paceTol:20, label:"VMA 10×400" };
-    if (day === "thu") return { kind:"tempo_time", reps:3, repMin:10, recMin:2, paceTarget:300, paceTol:18, label:"Seuil 3×10" };
-    if (day === "sat") return { kind:"endurance", minMin:50, paceRange:"5'50-6'20/km", label:"Endurance + lignes droites" };
-    if (day === "sun") return { kind:"long", minMin:90, paceRange:"5'50-6'20/km", label:"Sortie longue" };
-  }
-  return null;
 }
-  // ===== Verdict helpers (manquants) =====
+
+// ===== Verdict helpers (manquants) =====
 // patch ok 19/02
 function verdictFromScore(score){
   if (!isFinite(score)) score = 0;
