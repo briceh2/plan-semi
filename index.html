@@ -1451,20 +1451,76 @@ function score400m(samples, spec){
     return { score: clamp(score,0,100), reasons, notes, intervals:[] };
   }
 
-  function evaluateCompliance(samples, spec){
-    let res;
-    if (spec.kind === "interval_time") res = score30_30(samples, spec);
-    else if (spec.kind == "hill_reps") res = scoreHillReps(samples, spec);
-    else if (spec.kind === "interval_dist") res = score400m(samples, spec);
-    else if (spec.kind === "tempo_time") res = scoreTempoBlocks(samples, spec);
-    else if (spec.kind === "endurance") res = scoreEndurance(samples, spec);
-    else if (spec.kind === "long") res = scoreLong(samples, spec);
-    else if (spec.kind === "race") res = scoreRace(samples, spec);
-    else res = { score: 40, reasons:["Type de séance non reconnu."], notes:[], intervals:[] };
-
-    const v = verdictFromScore(res.score);
-    return { ...res, verdict: (v.verdict || v.text), verdictClass: (v.cls || v.badgeClass), specLabel: spec.label };
+function normalizeSpecKind(spec){
+  // Rend la spec "scorable" même si spec.kind est manquant
+  if (!spec || typeof spec !== "object") return null;
+  
+  // Si kind existe déjà, on garde
+  if (typeof spec.kind === "string" && spec.kind.trim()) {
+    spec.kind = spec.kind.trim();
+    return spec;
   }
+  
+  // Inférence par présence de champs
+  if (isFinite(spec.repFastSec) && isFinite(spec.repSlowSec)) {
+    spec.kind = "interval_time"; // 30/30, etc.
+    return spec;
+  }
+  if (isFinite(spec.repDistM) && isFinite(spec.reps)) {
+    spec.kind = "interval_dist"; // 10×400m, etc.
+    return spec;
+  }
+  if (isFinite(spec.repMin) && isFinite(spec.reps)) {
+  spec.kind = "tempo_time"; // 3×8, 2×15, etc.
+  return spec;
+  }
+  if (isFinite(spec.repSec) && isFinite(spec.reps)) {
+    spec.kind = "hill_reps"; // 10×45s côte, etc.
+    return spec;
+  }
+  if (isFinite(spec.distKm)) {
+    spec.kind = "race";
+    return spec;
+  }
+  if (isFinite(spec.minMin)) {
+    // Heuristique : si le label parle de "sortie longue", sinon endurance
+    const lbl = String(spec.label || "").toLowerCase();
+    spec.kind = (lbl.includes("sortie longue") || lbl.includes("sl")) ? "long" : "endurance";
+    return spec;
+  }
+  
+  // Sinon, on laisse null => non reconnu
+  return spec;
+}
+
+function evaluateCompliance(samples, spec){
+  // 1) Normalize / sécurise
+  spec = normalizeSpecKind(spec);
+  
+  let res;
+  if (spec && spec.kind === "interval_time") res = score30_30(samples, spec);
+  else if (spec && spec.kind === "hill_reps") res = scoreHillReps(samples, spec);
+  else if (spec && spec.kind === "interval_dist") res = score400m(samples, spec);
+  else if (spec && spec.kind === "tempo_time") res = scoreTempoBlocks(samples, spec);
+  else if (spec && spec.kind === "endurance") res = scoreEndurance(samples, spec);
+  else if (spec && spec.kind === "long") res = scoreLong(samples, spec);
+  else if (spec && spec.kind === "race") res = scoreRace(samples, spec);
+  else {
+    res = { score: 40, reasons:["Type de séance non reconnu."], notes:[], intervals:[] };
+  }
+  
+  const v = verdictFromScore(res.score);
+  
+  // 2) Empêche "undefined" dans le plan
+  const safeLabel = (spec && spec.label) ? spec.label : "Séance";
+  
+  return {
+    ...res,
+    verdict: (v.verdict || v.text),
+    verdictClass: (v.cls || v.badgeClass),
+    specLabel: safeLabel
+  };
+}
 
   // ===== Recompute score FROM intervals (auto+manual) =====
   function getSeriesForStats(samples){
