@@ -1012,7 +1012,39 @@ function expectedSpecWeekDay(week, day){
   if (t === +new Date("2026-05-10T00:00:00") && day === "sun"){
     return { kind:"race", distKm:21.1, tolKm:1.8, label:"🏁 Semi objectif (plat)", paceTarget:300, paceTol:20 };
   }
-
+  // =========================================================
+  // Override Semaine 8 = affûtage pour être frais à Bayeux
+  // =========================================================
+  // (La course du dimanche est déjà gérée par le bloc "Courses")
+  if (week === 8 && t < tBayeux){
+    if (day === "tue"){
+      // mardi allégé : côtes courtes mais volume réduit (8 au lieu de 10)
+      return {
+        kind:"hill_reps",
+        reps:8, repSec:45, contrastMin:12,
+        effortHint:"Effort 8/10 • récup descente (marche/trot) • rester RELÂCHÉ",
+        label:"Côtes courtes 8×45s (affûtage)"
+      };
+    }
+    if (day === "thu"){
+      // jeudi allégé : 2 blocs au lieu de 3
+      return {
+        kind:"tempo_time",
+        reps:2, repMin:8, recMin:2,
+        paceTarget:305, paceTol:20,
+        hillHint:"vallonné = effort constant (+20 à +60s/km)",
+        label:"Seuil vallonné 2×8 (affûtage)"
+      };
+    }
+    if (day === "sat"){
+      return {
+      kind:"endurance",
+      minMin:30,
+      paceRange:"6'05-6'40/km",
+      label:"Footing très facile + 4 lignes droites"
+      };
+    }
+  }
   // Avant Bayeux
   if (t < tBayeux){
     if (day === "tue"){
@@ -1033,10 +1065,25 @@ function expectedSpecWeekDay(week, day){
 
   // Après Bayeux
   if (t >= tBayeux && t < tFinal){
-    if (day === "tue") return { kind:"interval_dist", reps:10, repDistM:400, recSec:90, paceTarget:250, paceTol:20, label:"VMA 10×400" };
-    if (day === "thu") return { kind:"tempo_time", reps:3, repMin:10, recMin:2, paceTarget:300, paceTol:18, label:"Seuil 3×10" };
-    if (day === "sat") return { kind:"endurance", minMin:50, paceRange:"5'50-6'20/km", label:"Endurance + lignes droites" };
-    if (day === "sun") return { kind:"long", minMin:90, paceRange:"5'50-6'20/km", label:"Sortie longue" };
+
+// Après Bayeux
+if (t >= tBayeux && t < tFinal){
+
+  // =========================================================
+  // Override Semaine 9 = récupération post-course
+  // =========================================================
+  if (week === 9){
+    if (day === "tue") return { kind:"endurance", minMin:45, paceRange:"6'05-6'45/km", label:"Récup active" };
+    if (day === "thu") return { kind:"tempo_time", reps:2, repMin:8, recMin:2, paceTarget:315, paceTol:25, label:"Tempo relâché 2×8" };
+    if (day === "sat") return { kind:"endurance", minMin:45, paceRange:"6'05-6'45/km", label:"Endurance facile" };
+    if (day === "sun") return { kind:"long", minMin:75, paceRange:"6'05-6'45/km", label:"Sortie longue facile (récup)" };
+  }
+  
+  // Plan normal après Bayeux (semaines 10+)
+  if (day === "tue") return { kind:"interval_dist", reps:10, repDistM:400, recSec:90, paceTarget:250, paceTol:20, label:"VMA 10×400" };
+  if (day === "thu") return { kind:"tempo_time", reps:3, repMin:10, recMin:2, paceTarget:300, paceTol:18, label:"Seuil 3×10" };
+  if (day === "sat") return { kind:"endurance", minMin:50, paceRange:"5'50-6'20/km", label:"Endurance + lignes droites" };
+  if (day === "sun") return { kind:"long", minMin:90, paceRange:"5'50-6'20/km", label:"Sortie longue" };
   }
 
   return null;
