@@ -349,10 +349,24 @@ function sessionsForWeek(w){
     };
     return weekPlan;
   }
-
   // =========================
   // Bloc vallonné Bayeux
   // =========================
+  if (w < 8){
+    weekPlan = {
+      tue: `VMA : 2 × (8 × 30/30) — ${VMA30}`,
+      thu: `Seuil vallonné : 3 × 8 min — ${SEUIL}`,
+      sat: `Endurance facile — ${EASY}`,
+      sun: `Sortie longue vallonnée`,
+      nutrition: `
+      • Avant séances qualité : collation glucides 1h avant  
+        (banane + yaourt ou tartine miel)  
+      • Après séance : 20 g protéines + glucides  
+      • Sortie longue : 1 gel à 45 min  
+      • Hydratation : 2 L/jour`
+    };
+    return weekPlan;
+  }
   // =========================
   // Semaine 8 → semi Bayeux (allégée)
   // =========================
@@ -372,22 +386,6 @@ function sessionsForWeek(w){
     };
     return weekPlan;
   }
-  if (w < 8){
-    weekPlan = {
-      tue: `VMA : 2 × (8 × 30/30) — ${VMA30}`,
-      thu: `Seuil vallonné : 3 × 8 min — ${SEUIL}`,
-      sat: `Endurance facile — ${EASY}`,
-      sun: `Sortie longue vallonnée`,
-      nutrition: `
-      • Avant séances qualité : collation glucides 1h avant  
-        (banane + yaourt ou tartine miel)  
-      • Après séance : 20 g protéines + glucides  
-      • Sortie longue : 1 gel à 45 min  
-      • Hydratation : 2 L/jour`
-    };
-    return weekPlan;
-  }
-
   // =========================
   // Après Bayeux → semi objectif
   // =========================
