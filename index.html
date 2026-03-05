@@ -1200,7 +1200,7 @@ function verdictFromScore(score){
     scored.sort((a,b)=>b.score01 - a.score01);
     
     const picked = [];
-    const minGapSec = 30; // plus permissif que 45s pour ne pas rater un 3×8 avec récup active
+    const minGapSec = 20; // plus permissif que 45s pour ne pas rater un 3×8 avec récup active
     for (const c of scored){
       if (picked.length >= expected) break;
       const overlap = picked.some(p => !(c.t1 <= (p.t0 - minGapSec*1000) || c.t0 >= (p.t1 + minGapSec*1000)));
@@ -1338,6 +1338,7 @@ function score400m(samples, spec){
   for (let i=0; i<picked.length-1; i++){
     const a = picked[i], b = picked[i+1];
     const between = pts.filter(p => p.tMs >= a.t1 && p.tMs <= b.t0);
+    const minPace = Math.max( ...between.map(p => p.pace));
     if (!between.length){
       recInfos.push({ ok:false, weak:true, bestDelta:0, minPace:null });
       continue;
