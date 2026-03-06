@@ -893,7 +893,7 @@ function sessionsForWeek(w){
 function expectedSpec(a, b){
   // --- Cas 1 : appel par semaine (week) + clé ("tue"/"thu"/"sat"/"sun")
   if (typeof a === "number" && typeof b === "string") {
-    return (a, b);
+    return expectedSpecWeekDay(a, b);
   }
 
   // --- Cas 2 : appel par date ISO ("YYYY-MM-DD") + nom de jour ("Mardi"/"Jeudi"...)
