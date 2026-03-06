@@ -1570,114 +1570,139 @@ function evaluateCompliance(samples, spec){
     return { durSec, distM, avgPace: avgP };
   }
 
-  function recomputeFromIntervals(samples, spec, intervals){
-    // For endurance/long/race, keep global logic
-    if (spec.kind === "endurance") return scoreEndurance(samples, spec);
-    if (spec.kind === "long") return scoreLong(samples, spec);
-    if (spec.kind === "race") return scoreRace(samples, spec);
-
-    const pts = getSeriesForStats(samples);
-    const work = (intervals || []).filter(x => isFinite(x.t0) && isFinite(x.t1) && x.t1 > x.t0)
-      .sort((a,b)=>a.t0-b.t0);
-
-    if (!pts.length){
-      return { score: 30, reasons:["Données insuffisantes pour recalculer."], notes:["Réessaie avec un GPX plus complet."], intervals: work };
-    }
-    if (!work.length){
-      return { score: 20, reasons:["Aucun bloc de travail défini (auto + manuel)."], notes:["Ajoute des blocs gris puis sauvegarde."], intervals: work };
-    }
-
-    const stats = work.map(it => ({ it, ...intervalStats(pts, it) })).filter(x => x.avgPace!=null);
-
-    if (spec.kind === "interval_time"){
-      // Use number of work blocks + duration + pace
-      const expected = spec.sets * spec.repsPerSet;
-      const durTol = 12;
-      const inDur = stats.filter(s => Math.abs(s.durSec - spec.repFastSec) <= durTol).length;
-      const inPace = stats.filter(s => Math.abs(s.avgPace - spec.paceTarget) <= spec.paceTol).length;
-
-      const qtyScore = 55 * Math.min(1, stats.length / Math.max(1,expected));
-      const durScore = 20 * (inDur / Math.max(1, stats.length));
-      const paceScore = 25 * (inPace / Math.max(1, stats.length));
-      const score = Math.round(clamp(qtyScore + durScore + paceScore, 0, 100));
-
-      const paces = stats.map(s=>s.avgPace);
-      const mm = minmax(paces);
-      const avgP = mean(paces);
-
-      const reasons = [
-        `Blocs de travail (manuels + auto) : ${stats.length}/${expected}.`,
-        `Durée cible : ${spec.repFastSec}s (dans tolérance ±${durTol}s : ${inDur}/${stats.length}).`,
-        `Allure cible : ${fmtPaceTarget(spec.paceTarget, spec.paceTol)} (dans cible : ${inPace}/${stats.length}).`,
-        `Allure blocs : moy ${paceStr(avgP)}/km (min ${paceStr(mm.min)}, max ${paceStr(mm.max)}).`
-      ];
-      const notes = [];
-      if (stats.length < expected) notes.push(`Ajoute des blocs (actuel ${stats.length}/${expected}).`);
-      if (inDur < stats.length) notes.push(`Certaines durées de blocs sont atypiques (durée cible ${spec.repFastSec}s).`);
-      if (inPace < stats.length) notes.push(`Certaines allures de blocs sont hors cible.`);
-      return { score, reasons, notes, intervals: work };
-    }
-
-    if (spec.kind === "interval_dist"){
-      const expected = spec.reps;
-      const distTol = 70; // un poil plus permissif en manuel
-      const okDist = stats.filter(s => s.distM!=null && Math.abs(s.distM - spec.repDistM) <= distTol).length;
-      const okPace = stats.filter(s => Math.abs(s.avgPace - spec.paceTarget) <= spec.paceTol).length;
-
-      const qtyScore = 55 * Math.min(1, stats.length / Math.max(1,expected));
-      const distScore = 20 * (okDist / Math.max(1, stats.length));
-      const paceScore = 25 * (okPace / Math.max(1, stats.length));
-      const score = Math.round(clamp(qtyScore + distScore + paceScore, 0, 100));
-
-      const paces = stats.map(s=>s.avgPace);
-      const mm = minmax(paces);
-      const avgP = mean(paces);
-
-      const reasons = [
-        `Blocs de travail (manuels + auto) : ${stats.length}/${expected}.`,
-        `Distance cible : ${spec.repDistM}m (tol ±${distTol}m : ${okDist}/${stats.length}).`,
-        `Allure cible : ${fmtPaceTarget(spec.paceTarget, spec.paceTol)} (dans cible : ${okPace}/${stats.length}).`,
-        `Allure blocs : moy ${paceStr(avgP)}/km (min ${paceStr(mm.min)}, max ${paceStr(mm.max)}).`
-      ];
-      const notes = [];
-      if (stats.length < expected) notes.push(`Ajoute des blocs (actuel ${stats.length}/${expected}).`);
-      if (okDist < stats.length) notes.push(`Certaines distances de blocs sont atypiques (cible ${spec.repDistM}m).`);
-      if (okPace < stats.length) notes.push(`Certaines allures de blocs sont hors cible.`);
-      return { score, reasons, notes, intervals: work };
-    }
-
-    if (spec.kind === "tempo_time"){
-      const expected = spec.reps;
-      const repSec = spec.repMin * 60;
-      const durTol = Math.max(45, Math.round(repSec * 0.2)); // tol 20% (min 45s)
-      const okDur = stats.filter(s => Math.abs(s.durSec - repSec) <= durTol).length;
-      const okPace = stats.filter(s => Math.abs(s.avgPace - spec.paceTarget) <= spec.paceTol).length;
-
-      const qtyScore = 60 * Math.min(1, stats.length / Math.max(1,expected));
-      const durScore = 15 * (okDur / Math.max(1, stats.length));
-      const paceScore = 25 * (okPace / Math.max(1, stats.length));
-      const score = Math.round(clamp(qtyScore + durScore + paceScore, 0, 100));
-
-      const paces = stats.map(s=>s.avgPace);
-      const mm = minmax(paces);
-      const avgP = mean(paces);
-
-      const reasons = [
-        `Blocs tempo (manuels + auto) : ${stats.length}/${expected}.`,
-        `Durée cible : ${spec.repMin} min (tol ±${Math.round(durTol)}s : ${okDur}/${stats.length}).`,
-        `Allure cible : ${fmtPaceTarget(spec.paceTarget, spec.paceTol)} (dans cible : ${okPace}/${stats.length}).`,
-        `Allure blocs : moy ${paceStr(avgP)}/km (min ${paceStr(mm.min)}, max ${paceStr(mm.max)}).`
-      ];
-      const notes = [];
-      if (stats.length < expected) notes.push(`Ajoute des blocs (actuel ${stats.length}/${expected}).`);
-      if (okDur < stats.length) notes.push(`Certaines durées de blocs sont atypiques (cible ${spec.repMin} min).`);
-      if (okPace < stats.length) notes.push(`Certaines allures de blocs sont hors cible.`);
-      return { score, reasons, notes, intervals: work };
-    }
-
-    return { score: 40, reasons:["Type non supporté pour recalcul sur blocs."], notes:[], intervals: work };
+function recomputeFromIntervals(samples, spec, intervals){
+  // --- normalise le type si manquant / incohérent
+  if (spec && (!spec.kind || typeof spec.kind !== "string")){
+    if (isFinite(spec.repFastSec) && isFinite(spec.repSlowSec)) spec.kind = "interval_time";
+    else if (isFinite(spec.repDistM)) spec.kind = "interval_dist";
+    else if (isFinite(spec.repMin)) spec.kind = "tempo_time";
+    else if (isFinite(spec.repSec)) spec.kind = "hill_reps";
+    else if (isFinite(spec.distKm)) spec.kind = "race";
+    else if (isFinite(spec.minMin)) spec.kind = "endurance";
   }
-
+  
+  // For endurance/long/race, keep global logic
+  if (spec.kind === "endurance") return scoreEndurance(samples, spec);
+  if (spec.kind === "long") return scoreLong(samples, spec);
+  if (spec.kind === "race") return scoreRace(samples, spec);
+  
+  const pts = getSeriesForStats(samples);
+  const work = (intervals || []).filter(x => isFinite(x.t0) && isFinite(x.t1) && x.t1 > x.t0)
+  .sort((a,b)=>a.t0-b.t0);
+  
+  if (!pts.length){
+    return { score: 30, reasons:["Données insuffisantes pour recalculer."], notes:["Réessaie avec un GPX plus complet."], intervals: work };
+  }
+  if (!work.length){
+    return { score: 20, reasons:["Aucun bloc de travail défini (auto + manuel)."], notes:["Ajoute des blocs gris puis sauvegarde."], intervals: work };
+  }
+  
+  const stats = work.map(it => ({ it, ...intervalStats(pts, it) })).filter(x => x.avgPace!=null);
+  
+  if (spec.kind === "interval_time"){
+    const expected = spec.sets * spec.repsPerSet;
+    const durTol = 12;
+    const inDur = stats.filter(s => Math.abs(s.durSec - spec.repFastSec) <= durTol).length;
+    const inPace = stats.filter(s => Math.abs(s.avgPace - spec.paceTarget) <= spec.paceTol).length;
+    
+    const qtyScore = 55 * Math.min(1, stats.length / Math.max(1,expected));
+    const durScore = 20 * (inDur / Math.max(1, stats.length));
+    const paceScore = 25 * (inPace / Math.max(1, stats.length));
+    const score = Math.round(clamp(qtyScore + durScore + paceScore, 0, 100));
+    
+    const paces = stats.map(s=>s.avgPace);
+    const mm = minmax(paces);
+    const avgP = mean(paces);
+  
+    const reasons = [
+    `Blocs rapides : ${stats.length}/${expected}.`,
+    `Durée cible : ${spec.repFastSec}s (dans cible : ${inDur}/${stats.length}).`,
+    `Allure cible : ${fmtPaceTarget(spec.paceTarget, spec.paceTol)} (dans cible : ${inPace}/${stats.length}).`,
+    `Allure blocs : moy ${paceStr(avgP)}/km (min ${paceStr(mm.min)}, max ${paceStr(mm.max)}).`
+    ];
+    const notes = [];
+    if (stats.length < expected) notes.push(`Ajoute des blocs (actuel ${stats.length}/${expected}).`);
+    return { score, reasons, notes, intervals: work };
+  }
+  
+  if (spec.kind === "interval_dist"){
+    const expected = spec.reps;
+    const distTol = Math.max(25, Math.round(spec.repDistM * 0.12));
+    const okDist = stats.filter(s => s.distM != null && Math.abs(s.distM - spec.repDistM) <= distTol).length;
+    const okPace = stats.filter(s => Math.abs(s.avgPace - spec.paceTarget) <= spec.paceTol).length;
+    
+    const qtyScore = 60 * Math.min(1, stats.length / Math.max(1,expected));
+    const distScore = 15 * (okDist / Math.max(1, stats.length));
+    const paceScore = 25 * (okPace / Math.max(1, stats.length));
+    const score = Math.round(clamp(qtyScore + distScore + paceScore, 0, 100));
+    
+    const paces = stats.map(s=>s.avgPace);
+    const mm = minmax(paces);
+    const avgP = mean(paces);
+  
+    const reasons = [
+    `Blocs 400m (manuels + auto) : ${stats.length}/${expected}.`,
+    `Distance cible : ${spec.repDistM}m (tol ±${distTol}m : ${okDist}/${stats.length}).`,
+    `Allure cible : ${fmtPaceTarget(spec.paceTarget, spec.paceTol)} (dans cible : ${okPace}/${stats.length}).`,
+    `Allure blocs : moy ${paceStr(avgP)}/km (min ${paceStr(mm.min)}, max ${paceStr(mm.max)}).`
+    ];
+    const notes = [];
+    if (stats.length < expected) notes.push(`Ajoute des blocs (actuel ${stats.length}/${expected}).`);
+    return { score, reasons, notes, intervals: work };
+  }
+  
+  if (spec.kind === "tempo_time"){
+    const expected = spec.reps;
+    const repSec = spec.repMin * 60;
+    const durTol = Math.max(45, Math.round(repSec * 0.2));
+    const okDur = stats.filter(s => Math.abs(s.durSec - repSec) <= durTol).length;
+    const okPace = stats.filter(s => Math.abs(s.avgPace - spec.paceTarget) <= spec.paceTol).length;
+    
+    const qtyScore = 60 * Math.min(1, stats.length / Math.max(1,expected));
+    const durScore = 15 * (okDur / Math.max(1, stats.length));
+    const paceScore = 25 * (okPace / Math.max(1, stats.length));
+    const score = Math.round(clamp(qtyScore + durScore + paceScore, 0, 100));
+    
+    const paces = stats.map(s=>s.avgPace);
+    const mm = minmax(paces);
+    const avgP = mean(paces);
+  
+    const reasons = [
+    `Blocs tempo (manuels + auto) : ${stats.length}/${expected}.`,
+    `Durée cible : ${spec.repMin} min (tol ±${Math.round(durTol)}s : ${okDur}/${stats.length}).`,
+    `Allure cible : ${fmtPaceTarget(spec.paceTarget, spec.paceTol)} (dans cible : ${okPace}/${stats.length}).`,
+    `Allure blocs : moy ${paceStr(avgP)}/km (min ${paceStr(mm.min)}, max ${paceStr(mm.max)}).`
+    ];
+    const notes = [];
+    if (stats.length < expected) notes.push(`Ajoute des blocs (actuel ${stats.length}/${expected}).`);
+    if (okDur < stats.length) notes.push(`Certaines durées de blocs sont atypiques (cible ${spec.repMin} min).`);
+    if (okPace < stats.length) notes.push(`Certaines allures de blocs sont hors cible.`);
+    return { score, reasons, notes, intervals: work };
+  }
+  
+  // ✅ support manuel pour les côtes
+  if (spec.kind === "hill_reps"){
+    const expected = spec.reps || 10;
+    const repSec = spec.repSec || 45;
+    const durTol = Math.max(10, Math.round(repSec * 0.25));
+    const okDur = stats.filter(s => Math.abs(s.durSec - repSec) <= durTol).length;
+    
+    const qtyScore = 70 * Math.min(1, stats.length / Math.max(1, expected));
+    const durScore = 30 * (okDur / Math.max(1, stats.length));
+    const score = Math.round(clamp(qtyScore + durScore, 0, 100));
+  
+    const reasons = [
+    `Blocs côtes (manuels + auto) : ${stats.length}/${expected}.`,
+    `Durée cible : ${repSec}s (tol ±${durTol}s : ${okDur}/${stats.length}).`
+    ];
+    const notes = [];
+    if (stats.length < expected) notes.push(`Ajoute des blocs (actuel ${stats.length}/${expected}).`);
+    if (okDur < stats.length) notes.push(`Certaines durées de blocs sont atypiques.`);
+    return { score, reasons, notes, intervals: work };
+  }
+  
+  return { score: 40, reasons:[`Type non supporté pour recalcul sur blocs (${spec?.kind || "sans kind"}).`], notes:[], intervals: work };
+}
   // ===== Rendering plan + stats =====
   const weeksEl = document.getElementById("weeks");
 
