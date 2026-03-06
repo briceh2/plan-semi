@@ -2258,6 +2258,15 @@ function renderPlan(){
   let manualDirty = false; // ✅ true uniquement si l'utilisateur a vraiment modifié les blocs
   
   function openModal(state){
+
+    // debug
+    alert(
+        "DEBUG openModal\n" + 
+        "state.spec.kind = " + (state?.spec?.kind ?? "undefined") + "\n" +
+        "state.spec.label = " + (state?.spec?.label ?? "undefined") + "\n" +
+        "state.specLabel = " + (state?.specLabel ?? "undefined")
+      );
+
     modalState = state;
     pendingClickT = null;
     manualIntervals = [];
@@ -2369,6 +2378,7 @@ saveManualBtn.addEventListener("click", () => {
   // debug
   alert(
     "DEBUG saveManualBtn\n" + 
+    "modalState exists = " + (!!modalState) + "\n" +
     "spec.kind = " + (modalState?.spec?.kind ?? "undefined") + "\n" +
     "spec.label = " + (modalState?.spec?.label ?? "undefined") + "\n" +
     "repMin = " + (modalState?.spec?.repMin ?? "undefined") + "\n" +
@@ -2582,6 +2592,16 @@ saveManualBtn.addEventListener("click", () => {
 
       gpxComplianceEl.innerHTML = `<span class="badge ${badgeClass}">${evalRes.verdict} • ${evalRes.score}/100</span> <span class="badge">${evalRes.specLabel}</span>`;
       attachBtn.disabled = true;
+
+      // debug
+      alert(
+        "DEBUG avant openModal\n" + 
+        "spec.kind = " + (spec?.kind ?? "undefined") + "\n" +
+        "spec.label = " + (spec?.label ?? "undefined") + "\n" +
+        "week = " + week + "\n" +
+        "day = " + day + "\n" +
+        "override = " + (override ?? "undefined")
+        );
 
       openModal({
         workoutId: workoutStored.id,
