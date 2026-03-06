@@ -1762,31 +1762,31 @@ function specTitleAndPaceText(spec, fallbackText){
   }
   
   if (spec.kind === "tempo_time"){
-  const line1 = `${spec.label || "Seuil/Tempo"}`;
-  const pace = spec.paceTarget ? `${paceStrFromSec(spec.paceTarget)} (±${spec.paceTol||0}s)` : "";
-  const rec  = spec.recMin ? `• récup ${spec.recMin} min` : "";
-  // patch ok 18/02
-  const hill = spec.hillHint ? `• ${spec.hillHint}` : "";
-  const line2 = [pace, rec, hill].filter(Boolean).join(" ");
-  return { line1, line2 };
-}
+    const line1 = `${spec.label || "Seuil/Tempo"}`;
+    const pace = spec.paceTarget ? `${paceStrFromSec(spec.paceTarget)} (±${spec.paceTol||0}s)` : "";
+    const rec  = spec.recMin ? `• récup ${spec.recMin} min` : "";
+    // patch ok 18/02
+    const hill = spec.hillHint ? `• ${spec.hillHint}` : "";
+    const line2 = [pace, rec, hill].filter(Boolean).join(" ");
+    return { line1, line2 };
+  }
 
-if (spec.kind === "interval_time"){ // 30/30
-  const line1 = `${spec.label || "VMA 30/30"}`;
-  const pace = spec.paceTarget ? `${paceStrFromSec(spec.paceTarget)} (≤ +${spec.paceTol||0}s)` : "";
-  // récup implicite = repSlowSec
-  const rec = spec.repSlowSec ? `• récup ${spec.repSlowSec}s` : "";
-  const line2 = [pace, rec].filter(Boolean).join(" ");
-  return { line1, line2 };
-}
+  if (spec.kind === "interval_time"){ // 30/30
+    const line1 = `${spec.label || "VMA 30/30"}`;
+    const pace = spec.paceTarget ? `${paceStrFromSec(spec.paceTarget)} (≤ +${spec.paceTol||0}s)` : "";
+    // récup implicite = repSlowSec
+    const rec = spec.repSlowSec ? `• récup ${spec.repSlowSec}s` : "";
+    const line2 = [pace, rec].filter(Boolean).join(" ");
+    return { line1, line2 };
+  }
 
-if (spec.kind === "interval_dist"){ // 400m/200m
-  const line1 = `${spec.label || "VMA"}`;
-  const pace = spec.paceTarget ? `${paceStrFromSec(spec.paceTarget)} (≤ +${spec.paceTol||0}s)` : "";
-  const rec = spec.recSec ? `• récup ${Math.floor(spec.recSec/60)}'${String(spec.recSec%60).padStart(2,"0")}` : "";
-  const line2 = [pace, rec].filter(Boolean).join(" ");
-  return { line1, line2 };
-}
+  if (spec.kind === "interval_dist"){ // 400m/200m
+    const line1 = `${spec.label || "VMA"}`;
+    const pace = spec.paceTarget ? `${paceStrFromSec(spec.paceTarget)} (≤ +${spec.paceTol||0}s)` : "";
+    const rec = spec.recSec ? `• récup ${Math.floor(spec.recSec/60)}'${String(spec.recSec%60).padStart(2,"0")}` : "";
+    const line2 = [pace, rec].filter(Boolean).join(" ");
+    return { line1, line2 };
+  }
 
   if (spec.kind === "hill_reps"){
     const line1 = spec.label || `Côtes ${spec.reps||""}×${spec.repSec||""}s`;
@@ -1894,19 +1894,24 @@ function renderPlan(){
 
       // -------- Format séance sur 2 lignes (titre + allure/détail)
       // DEBUG
-      alert(
-        "DEBUG expectedSpec (line 1904)\n" +
-        "week = " + w + "\n" + 
-        "override = " + attachTypeEl.value
-        );
+      if (w === 5)
+          alert(
+          "DEBUG expectedSpec (line 1904)\n" +
+          "week = " + w + "\n" + 
+          "override = " + attachTypeEl.value
+          );
       
       const spec = expectedSpec(w, key);
 
       // DEBUG
-      alert(
-        "DEBUG retour expectedSpec (line 1904)\n" +
-        "spec = " + JSON.stringify(spec)
-        );
+      if (w === 5)
+        alert(
+          "DEBUG retour expectedSpec (line 1904)\n" +
+          "spec = " + JSON.stringify(spec)
+          "state.spec.kind = " + (state?.spec?.kind ?? "undefined") + "\n" +
+          "state.spec.label = " + (state?.spec?.label ?? "undefined") + "\n" +
+          "state.specLabel = " + (state?.specLabel ?? "undefined")
+          );
 
       const lines = specTitleAndPaceText(spec, rawText);
 
