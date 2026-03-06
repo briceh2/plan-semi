@@ -1894,17 +1894,18 @@ function renderPlan(){
 
       // -------- Format séance sur 2 lignes (titre + allure/détail)
       // DEBUG
-      if (w === 5)
+      if (w === 5){
           alert(
           "DEBUG expectedSpec (line 1904)\n" +
           "week = " + w + "\n" + 
           "override = " + attachTypeEl.value
           );
+      }
       
       const spec = expectedSpec(w, key);
 
       // DEBUG
-      if (w === 5)
+      if (w === 5){
         alert(
           "DEBUG retour expectedSpec (line 1904)\n" +
           "spec = " + JSON.stringify(spec)
@@ -1912,6 +1913,7 @@ function renderPlan(){
           "state.spec.label = " + (state?.spec?.label ?? "undefined") + "\n" +
           "state.specLabel = " + (state?.specLabel ?? "undefined")
           );
+        }
 
       const lines = specTitleAndPaceText(spec, rawText);
 
