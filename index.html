@@ -1894,6 +1894,7 @@ function renderPlan(){
 
       // -------- Format séance sur 2 lignes (titre + allure/détail)
       // DEBUG
+      /*
       if (w === 5){
           alert(
           "DEBUG expectedSpec (line 1904)\n" +
@@ -1901,10 +1902,11 @@ function renderPlan(){
           "override = " + attachTypeEl.value
           );
       }
-      
+      */
       const spec = expectedSpec(w, key);
-
+      
       // DEBUG
+      /*
       if (w === 5){
         alert(
           "DEBUG retour expectedSpec (line 1904)\n" +
@@ -1914,7 +1916,7 @@ function renderPlan(){
           "state.specLabel = " + (state?.specLabel ?? "undefined")
           );
         }
-
+      */
       const lines = specTitleAndPaceText(spec, rawText);
 
       // Si endurance/long, tenter de récupérer une plage d'allure dans le texte (si tu l'as gardée)
