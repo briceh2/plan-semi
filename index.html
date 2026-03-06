@@ -2365,7 +2365,17 @@ function renderPlan(){
   
 saveManualBtn.addEventListener("click", () => {
   if (!modalState) return;
-  
+
+  // debug
+  alert(
+    "DEBUG saveManualBtn\n" + 
+    "spec.kind = " + (modalState?.spec?.kind ?? "undefined") + "\n" +
+    "spec.label = " + (modalState?.spec?.label ?? "undefined") + "\n" +
+    "repMin = " + (modalState?.spec?.repMin ?? "undefined") + "\n" +
+    "repSec = " + (modalState?.spec?.repSec ?? "undefined") + "\n" +
+    "repDistM = " + (modalState?.spec?.repDistM ?? "undefined") + "\n"
+    );
+
   // ✅ Si aucun changement manuel réel → on conserve le score automatique
   if (!manualDirty || !manualIntervals || manualIntervals.length === 0){
     // On s'assure que manualAdjusted reste false
