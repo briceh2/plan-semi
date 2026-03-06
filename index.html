@@ -1893,6 +1893,14 @@ function renderPlan(){
       const reasonsCompact = workout ? buildReasonsCompactHTML(workout) : "";
 
       // -------- Format séance sur 2 lignes (titre + allure/détail)
+      // DEBUG
+      alert(
+        "DEBUG expectedSpec (line 1904)\n" +
+        "week = " + week + "\n" + 
+        "day = " + day + "\n" + 
+        "override = " + attachTypeEl.value
+        );
+      
       const spec = expectedSpec(w, key);
       const lines = specTitleAndPaceText(spec, rawText);
 
@@ -2547,6 +2555,14 @@ saveManualBtn.addEventListener("click", () => {
       const day  = attachDayEl.value;
       ensureWeek(week);
 
+      // DEBUG
+      alert(
+        "DEBUG expectedSpec (line 2566)\n" +
+        "week = " + week + "\n" + 
+        "day = " + day + "\n" + 
+        "override = " + attachTypeEl.value
+        );
+      
       let spec = expectedSpec(week, day);
       const override = attachTypeEl.value;
 
