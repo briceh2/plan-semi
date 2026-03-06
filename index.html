@@ -1902,6 +1902,13 @@ function renderPlan(){
         );
       
       const spec = expectedSpec(w, key);
+
+      // DEBUG
+      alert(
+        "DEBUG retour expectedSpec (line 1904)\n" +
+        "spec = " + JSON.stringify(spec)
+        );
+
       const lines = specTitleAndPaceText(spec, rawText);
 
       // Si endurance/long, tenter de récupérer une plage d'allure dans le texte (si tu l'as gardée)
@@ -2564,6 +2571,13 @@ saveManualBtn.addEventListener("click", () => {
         );
       
       let spec = expectedSpec(week, day);
+
+      // DEBUG
+      alert(
+        "DEBUG retour expectedSpec (line 2566)\n" +
+        "spec = " + JSON.stringify(spec)
+        );
+
       const override = attachTypeEl.value;
 
       if (override !== "auto"){
