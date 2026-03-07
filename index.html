@@ -2132,6 +2132,11 @@ function renderPlan(){
       const spec = expectedSpec(w, key);
       
       // DEBUG
+      if (w === 4 && key === "tue"){
+        alert("DEBUG S4 mardi kind = " + (spec?.kind ?? "undefined") + " / label = " + (spec?.label ?? "undefined"));
+      }
+        
+      // DEBUG
       /*
       if (w === 5){
         alert(
