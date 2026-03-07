@@ -352,6 +352,68 @@ function sessionsForWeek(w){
   // =========================
   // Bloc vallonné Bayeux
   // =========================
+  // =========================
+  // Semaine 4
+  // =========================
+  if (w === 4){
+    return {
+      tue: `10 × 45s en côte — effort 8/10`,
+      thu: `Seuil : 3 × 8 min — 5'05–4'55/km`,
+      sat: `Endurance — 40 min — 5'55–6'30/km`,
+      sun: `Sortie longue — 1h15 — 5'55–6'30/km`,
+      nutrition: `
+      • Avant séance qualité : collation légère glucidique
+      • Après : protéines + glucides
+      • Hydratation : 2 L/jour`
+    };
+  }
+  // =========================
+  // Semaine 5
+  // =========================
+  if (w === 5){
+    return {
+      tue: `10 × 400 m — 4'10–4'20/km`,
+      thu: `Seuil : 3 × 8 min — 5'05–4'55/km`,
+      sat: `Endurance — 40 min — 5'55–6'30/km`,
+      sun: `Sortie longue — 1h25 — 5'55–6'30/km`,
+      nutrition: `
+      • Avant séance qualité : collation légère glucidique
+      • Après : protéines + glucides
+      • Sortie longue : 1 gel à 45 min
+      • Hydratation : 2 L/jour`
+    };
+  }
+  // =========================
+  // Semaine 6
+  // =========================
+  if (w === 6){
+    return {
+      tue: `10 × 45s en côte — effort 8/10`,
+      thu: `Seuil : 2 × 15 min — 5'00/km`,
+      sat: `Endurance — 45 min — 5'55–6'30/km`,
+      sun: `Sortie longue — 1h25 — 5'55–6'30/km`,
+      nutrition: `
+      • Avant séance qualité : collation légère glucidique
+      • Après : protéines + glucides
+      • Sortie longue : 1 gel à 45–50 min
+      • Hydratation : 2 L/jour`
+    };
+  }
+  // =========================
+  // Semaine 7
+  // =========================
+  if (w === 7){
+    return {
+      tue: `10 × 400 m — 4'10–4'20/km`,
+      thu: `Seuil : 2 × 15 min — 5'00/km`,
+      sat: `Endurance — 40 min — 5'55–6'30/km`,
+      sun: `Sortie longue — 1h15 — 5'55–6'30/km`,
+      nutrition: `
+      • Avant séance qualité : collation légère glucidique
+      • Après : protéines + glucides
+      • Hydratation : 2 L/jour`
+    };
+  }
   if (w < 8){
     weekPlan = {
       tue: `VMA : 2 × (8 × 30/30) — ${VMA30}`,
@@ -984,6 +1046,147 @@ function stripTime(d){
     // =========================================================
     // 2) FUTUR / À VENIR → PLAN ADAPTÉ AVANT & APRÈS BAYEUX
     // =========================================================
+    // =========================
+    // Semaine 4
+    // =========================
+    if (week === 4){
+      if (day === "tue") return {
+        kind:"hill_reps",
+        reps:10,
+        repSec:45,
+        contrastMin:12,
+        effortHint:"Effort 8/10 • récup descente très facile",
+        label:"Côtes 10×45s"
+      };
+      if (day === "thu") return {
+        kind:"tempo_time",
+        reps:3,
+        repMin:8,
+        recMin:2,
+        paceTarget:305,
+        paceTol:20,
+        label:"Seuil 3×8"
+      };
+      if (day === "sat") return {
+        kind:"endurance",
+        minMin:40,
+        paceRange:"5'55-6'30/km",
+        label:"Endurance 40 min"
+      };
+      if (day === "sun") return {
+        kind:"long",
+        minMin:75,
+        paceRange:"5'55-6'30/km",
+        label:"Sortie longue 1h15"
+      };
+    }
+    
+    // =========================
+    // Semaine 5
+    // =========================
+    if (week === 5){
+      if (day === "tue") return {
+        kind:"interval_dist",
+        reps:10,
+        repDistM:400,
+        recSec:90,
+        paceTarget:250,
+        paceTol:20,
+        label:"VMA 10×400"
+      };
+      if (day === "thu") return {
+        kind:"tempo_time",
+        reps:3,
+        repMin:8,
+        recMin:2,
+        paceTarget:305,
+        paceTol:20,
+        label:"Seuil 3×8"
+      };
+      if (day === "sat") return {
+        kind:"endurance",
+        minMin:40,
+        paceRange:"5'55-6'30/km",
+        label:"Endurance 40 min"
+      };
+      if (day === "sun") return {
+        kind:"long",
+        minMin:85,
+        paceRange:"5'55-6'30/km",
+        label:"Sortie longue 1h25"
+      };
+    }
+    
+    // =========================
+    // Semaine 6
+    // =========================
+    if (week === 6){
+      if (day === "tue") return {
+        kind:"hill_reps",
+        reps:10,
+        repSec:45,
+        contrastMin:12,
+        effortHint:"Effort 8/10 • récup descente très facile",
+        label:"Côtes 10×45s"
+      };
+      if (day === "thu") return {
+        kind:"tempo_time",
+        reps:2,
+        repMin:15,
+        recMin:3,
+        paceTarget:300,
+        paceTol:20,
+        label:"Seuil 2×15"
+      };
+      if (day === "sat") return {
+        kind:"endurance",
+        minMin:45,
+        paceRange:"5'55-6'30/km",
+        label:"Endurance 45 min"
+      };
+      if (day === "sun") return {
+        kind:"long",
+        minMin:85,
+        paceRange:"5'55-6'30/km",
+        label:"Sortie longue 1h25"
+      };
+    }
+    
+    // =========================
+    // Semaine 7
+    // =========================
+    if (week === 7){
+      if (day === "tue") return {
+        kind:"interval_dist",
+        reps:10,
+        repDistM:400,
+        recSec:90,
+        paceTarget:250,
+        paceTol:20,
+        label:"VMA 10×400"
+      };
+      if (day === "thu") return {
+        kind:"tempo_time",
+        reps:2,
+        repMin:15,
+        recMin:3,
+        paceTarget:300,
+        paceTol:20,
+        label:"Seuil 2×15"
+      };
+      if (day === "sat") return {
+        kind:"endurance",
+        minMin:40,
+        paceRange:"5'55-6'30/km",
+        label:"Endurance 40 min"
+      };
+      if (day === "sun") return {
+        kind:"long",
+        minMin:75,
+        paceRange:"5'55-6'30/km",
+        label:"Sortie longue 1h15"
+      };
+    }
     
     // --- Semaine 8 : TAPER pour être frais à Bayeux (Semi vallonné)
     // Objectif : garder du rythme, baisser volume & fatigue
@@ -1738,6 +1941,15 @@ function hasDurationAlready(text){
   return `${m}'${String(s).padStart(2,"0")}/km`;
 }
 
+function fmtMinToHuman(mins){
+  mins = Math.round(mins || 0);
+  if (!mins) return "";
+  if (mins < 60) return `${mins} min`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (m === 0) return `${h}h`;
+  return `${h}h${String(m).padStart(2,"0")}`;
+}
 function specTitleAndPaceText(spec, fallbackText){
   // Titre court + 2e ligne (allure/détail) depuis la spec
   if (!spec) return { line1: fallbackText || "", line2: "" };
@@ -1747,19 +1959,33 @@ function specTitleAndPaceText(spec, fallbackText){
     const line2 = spec.paceTarget ? `🎯 ${paceStrFromSec(spec.paceTarget)}` : "";
     return { line1, line2 };
   }
-/* patch ok 18/02 */
+  /*
   if (spec.kind === "endurance"){
     const line1 = `Endurance ${fmtDuration(spec.minMin||0)}`.trim();
     const line2 = spec.paceRange ? spec.paceRange : (spec.effortHint || "");
     return { line1, line2 };
   }
-  
-  /* patch ok 18/02 */
   if (spec.kind === "long"){
     const line1 = `Sortie longue ${fmtDuration(spec.minMin||0)}`.trim();
     const line2 = spec.paceRange ? spec.paceRange : (spec.effortHint || "");
     return { line1, line2 };
   }
+  */
+  /* patch 07/03 */
+  if (spec.kind === "endurance"){
+    const dur = fmtMinToHuman(spec.minMin || 0);
+    const line1 = `Endurance${dur ? ` ${dur}` : ""}`;
+    const line2 = spec.paceRange ? spec.paceRange : (spec.effortHint || "");
+    return { line1, line2 };
+  }
+  /* patch 07/03 */
+  if (spec.kind === "long"){
+    const dur = fmtMinToHuman(spec.minMin || 0);
+    const line1 = `Sortie longue${dur ? ` ${dur}` : ""}`;
+    const line2 = spec.paceRange ? spec.paceRange : (spec.effortHint || "");
+    return { line1, line2 };
+  }
+
   
   if (spec.kind === "tempo_time"){
     const line1 = `${spec.label || "Seuil/Tempo"}`;
