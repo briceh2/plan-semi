@@ -1920,9 +1920,9 @@ function std(arr){
   // patch du 08/03
   // ✅ privilégier les vrais blocs plus tardifs et avec meilleur contraste
   candidates.sort((a,b) => {
-  const da = a.score + (a.contrast * 0.03) + ((a.t0 - tStart) / 60000) * 0.015;
-  const db = b.score + (b.contrast * 0.03) + ((b.t0 - tStart) / 60000) * 0.015;
-  return db - da;
+    const da = a.score + (a.contrast * 0.03) + ((a.t0 - tStart) / 60000) * 0.015;
+    const db = b.score + (b.contrast * 0.03) + ((b.t0 - tStart) / 60000) * 0.015;
+    return db - da;
   });
   const picked = [];
   const minGapSec = Math.max(25, Math.round(repSec * 0.5));
