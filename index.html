@@ -1858,11 +1858,12 @@ function scoreHillReps(samples, spec){
   function clamp01(x){ return Math.max(0, Math.min(1, x)); }
   
   const stepSec = 5;
-  const guardSec = 15;
+  const guardSec = 20;
   const contextSec = 25;
+  const warmupIgnoreSec = 12 * 60; // ✅ ignore les 12 premières minutes
   const candidates = [];
   
-  const tStart = pts[0].tMs + guardSec*1000;
+  const tStart = pts[0].tMs + Math.max(guardSec, warmupIgnoreSec) * 1000;
   const tEnd = pts[pts.length-1].tMs - guardSec*1000;
   
   for (let t0 = tStart; (t0 + repSec*1000) <= tEnd; t0 += stepSec*1000){
@@ -1882,6 +1883,19 @@ function scoreHillReps(samples, spec){
     
     const ctxMean = mean(before.concat(after));
     const contrast = ctxMean - paceMean;
+    const sinceStartSec = (t0 - pts[0].tMs) / 1000;
+
+    // ✅ pénalité forte si trop tôt dans la séance
+    if (sinceStartSec < 10 * 60) continue;const sinceStartSec = (t0 - pts[0].tMs) / 1000;
+    
+    // ✅ pénalité forte si trop tôt dans la séance
+    if (sinceStartSec < 10 * 60) continue;
+
+    let earlyPenalty = 0;
+    if (sinceStartSec < 12 * 60) earlyPenalty = 0.20;
+    if (sinceStartSec < 8 * 60) earlyPenalty = 0.35;
+
+    const score = (0.8*contrastScore + 0.2*stabScore) - earlyPenalty;
     
     if (contrast < (contrastMin * 0.6)) continue;
     
@@ -1905,17 +1919,23 @@ function scoreHillReps(samples, spec){
     };
   }
   
-  candidates.sort((a,b)=>b.score-a.score);
+  // ✅ privilégier les vrais blocs plus tardifs et avec meilleur contraste
+  candidates.sort((a,b) => {
+  const da = a.score + (a.contrast * 0.03) + ((a.t0 - tStart) / 60000) * 0.015;
+  const db = b.score + (b.contrast * 0.03) + ((b.t0 - tStart) / 60000) * 0.015;
+  return db - da;
+  });
+  
   const picked = [];
-  const minGapSec = Math.max(20, Math.round(repSec * 0.4));
+  const minGapSec = Math.max(25, Math.round(repSec * 0.5));
   
   for (const c of candidates){
-    if (picked.length >= expected) break;
-    const overlap = picked.some(p => !(c.t1 <= (p.t0 - minGapSec*1000) || c.t0 >= (p.t1 + minGapSec*1000)));
-    if (!overlap) picked.push(c);
+  if (picked.length >= expected) break;
+  const overlap = picked.some(p => !(c.t1 <= (p.t0 - minGapSec*1000) || c.t0 >= (p.t1 + minGapSec*1000)));
+  if (!overlap) picked.push(c);
   }
   
-  picked.sort((a,b)=>a.t0-b.t0);
+  picked.sort((a,b)=>a.t0-b.t0);  
   
   const qtyScore = 60 * Math.min(1, picked.length / Math.max(1, expected));
   const avgContrast = picked.length ? mean(picked.map(p=>p.contrast)) : 0;
