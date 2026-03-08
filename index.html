@@ -1895,7 +1895,7 @@ function scoreHillReps(samples, spec){
     if (sinceStartSec < 12 * 60) earlyPenalty = 0.20;
     if (sinceStartSec < 8 * 60) earlyPenalty = 0.35;
 
-    const score = (0.8*contrastScore + 0.2*stabScore) - earlyPenalty;
+    //const score = (0.8*contrastScore + 0.2*stabScore) - earlyPenalty;
     
     if (contrast < (contrastMin * 0.6)) continue;
     
@@ -1921,18 +1921,18 @@ function scoreHillReps(samples, spec){
   
   // ✅ privilégier les vrais blocs plus tardifs et avec meilleur contraste
   candidates.sort((a,b) => {
-  const da = a.score + (a.contrast * 0.03) + ((a.t0 - tStart) / 60000) * 0.015;
-  const db = b.score + (b.contrast * 0.03) + ((b.t0 - tStart) / 60000) * 0.015;
-  return db - da;
+    const da = a.score + (a.contrast * 0.03) + ((a.t0 - tStart) / 60000) * 0.015;
+    const db = b.score + (b.contrast * 0.03) + ((b.t0 - tStart) / 60000) * 0.015;
+    return db - da;
   });
   
   const picked = [];
   const minGapSec = Math.max(25, Math.round(repSec * 0.5));
   
   for (const c of candidates){
-  if (picked.length >= expected) break;
-  const overlap = picked.some(p => !(c.t1 <= (p.t0 - minGapSec*1000) || c.t0 >= (p.t1 + minGapSec*1000)));
-  if (!overlap) picked.push(c);
+    if (picked.length >= expected) break;
+      const overlap = picked.some(p => !(c.t1 <= (p.t0 - minGapSec*1000) || c.t0 >= (p.t1 + minGapSec*1000)));
+    if (!overlap) picked.push(c);
   }
   
   picked.sort((a,b)=>a.t0-b.t0);  
