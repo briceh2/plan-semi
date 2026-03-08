@@ -2342,7 +2342,6 @@ function recomputeFromIntervals(samples, spec, intervals){
 }
 */
   // ===== Rendering plan + stats =====
-  const weeksEl = document.getElementById("weeks");
 
   function buildReasonsCompactHTML(workout){
     const rs = workout?.compliance?.reasons || [];
@@ -2496,6 +2495,8 @@ function getCurrentWeek(){
   const week = Math.floor(diffDays / 7) + 1;
   return Math.min( Math.max(week, 1) , WEEKS);
 }
+  
+const weeksEl = document.getElementById("weeks");
   
 function renderPlan(){
   weeksEl.innerHTML = "";
