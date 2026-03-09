@@ -1948,12 +1948,10 @@ function scoreHillReps(samples, spec){
   // Elimine les blocs trop lent
   let filteredCandidates = candidates;
   // garde que les candidats proche de la vitesse max
-  /*
   if (filteredCandidates.length){
     const maxSpeed = Math.max(...filteredCandidates.map(c => c.speedKmh));
-    filteredCandidates = filteredCandidates.filter(c => c.speedKmh >= maxSpeed - 1.2);
+    filteredCandidates = filteredCandidates.filter(c => c.speedKmh >= maxSpeed - 1.4);
   }
-  */
 
   filteredCandidates.sort((a,b) => b.rank - a.rank);
 
