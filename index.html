@@ -1978,7 +1978,7 @@ function scoreHillReps(samples, spec){
   const mmP = minmax(paces);
   
   const reasons = [];
-  reasons.push(`Répétitions détectées : ${picked.length}/${expected} (fenêtres ${repSec}s).`);
+  reasons.push(`Répétitions détectées : ${picked.length}/${expected} (${filteredCandidates.length} filtrées) (fenêtres ${repSec}s).`);
   reasons.push(`Contraste effort/récup : moy +${Math.round(avgContrast)} s/km (cible ≥ +${contrastMin}).`);
   if (picked.length){
     reasons.push(`Allure effort indicative : moy ${paceStr(mean(paces))}/km (min ${paceStr(mmP.min)}, max ${paceStr(mmP.max)}).`);
