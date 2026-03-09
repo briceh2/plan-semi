@@ -3170,6 +3170,13 @@ saveManualBtn.addEventListener("click", () => {
         ).join("<br>")}
       </div>`
       : "";
+
+      // DEBUG
+      alert(
+        "DEBUG renderModal (line 3176)\n" +
+        "nombre = " + slopeLines.length + " \n" +
+        "slope = " + slopeLines
+        );
     // patch pente fin
     analysisSummary.innerHTML = `${verdictBadge}
       <div class="mini" style="margin-top:8px;"><b>Raisons :</b></div>
