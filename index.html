@@ -1897,13 +1897,44 @@ function std(arr){
     if (sinceStartSec < 10 * 60) continue;
     
     if (contrast < (contrastMin * 0.6)) continue;
+    /*
+    const contrastScore = clamp01(contrast / Math.max(1, contrastMin));
+    const stdTol = 22;
+    const stabScore = clamp01(1 - (paceStd / stdTol));
+    const score = 0.8*contrastScore + 0.2*stabScore;
+    candidates.push({ t0, t1, score, paceMean, paceStd, contrast });
+    */
+    // patch du 09/03 pour meilleure détection des 10x45s
+    const durSec = (t1 - t0) / 1000;
+    const speedKmh = 3600 / paceMean; // plus rapide = plus grand
     
     const contrastScore = clamp01(contrast / Math.max(1, contrastMin));
     const stdTol = 22;
     const stabScore = clamp01(1 - (paceStd / stdTol));
     
-    const score = 0.8*contrastScore + 0.2*stabScore;
-    candidates.push({ t0, t1, score, paceMean, paceStd, contrast });
+    // proximité de la durée cible 45s
+    const durErr = Math.abs(durSec - repSec);
+    const durScore = clamp01(1 - (durErr / 15)); // 0 si écart >= 15s
+    
+    // vitesse : normalisée par rapport à une plage plausible de côtes
+    const speedScore = clamp01((speedKmh - 10.5) / 4.0);
+    
+    // score global : priorité vitesse + durée, puis contraste/stabilité
+    const rank =
+    0.38 * speedScore +
+    0.34 * durScore +
+    0.18 * contrastScore +
+    0.10 * stabScore;
+    
+    candidates.push({
+      t0, t1,
+      durSec,
+      paceMean,
+      paceStd,
+      speedKmh,
+      contrast,
+      rank
+      });
   }
 
   if (!candidates.length){
@@ -1919,11 +1950,15 @@ function std(arr){
   }
   // patch du 08/03
   // ✅ privilégier les vrais blocs plus tardifs et avec meilleur contraste
+  /*
   candidates.sort((a,b) => {
     const da = a.score + (a.contrast * 0.03) + ((a.t0 - tStart) / 60000) * 0.015;
     const db = b.score + (b.contrast * 0.03) + ((b.t0 - tStart) / 60000) * 0.015;
     return db - da;
   });
+  */
+  candidates.sort((a,b) => b.rank - a.rank);
+  
   const picked = [];
   const minGapSec = Math.max(25, Math.round(repSec * 0.5));
   for (const c of candidates){
@@ -1966,7 +2001,11 @@ function std(arr){
     reasons.push(`Stabilité effort : écart-type moyen ~ ${Math.round(stabAvg)} s/km.`);
   }
   if (weak) reasons.push(`Répétitions avec contraste faible : ${weak}/${picked.length}.`);
-
+  // patch du 09/03
+  reasons.push(
+    "Blocs retenus (durée/vitesse) : " +
+    picked.map(x => `${Math.round(x.durSec)}s @ ${x.speedKmh.toFixed(1)} km/h`).join(" • ")
+  );
   const notes = [];
   if (picked.length < expected) notes.push(`Répétitions manquantes : ${expected - picked.length}.`);
   if (weak) notes.push("Ralentir davantage la récup pour mieux séparer les blocs.");
