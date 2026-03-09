@@ -1947,13 +1947,17 @@ function scoreHillReps(samples, spec){
   // patch du 09/03
   // Elimine les blocs trop lent
   let filteredCandidates = candidates;
+  // garde que les candidats proche de la vitesse max
+  /*
   if (filteredCandidates.length){
     const maxSpeed = Math.max(...filteredCandidates.map(c => c.speedKmh));
     filteredCandidates = filteredCandidates.filter(c => c.speedKmh >= maxSpeed - 1.2);
   }
+  */
 
   filteredCandidates.sort((a,b) => b.rank - a.rank);
-  
+
+  // sélection des blocs pour éviter des recouvrements
   const picked = [];
   const minGapSec = Math.max(25, Math.round(repSec * 0.5));
   for (const c of filteredCandidates){
