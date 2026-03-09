@@ -818,7 +818,17 @@ function sessionsForWeek(w){
       const timeEl = p.getElementsByTagName("time")[0];
       const tMs = timeEl ? Date.parse(timeEl.textContent.trim()) : null;
       if (isFinite(lat) && isFinite(lon) && typeof tMs === "number" && !Number.isNaN(tMs)){
-        points.push({ lat, lon, tMs });
+        // patch pente du 09/03
+        const eleEl = p.getElementsByTagName("ele")[0];
+        const eleM = eleEl ? toNum(eleEl.textContent.trim()) : null;
+        
+        points.push({
+          lat,
+          lon,
+          tMs,
+          eleM: isFinite(eleM) ? eleM : null
+        });
+        //points.push({ lat, lon, tMs });
       }
     }
     if (points.length < 2) throw new Error("Timestamps manquants : impossible d'analyser.");
@@ -2053,6 +2063,79 @@ function evaluateCompliance(samples, spec){
     return a.distM + frac * (b.distM - a.distM);
   }
 
+  // patch pente du 09/03
+  function interpolateFieldAt(samples, tMs, field){
+    if (!samples || !samples.length) return null;
+    if (tMs <= samples[0].tMs) return samples[0][field] ?? null;
+    
+    const last = samples[samples.length - 1];
+    if (tMs >= last.tMs) return last[field] ?? null;
+    
+    let lo = 0, hi = samples.length - 1;
+    while (hi - lo > 1){
+      const mid = (lo + hi) >> 1;
+      if (samples[mid].tMs <= tMs) lo = mid;
+      else hi = mid;
+    }
+    
+    const a = samples[lo];
+    const b = samples[hi];
+    const fa = a[field];
+    const fb = b[field];
+    
+    if (!isFinite(fa) || !isFinite(fb)) return null;
+    
+    const dt = b.tMs - a.tMs;
+    if (dt <= 0) return fa;
+    
+    const r = (tMs - a.tMs) / dt;
+    return fa + r * (fb - fa);
+  }
+
+  function slopePctForInterval(samples, t0, t1){
+    const d0 = interpolateFieldAt(samples, t0, "distM");
+    const d1 = interpolateFieldAt(samples, t1, "distM");
+    const e0 = interpolateFieldAt(samples, t0, "eleM");
+    const e1 = interpolateFieldAt(samples, t1, "eleM");
+    
+    if (!isFinite(d0) || !isFinite(d1) || !isFinite(e0) || !isFinite(e1)) return null;
+    
+    const dd = d1 - d0;
+    if (dd <= 5) return null;
+    
+    return 100 * (e1 - e0) / dd;
+  }
+
+  function slopeSummaryForIntervals(samples, intervals){
+    const slopes = (intervals || [])
+    .map(iv => slopePctForInterval(samples, iv.t0, iv.t1))
+    .filter(x => isFinite(x));
+    
+    if (!slopes.length) return null;
+    
+    return {
+      slopes,
+      min: Math.min(...slopes),
+      max: Math.max(...slopes),
+      avg: slopes.reduce((a,x)=>a+x,0) / slopes.length
+    };
+  }
+  function slopeLinesForIntervals(samples, intervals){
+    if (!samples || !intervals || !intervals.length) return [];
+    
+    return intervals.map((iv, idx) => {
+    const slope = slopePctForInterval(samples, iv.t0, iv.t1);
+    const durSec = Math.round((iv.t1 - iv.t0) / 1000);
+    
+    return {
+      index: idx + 1,
+      slope: isFinite(slope) ? slope : null,
+      durSec
+      };
+    });
+  }
+  // patch pente fin
+
   function intervalStats(pts, interval){
     // returns {durSec, distM, avgPace}
     const t0 = interval.t0, t1 = interval.t1;
@@ -2259,141 +2342,6 @@ function recomputeFromIntervals(samples, spec, intervals){
     intervals: work
   };
 }
-  /*
-function recomputeFromIntervals(samples, spec, intervals){
-  // --- normalise le type si manquant / incohérent
-  if (spec && (!spec.kind || typeof spec.kind !== "string")){
-    if (isFinite(spec.repFastSec) && isFinite(spec.repSlowSec)) spec.kind = "interval_time";
-    else if (isFinite(spec.repDistM)) spec.kind = "interval_dist";
-    else if (isFinite(spec.repMin)) spec.kind = "tempo_time";
-    else if (isFinite(spec.repSec)) spec.kind = "hill_reps";
-    else if (isFinite(spec.distKm)) spec.kind = "race";
-    else if (isFinite(spec.minMin)) spec.kind = "endurance";
-  }
-  
-  // For endurance/long/race, keep global logic
-  if (spec.kind === "endurance") return scoreEndurance(samples, spec);
-  if (spec.kind === "long") return scoreLong(samples, spec);
-  if (spec.kind === "race") return scoreRace(samples, spec);
-  
-  const pts = getSeriesForStats(samples);
-  const work = (intervals || []).filter(x => isFinite(x.t0) && isFinite(x.t1) && x.t1 > x.t0)
-  .sort((a,b)=>a.t0-b.t0);
-  
-  if (!pts.length){
-    return { score: 30, reasons:["Données insuffisantes pour recalculer."], notes:["Réessaie avec un GPX plus complet."], intervals: work };
-  }
-  if (!work.length){
-    return { score: 20, reasons:["Aucun bloc de travail défini (auto + manuel)."], notes:["Ajoute des blocs gris puis sauvegarde."], intervals: work };
-  }
-  
-  const stats = work.map(it => ({ it, ...intervalStats(pts, it) })).filter(x => x.avgPace!=null);
-  
-  if (spec.kind === "interval_time"){
-    const expected = spec.sets * spec.repsPerSet;
-    const durTol = 12;
-    const inDur = stats.filter(s => Math.abs(s.durSec - spec.repFastSec) <= durTol).length;
-    const inPace = stats.filter(s => Math.abs(s.avgPace - spec.paceTarget) <= spec.paceTol).length;
-    
-    const qtyScore = 55 * Math.min(1, stats.length / Math.max(1,expected));
-    const durScore = 20 * (inDur / Math.max(1, stats.length));
-    const paceScore = 25 * (inPace / Math.max(1, stats.length));
-    const score = Math.round(clamp(qtyScore + durScore + paceScore, 0, 100));
-    
-    const paces = stats.map(s=>s.avgPace);
-    const mm = minmax(paces);
-    const avgP = mean(paces);
-  
-    const reasons = [
-    `Blocs rapides : ${stats.length}/${expected}.`,
-    `Durée cible : ${spec.repFastSec}s (dans cible : ${inDur}/${stats.length}).`,
-    `Allure cible : ${fmtPaceTarget(spec.paceTarget, spec.paceTol)} (dans cible : ${inPace}/${stats.length}).`,
-    `Allure blocs : moy ${paceStr(avgP)}/km (min ${paceStr(mm.min)}, max ${paceStr(mm.max)}).`
-    ];
-    const notes = [];
-    if (stats.length < expected) notes.push(`Ajoute des blocs (actuel ${stats.length}/${expected}).`);
-    return { score, reasons, notes, intervals: work };
-  }
-  
-  if (spec.kind === "interval_dist"){
-    const expected = spec.reps;
-    const distTol = Math.max(25, Math.round(spec.repDistM * 0.12));
-    const okDist = stats.filter(s => s.distM != null && Math.abs(s.distM - spec.repDistM) <= distTol).length;
-    const okPace = stats.filter(s => Math.abs(s.avgPace - spec.paceTarget) <= spec.paceTol).length;
-    
-    const qtyScore = 60 * Math.min(1, stats.length / Math.max(1,expected));
-    const distScore = 15 * (okDist / Math.max(1, stats.length));
-    const paceScore = 25 * (okPace / Math.max(1, stats.length));
-    const score = Math.round(clamp(qtyScore + distScore + paceScore, 0, 100));
-    
-    const paces = stats.map(s=>s.avgPace);
-    const mm = minmax(paces);
-    const avgP = mean(paces);
-  
-    const reasons = [
-    `Blocs 400m (manuels + auto) : ${stats.length}/${expected}.`,
-    `Distance cible : ${spec.repDistM}m (tol ±${distTol}m : ${okDist}/${stats.length}).`,
-    `Allure cible : ${fmtPaceTarget(spec.paceTarget, spec.paceTol)} (dans cible : ${okPace}/${stats.length}).`,
-    `Allure blocs : moy ${paceStr(avgP)}/km (min ${paceStr(mm.min)}, max ${paceStr(mm.max)}).`
-    ];
-    const notes = [];
-    if (stats.length < expected) notes.push(`Ajoute des blocs (actuel ${stats.length}/${expected}).`);
-    return { score, reasons, notes, intervals: work };
-  }
-  
-  if (spec.kind === "tempo_time"){
-    const expected = spec.reps;
-    const repSec = spec.repMin * 60;
-    const durTol = Math.max(45, Math.round(repSec * 0.2));
-    const okDur = stats.filter(s => Math.abs(s.durSec - repSec) <= durTol).length;
-    const okPace = stats.filter(s => Math.abs(s.avgPace - spec.paceTarget) <= spec.paceTol).length;
-    
-    const qtyScore = 60 * Math.min(1, stats.length / Math.max(1,expected));
-    const durScore = 15 * (okDur / Math.max(1, stats.length));
-    const paceScore = 25 * (okPace / Math.max(1, stats.length));
-    const score = Math.round(clamp(qtyScore + durScore + paceScore, 0, 100));
-    
-    const paces = stats.map(s=>s.avgPace);
-    const mm = minmax(paces);
-    const avgP = mean(paces);
-  
-    const reasons = [
-    `Blocs tempo (manuels + auto) : ${stats.length}/${expected}.`,
-    `Durée cible : ${spec.repMin} min (tol ±${Math.round(durTol)}s : ${okDur}/${stats.length}).`,
-    `Allure cible : ${fmtPaceTarget(spec.paceTarget, spec.paceTol)} (dans cible : ${okPace}/${stats.length}).`,
-    `Allure blocs : moy ${paceStr(avgP)}/km (min ${paceStr(mm.min)}, max ${paceStr(mm.max)}).`
-    ];
-    const notes = [];
-    if (stats.length < expected) notes.push(`Ajoute des blocs (actuel ${stats.length}/${expected}).`);
-    if (okDur < stats.length) notes.push(`Certaines durées de blocs sont atypiques (cible ${spec.repMin} min).`);
-    if (okPace < stats.length) notes.push(`Certaines allures de blocs sont hors cible.`);
-    return { score, reasons, notes, intervals: work };
-  }
-  
-  // ✅ support manuel pour les côtes
-  if (spec.kind === "hill_reps"){
-    const expected = spec.reps || 10;
-    const repSec = spec.repSec || 45;
-    const durTol = Math.max(10, Math.round(repSec * 0.25));
-    const okDur = stats.filter(s => Math.abs(s.durSec - repSec) <= durTol).length;
-    
-    const qtyScore = 70 * Math.min(1, stats.length / Math.max(1, expected));
-    const durScore = 30 * (okDur / Math.max(1, stats.length));
-    const score = Math.round(clamp(qtyScore + durScore, 0, 100));
-  
-    const reasons = [
-    `Blocs côtes (manuels + auto) : ${stats.length}/${expected}.`,
-    `Durée cible : ${repSec}s (tol ±${durTol}s : ${okDur}/${stats.length}).`
-    ];
-    const notes = [];
-    if (stats.length < expected) notes.push(`Ajoute des blocs (actuel ${stats.length}/${expected}).`);
-    if (okDur < stats.length) notes.push(`Certaines durées de blocs sont atypiques.`);
-    return { score, reasons, notes, intervals: work };
-  }
-  
-  return { score: 40, reasons:[`Type non supporté pour recalcul sur blocs (${spec?.kind || "sans kind"}).`], notes:[], intervals: work };
-}
-*/
   // ===== Rendering plan + stats =====
 
   function buildReasonsCompactHTML(workout){
@@ -2654,6 +2602,14 @@ function renderPlan(){
 
       const sec = document.createElement("div");
       sec.className = "session";
+      // patch pente du 09/03
+      const slopeMini = (workout?.compliance &&
+            isFinite(workout.compliance.slopeMin) &&
+            isFinite(workout.compliance.slopeAvg) &&
+            isFinite(workout.compliance.slopeMax))
+            ? `<div class="mini">⛰️ Pente blocs : min ${workout.compliance.slopeMin.toFixed(1)}% • moy ${workout.compliance.slopeAvg.toFixed(1)}% • max ${workout.compliance.slopeMax.toFixed(1)}%</div>`
+            : "";
+      // patch pente fin
       sec.innerHTML = `
         <div class="s-title">${dayName} ${badge1} ${badge2}</div>
         <label class="cb">
@@ -2661,7 +2617,7 @@ function renderPlan(){
           <span>${textHTML}</span>
         </label>
         ${workout
-          ? `<div class="mini">Importé le ${workout.dateStr} • Durée ${workout.durationStr} • Réf: ${workout.compliance?.specLabel || "-"}</div>
+          ? `<div class="mini">Importé le ${workout.dateStr} • Durée ${workout.durationStr} • Réf: ${workout.compliance?.specLabel || "-"} • Pentes ${slopeMini}</div>
              ${workout.compliance?.manualAdjusted ? `<div class="mini">✍️ Blocs ajustés manuellement (score recalculé)</div>` : ``}
              ${reasonsCompact}`
           : `<div class="mini"></div>`
@@ -3154,6 +3110,9 @@ saveManualBtn.addEventListener("click", () => {
   
   // recompute score/reasons from merged blocks
   const newRes = recomputeFromIntervals(modalState.samples, modalState.spec, merged);
+  // patch pente du 09/03
+  const slopeInfo = slopeSummaryForIntervals(modalState.samples, merged);
+  // patch pente fin
   const v = verdictFromScore(newRes.score);
   const badgeClass = verdictBadgeClass(v.cls);
   
@@ -3167,6 +3126,11 @@ saveManualBtn.addEventListener("click", () => {
     data.workouts[idx].compliance.notes = newRes.notes || [];
     data.workouts[idx].compliance.intervals = merged;
     data.workouts[idx].compliance.manualAdjusted = true; // ✅ seulement si dirty
+    // patch pente du 09/03
+    data.workouts[idx].compliance.slopeMin = slopeInfo?.min ?? null;
+    data.workouts[idx].compliance.slopeAvg = slopeInfo?.avg ?? null;
+    data.workouts[idx].compliance.slopeMax = slopeInfo?.max ?? null;
+    // patch pente fin
     saveData();
   }
   
@@ -3196,9 +3160,23 @@ saveManualBtn.addEventListener("click", () => {
     const reasons = modalState.reasons || [];
     const notes = modalState.notes || [];
     const verdictBadge = `<span class="badge ${modalState.badgeClass}">${modalState.verdict} • ${modalState.score}/100</span>`;
+    // patch pente du 09/03
+    const slopeLines = slopeLinesForIntervals(modalState?.samples, modalState?.intervals || []);
+    const slopesHTML = slopeLines.length
+      ? `<div class="mini" style="margin-top:6px">
+        ${slopeLines.map(x =>
+          `Bloc ${x.index}: ${x.durSec}s` +
+          (x.slope != null ? ` • ${x.slope.toFixed(1)}%` : ` • pente n.d.`)
+        ).join("<br>")}
+      </div>`
+      : "";
+    // patch pente fin
     analysisSummary.innerHTML = `${verdictBadge}
       <div class="mini" style="margin-top:8px;"><b>Raisons :</b></div>
       <ul class="reasonsInline">${reasons.slice(0,12).map(r=>`<li>${r}</li>`).join("")}</ul>
+      // patch pente du 09/03
+      ${slopesHTML}
+      // patch pente fin
       ${notes.length ? `<div class="mini" style="margin-top:8px;"><b>Conseils :</b> ${notes.join(" ")}</div>` : ""}`;
 
     manualHint.textContent = `Blocs manuels : ${manualIntervals.length}` + (pendingClickT ? " (début posé)" : "");
@@ -3320,6 +3298,9 @@ saveManualBtn.addEventListener("click", () => {
 
       console.log(spec);
       const evalRes = evaluateCompliance(lastParsedWorkout._samples, spec);
+      // patch pente du 09/03
+      const slopeInfo = slopeSummaryForIntervals(lastParsedWorkout._samples, evalRes.intervals || []);
+      
       const badgeClass = verdictBadgeClass(evalRes.verdictClass);
 
       const workoutStored = {
@@ -3340,6 +3321,11 @@ saveManualBtn.addEventListener("click", () => {
           reasons: evalRes.reasons || [],
           notes: evalRes.notes || [],
           intervals: evalRes.intervals || [],
+          // patch pente du 09/03
+          slopeMin: slopeInfo?.min ?? null,
+          slopeAvg: slopeInfo?.avg ?? null,
+          slopeMax: slopeInfo?.max ?? null,
+          // patch pente fin
           manualAdjusted: false
         }
       };
