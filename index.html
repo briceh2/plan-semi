@@ -1890,11 +1890,6 @@ function scoreHillReps(samples, spec){
     
     const ctxMean = mean(before.concat(after));
     const contrast = ctxMean - paceMean;
-
-    // patch du 08/03
-    const sinceStartSec = (t0 - pts[0].tMs) / 1000;
-    // ✅ pénalité forte si trop tôt dans la séance
-    if (sinceStartSec < 10 * 60) continue;
     
     if (contrast < (contrastMin * 0.6)) continue;
     /*
