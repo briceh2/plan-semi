@@ -1868,7 +1868,7 @@ function std(arr){
   const stepSec = 5;
   const guardSec = 20;
   const contextSec = 25;
-  const warmupIgnoreSec = 12 * 60; // ✅ ignore les 12 premières minutes
+  const warmupIgnoreSec = 5 * 60; // ✅ ignore les 5 premières minutes
   const candidates = [];
   const tStart = pts[0].tMs + Math.max(guardSec, warmupIgnoreSec) * 1000;
   const tEnd = pts[pts.length-1].tMs - guardSec*1000;
@@ -1914,17 +1914,17 @@ function std(arr){
     
     // proximité de la durée cible 45s
     const durErr = Math.abs(durSec - repSec);
-    const durScore = clamp01(1 - (durErr / 15)); // 0 si écart >= 15s
+    const durScore = clamp01(1 - (durErr / 10)); // 0 si écart >= 10s
     
     // vitesse : normalisée par rapport à une plage plausible de côtes
     const speedScore = clamp01((speedKmh - 10.5) / 4.0);
     
     // score global : priorité vitesse + durée, puis contraste/stabilité
     const rank =
-    0.38 * speedScore +
-    0.34 * durScore +
-    0.18 * contrastScore +
-    0.10 * stabScore;
+      0.48 * speedScore +
+      0.32 * durScore +
+      0.12 * contrastScore +
+      0.08 * stabScore;
     
     candidates.push({
       t0, t1,
@@ -1957,14 +1957,22 @@ function std(arr){
     return db - da;
   });
   */
+
+  // patch du 09/03
+  // Elimine les blocs trop lent
+  if (candidates.length){
+    const maxSpeed = Math.max(...candidates.map(c => c.speedKmh));
+    candidates = candidates.filter(c => c.speedKmh >= maxSpeed - 1.2);
+  }
+
   candidates.sort((a,b) => b.rank - a.rank);
   
   const picked = [];
   const minGapSec = Math.max(25, Math.round(repSec * 0.5));
   for (const c of candidates){
-  if (picked.length >= expected) break;
-  const overlap = picked.some(p => !(c.t1 <= (p.t0 - minGapSec*1000) || c.t0 >= (p.t1 + minGapSec*1000)));
-  if (!overlap) picked.push(c);
+    if (picked.length >= expected) break;
+    const overlap = picked.some(p => !(c.t1 <= (p.t0 - minGapSec*1000) || c.t0 >= (p.t1 + minGapSec*1000)));
+    if (!overlap) picked.push(c);
   }
   picked.sort((a,b)=>a.t0-b.t0);
 
