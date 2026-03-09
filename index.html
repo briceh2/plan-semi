@@ -1891,7 +1891,7 @@ function scoreHillReps(samples, spec){
     const ctxMean = mean(before.concat(after));
     const contrast = ctxMean - paceMean;
     
-    if (contrast < (contrastMin * 0.6)) continue;
+    if (contrast < (contrastMin * 0.8)) continue;
     /*
     const contrastScore = clamp01(contrast / Math.max(1, contrastMin));
     const stdTol = 22;
