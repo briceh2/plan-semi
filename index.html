@@ -818,7 +818,7 @@ function sessionsForWeek(w){
       const timeEl = p.getElementsByTagName("time")[0];
       const tMs = timeEl ? Date.parse(timeEl.textContent.trim()) : null;
       if (isFinite(lat) && isFinite(lon) && typeof tMs === "number" && !Number.isNaN(tMs)){
-        // patch pente du 09/03
+        // patch pente du 09/03 821
         const eleEl = p.getElementsByTagName("ele")[0];
         const eleM = eleEl ? toNum(eleEl.textContent.trim()) : null;
         
@@ -2063,7 +2063,7 @@ function evaluateCompliance(samples, spec){
     return a.distM + frac * (b.distM - a.distM);
   }
 
-  // patch pente du 09/03
+  // patch pente du 09/03 2066
   function interpolateFieldAt(samples, tMs, field){
     if (!samples || !samples.length) return null;
     if (tMs <= samples[0].tMs) return samples[0][field] ?? null;
@@ -2602,7 +2602,7 @@ function renderPlan(){
 
       const sec = document.createElement("div");
       sec.className = "session";
-      // patch pente du 09/03
+      // patch pente du 09/03 2605
       const slopeMini = (workout?.compliance &&
             isFinite(workout.compliance.slopeMin) &&
             isFinite(workout.compliance.slopeAvg) &&
@@ -3110,7 +3110,7 @@ saveManualBtn.addEventListener("click", () => {
   
   // recompute score/reasons from merged blocks
   const newRes = recomputeFromIntervals(modalState.samples, modalState.spec, merged);
-  // patch pente du 09/03
+  // patch pente du 09/03 3113
   const slopeInfo = slopeSummaryForIntervals(modalState.samples, merged);
   // patch pente fin
   const v = verdictFromScore(newRes.score);
@@ -3126,7 +3126,7 @@ saveManualBtn.addEventListener("click", () => {
     data.workouts[idx].compliance.notes = newRes.notes || [];
     data.workouts[idx].compliance.intervals = merged;
     data.workouts[idx].compliance.manualAdjusted = true; // ✅ seulement si dirty
-    // patch pente du 09/03
+    // patch pente du 09/03 3129
     data.workouts[idx].compliance.slopeMin = slopeInfo?.min ?? null;
     data.workouts[idx].compliance.slopeAvg = slopeInfo?.avg ?? null;
     data.workouts[idx].compliance.slopeMax = slopeInfo?.max ?? null;
@@ -3160,7 +3160,7 @@ saveManualBtn.addEventListener("click", () => {
     const reasons = modalState.reasons || [];
     const notes = modalState.notes || [];
     const verdictBadge = `<span class="badge ${modalState.badgeClass}">${modalState.verdict} • ${modalState.score}/100</span>`;
-    // patch pente du 09/03
+    // patch pente du 09/03 3163
     const slopeLines = slopeLinesForIntervals(modalState?.samples, modalState?.intervals || []);
     const slopesHTML = slopeLines.length
       ? `<div class="mini" style="margin-top:6px">
@@ -3296,7 +3296,7 @@ saveManualBtn.addEventListener("click", () => {
 
       console.log(spec);
       const evalRes = evaluateCompliance(lastParsedWorkout._samples, spec);
-      // patch pente du 09/03
+      // patch pente du 09/03 3299
       const slopeInfo = slopeSummaryForIntervals(lastParsedWorkout._samples, evalRes.intervals || []);
       
       const badgeClass = verdictBadgeClass(evalRes.verdictClass);
@@ -3319,7 +3319,7 @@ saveManualBtn.addEventListener("click", () => {
           reasons: evalRes.reasons || [],
           notes: evalRes.notes || [],
           intervals: evalRes.intervals || [],
-          // patch pente du 09/03
+          // patch pente du 09/03 3322
           slopeMin: slopeInfo?.min ?? null,
           slopeAvg: slopeInfo?.avg ?? null,
           slopeMax: slopeInfo?.max ?? null,
