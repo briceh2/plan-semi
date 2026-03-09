@@ -758,11 +758,19 @@ function sessionsForWeek(w){
   function computeDistanceTimeArrays(points){
     let distM = 0;
     const samples = [];
-    samples.push({ tMs: points[0].tMs, distM: 0 });
+    samples.push({ 
+      tMs: points[0].tMs, 
+      distM: 0,
+      eleM: isFinite(points[0].eleM) ? points[0].eleM : null
+    });
     for (let i=1;i<points.length;i++){
       const d = haversine(points[i-1].lat, points[i-1].lon, points[i].lat, points[i].lon);
       distM += d;
-      samples.push({ tMs: points[i].tMs, distM });
+      samples.push({ 
+        tMs: points[i].tMs, 
+        distM,
+        eleM: isFinite(points[i].eleM) ? points[i].eleM : null
+      });
     }
     return { distM, samples };
   }
@@ -817,10 +825,11 @@ function sessionsForWeek(w){
       const lon = toNum(p.getAttribute("lon"));
       const timeEl = p.getElementsByTagName("time")[0];
       const tMs = timeEl ? Date.parse(timeEl.textContent.trim()) : null;
+      // patch pente du 09/03 821
+      const eleEl = p.getElementsByTagName("ele")[0];
+      const eleM = eleEl ? toNum(eleEl.textContent.trim()) : null;
+      
       if (isFinite(lat) && isFinite(lon) && typeof tMs === "number" && !Number.isNaN(tMs)){
-        // patch pente du 09/03 821
-        const eleEl = p.getElementsByTagName("ele")[0];
-        const eleM = eleEl ? toNum(eleEl.textContent.trim()) : null;
         
         points.push({
           lat,
@@ -2928,6 +2937,14 @@ function renderPlan(){
     try {
       const text = await file.text();
       const parsed = parseGPX(text);
+
+      alert(
+        "DEBUG parse altitude\n" +
+        "samples = " + parsed._samples.length + "\n" +
+        "ele first = " + parsed._samples[0].eleM + "\n" +
+        "ele last = " + parsed._samples[parsed._samples.length-1].eleM + "\n"
+        );
+      
       lastParsedWorkout = { id: "w_" + Date.now(), sourceName: file.name, ...parsed };
       renderParsedWorkout(lastParsedWorkout);
       attachBtn.disabled = false;
