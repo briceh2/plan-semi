@@ -3174,9 +3174,7 @@ saveManualBtn.addEventListener("click", () => {
     analysisSummary.innerHTML = `${verdictBadge}
       <div class="mini" style="margin-top:8px;"><b>Raisons :</b></div>
       <ul class="reasonsInline">${reasons.slice(0,12).map(r=>`<li>${r}</li>`).join("")}</ul>
-      // patch pente du 09/03
       ${slopesHTML}
-      // patch pente fin
       ${notes.length ? `<div class="mini" style="margin-top:8px;"><b>Conseils :</b> ${notes.join(" ")}</div>` : ""}`;
 
     manualHint.textContent = `Blocs manuels : ${manualIntervals.length}` + (pendingClickT ? " (début posé)" : "");
