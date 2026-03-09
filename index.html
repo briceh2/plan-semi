@@ -1840,20 +1840,20 @@ function normalizeSpecKind(spec){
 }
 
 function scoreHillReps(samples, spec){
-const expected = spec.reps || 10;
-const repSec = spec.repSec || 45;
-const contrastMin = spec.contrastMin ?? 12;
-
-const pts = smoothPace(buildPaceSeries(samples), 6);
-if (!pts.length){
-return { score: 30, reasons:["Données insuffisantes."], notes:[], intervals:[] };
-}
-
-function std(arr){
-  if (!arr.length) return 0;
-  const m = arr.reduce((a,x)=>a+x,0)/arr.length;
-  const v = arr.reduce((a,x)=>a+(x-m)*(x-m),0)/arr.length;
-  return Math.sqrt(v);
+  const expected = spec.reps || 10;
+  const repSec = spec.repSec || 45;
+  const contrastMin = spec.contrastMin ?? 12;
+  
+  const pts = smoothPace(buildPaceSeries(samples), 6);
+  if (!pts.length){
+    return { score: 30, reasons:["Données insuffisantes."], notes:[], intervals:[] };
+  }
+  
+  function std(arr){
+    if (!arr.length) return 0;
+    const m = arr.reduce((a,x)=>a+x,0)/arr.length;
+    const v = arr.reduce((a,x)=>a+(x-m)*(x-m),0)/arr.length;
+    return Math.sqrt(v);
   }
   function clamp01(x){ return Math.max(0, Math.min(1, x)); }
   /*
@@ -1869,7 +1869,7 @@ function std(arr){
   const guardSec = 20;
   const contextSec = 25;
   const warmupIgnoreSec = 5 * 60; // ✅ ignore les 5 premières minutes
-  const candidates = [];
+  let candidates = [];
   const tStart = pts[0].tMs + Math.max(guardSec, warmupIgnoreSec) * 1000;
   const tEnd = pts[pts.length-1].tMs - guardSec*1000;
   
