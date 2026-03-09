@@ -3152,6 +3152,9 @@ saveManualBtn.addEventListener("click", () => {
   
 
   function renderModal(){
+    // DEBUG
+    alert("DEBUG renderModal (début)\n");
+    
     if (!modalState) return;
 
     analysisTitle.textContent = `Analyse séance • ${modalState.specLabel}`;
@@ -3250,6 +3253,8 @@ saveManualBtn.addEventListener("click", () => {
         ctx.lineTo(bounds.x0 + bounds.w, yp);
         ctx.stroke();
       }
+      // DEBUG
+      alert("DEBUG renderModal (fin)\n");
     }
 
     // Curve
