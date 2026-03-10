@@ -1935,9 +1935,9 @@ function scoreHillReps(samples, spec){
     
     // score global : priorité vitesse + durée, puis contraste/stabilité
     const rank =
-      0.48 * speedScore +
+      0.58 * speedScore +
       0.32 * durScore +
-      0.2 * contrastScore +
+      0.1 * contrastScore +
       0.0 * stabScore;
     
     candidates.push({
