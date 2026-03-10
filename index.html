@@ -1911,34 +1911,8 @@ function scoreHillReps(samples, spec){
     const contrast = ctxMean - paceMean;
     
     if (contrast < (contrastMin * 0.8)) continue;
-    /*
-    const contrastScore = clamp01(contrast / Math.max(1, contrastMin));
-    const stdTol = 22;
-    const stabScore = clamp01(1 - (paceStd / stdTol));
-    const score = 0.8*contrastScore + 0.2*stabScore;
-    candidates.push({ t0, t1, score, paceMean, paceStd, contrast });
-    */
-    // patch du 09/03 pour meilleure détection des 10x45s
     const durSec = (t1 - t0) / 1000;
     const speedKmh = 3600 / paceMean; // plus rapide = plus grand
-    
-    const contrastScore = clamp01(contrast / Math.max(1, contrastMin));
-    const stdTol = 22;
-    const stabScore = clamp01(1 - (paceStd / stdTol));
-    
-    // proximité de la durée cible 45s
-    const durErr = Math.abs(durSec - repSec);
-    const durScore = clamp01(1 - (durErr / 10)); // 0 si écart >= 10s
-    
-    // vitesse : normalisée par rapport à une plage plausible de côtes
-    const speedScore = clamp01((speedKmh - 10.5) / 4.0);
-    
-    // score global : priorité vitesse + durée, puis contraste/stabilité
-    const rank =
-      0.58 * speedScore +
-      0.32 * durScore +
-      0.1 * contrastScore +
-      0.0 * stabScore;
     
     candidates.push({
       t0, t1,
@@ -1946,8 +1920,7 @@ function scoreHillReps(samples, spec){
       paceMean,
       paceStd,
       speedKmh,
-      contrast,
-      rank
+      contrast
       });
   }
 
@@ -1963,6 +1936,58 @@ function scoreHillReps(samples, spec){
     };
   }
 
+  / ==============================
+  // Normalisation globale candidats
+  // ==============================
+  function minMaxNorm(value, minV, maxV){
+    if (!isFinite(value) || !isFinite(minV) || !isFinite(maxV)) return 0;
+    if (maxV <= minV) return 1;
+    return (value - minV) / (maxV - minV);
+  }
+  
+  const speeds = candidates.map(c => c.speedKmh).filter(Number.isFinite);
+  const contrasts = candidates.map(c => c.contrast).filter(Number.isFinite);
+  const stabs = candidates.map(c => c.paceStd).filter(Number.isFinite);
+  const durErrs = candidates.map(c => Math.abs(c.durSec - repSec)).filter(Number.isFinite);
+  
+  const minSpeed = Math.min(...speeds);
+  const maxSpeed = Math.max(...speeds);
+  
+  const minContrast = Math.min(...contrasts);
+  const maxContrast = Math.max(...contrasts);
+  
+  const minStab = Math.min(...stabs);
+  const maxStab = Math.max(...stabs);
+  
+  const minDurErr = Math.min(...durErrs);
+  const maxDurErr = Math.max(...durErrs);
+  
+  // On enrichit chaque candidat avec des scores normalisés
+  for (const c of candidates){
+    const durErr = Math.abs(c.durSec - repSec);
+    
+    // plus grand = mieux
+    c.speedNorm = minMaxNorm(c.speedKmh, minSpeed, maxSpeed);
+    c.contrastNorm = minMaxNorm(c.contrast, minContrast, maxContrast);
+    
+    // plus petit = mieux → on inverse
+    c.stabilityNorm = 1 - minMaxNorm(c.paceStd, minStab, maxStab);
+    c.durationNorm = 1 - minMaxNorm(durErr, minDurErr, maxDurErr);
+    
+    // garde-fous
+    c.speedNorm = clamp01(c.speedNorm);
+    c.contrastNorm = clamp01(c.contrastNorm);
+    c.stabilityNorm = clamp01(c.stabilityNorm);
+    c.durationNorm = clamp01(c.durationNorm);
+    
+    // rank final
+    c.rank =
+      0.35 * c.speedNorm +
+      0.35 * c.durationNorm +
+      0.20 * c.contrastNorm +
+      0.10 * c.stabilityNorm;
+  }
+  
   // patch du 09/03
   // Elimine les blocs trop lent
   let filteredCandidates = candidates;
@@ -2011,6 +2036,13 @@ function scoreHillReps(samples, spec){
     "Blocs retenus (durée/vitesse) : " +
     picked.map(x => `${Math.round(x.durSec)}s @ ${x.speedKmh.toFixed(1)} km/h`).join(" • ")
   );
+  reasons.push(
+    "Norms : " + 
+    picked.map(c =>
+      `v=${c.speedNorm.toFixed(2)}, d=${c.durationNorm.toFixed(2)}, c=${c.contrastNorm.toFixed(2)}, s=${c.stabilityNorm.toFixed(2)}`
+               ).join(" | ")
+  );
+
   const notes = [];
   if (picked.length < expected) notes.push(`Répétitions manquantes : ${expected - picked.length}.`);
   if (weak) notes.push("Ralentir davantage la récup pour mieux séparer les blocs.");
