@@ -1936,6 +1936,11 @@ function scoreHillReps(samples, spec){
     };
   }
 
+  alert(
+          "DEBUG scoreHillReps (line 1940)\n" +
+          "candidates = " + candidates.length
+          );
+
   / ==============================
   // Normalisation globale candidats
   // ==============================
@@ -1988,6 +1993,11 @@ function scoreHillReps(samples, spec){
       0.10 * c.stabilityNorm;
   }
   
+  alert(
+          "DEBUG scoreHillReps (line 1997)\n" +
+          "candidates = " + candidates.length
+          );
+  
   // patch du 09/03
   // Elimine les blocs trop lent
   let filteredCandidates = candidates;
@@ -1996,6 +2006,11 @@ function scoreHillReps(samples, spec){
     const maxSpeed = Math.max(...filteredCandidates.map(c => c.speedKmh));
     filteredCandidates = filteredCandidates.filter(c => c.speedKmh >= maxSpeed - 1.4);
   }
+
+    alert(
+          "DEBUG scoreHillReps (line 2011)\n" +
+          "candidates = " + filteredCandidates.length
+          );
 
   filteredCandidates.sort((a,b) => b.rank - a.rank);
 
