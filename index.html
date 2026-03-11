@@ -2049,14 +2049,8 @@ function scoreHillReps(samples, spec){
     "Blocs retenus (durée/vitesse) : " +
     picked.map(x => `${Math.round(x.durSec)}s @ ${x.speedKmh.toFixed(1)} km/h`).join(" • ")
   );
-  /*
-  reasons.push(
-    "Norms : " + 
-    picked.map(c =>
-      `v=${c.speedNorm.toFixed(2)}, d=${c.durationNorm.toFixed(2)}, c=${c.contrastNorm.toFixed(2)}, s=${c.stabilityNorm.toFixed(2)}`
-               ).join(" | ")
-  );
-*/
+  reasons.push(`Score : ${score} = quantité ${qtyScore} + contraste ${contrastScore} + stabilité ${stabScore} - pénalité ${penalty}`);
+
   const notes = [];
   if (picked.length < expected) notes.push(`Répétitions manquantes : ${expected - picked.length}.`);
   if (weak) notes.push("Ralentir davantage la récup pour mieux séparer les blocs.");
