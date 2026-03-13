@@ -3399,20 +3399,19 @@ saveManualBtn.addEventListener("click", () => {
       const workoutStored = {
         id: lastParsedWorkout.id,
         sourceName: lastParsedWorkout.sourceName,
-        /*
         distKm: lastParsedWorkout.distKm,
         durationSec: lastParsedWorkout.durationSec,
         durationStr: lastParsedWorkout.durationStr,
         avgPaceSec: lastParsedWorkout.avgPaceSec,
         avgPaceStr: lastParsedWorkout.avgPaceStr,
-        */
         // patch du 13/03
+        /*
         distKm: Number.isFinite(lastParsedWorkout.distKm) ? lastParsedWorkout.distKm : null,
         durationSec: Number.isFinite(lastParsedWorkout.durationSec) ? lastParsedWorkout.durationSec : null,
         durationStr: lastParsedWorkout.durationStr || "—",
         avgPaceSec: Number.isFinite(lastParsedWorkout.avgPaceSec) ? lastParsedWorkout.avgPaceSec : null,
         avgPaceStr: lastParsedWorkout.avgPaceStr || "—",
-
+        */
         dateStr: lastParsedWorkout.dateStr,
         compliance: {
           score: evalRes.score,
