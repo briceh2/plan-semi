@@ -2604,11 +2604,11 @@ function renderPlan(){
     sessions.forEach(([key, dayName, rawText]) => {
       const workoutId = state.attached[key];
       const workout = workoutId ? data.workouts.find(x => x.id === workoutId) : null;
-/*
+
       const badge1 = workout
         ? `<span class="badge">📎 ${workout.distKm.toFixed(2)} km • ${workout.avgPaceStr}</span>`
         : `<span class="badge">📎 aucune séance importée</span>`;
-*/
+/*
       const distTxt = (workout && Number.isFinite(workout.distKm))
         ? `${workout.distKm.toFixed(2)} km`
         : `distance n.d.`;
@@ -2624,7 +2624,7 @@ function renderPlan(){
       const badge1 = workout
         ? `<span class="badge">📎 ${distTxt} • ${paceTxt}</span>`
         : `<span class="badge">📎 aucune séance importée</span>`;
-      
+      */
       const badge2 = (workout && workout.compliance)
         ? `<span class="badge ${workout.compliance.badgeClass}">${workout.compliance.verdict} • ${workout.compliance.score}/100</span>`
         : "";
@@ -3399,11 +3399,20 @@ saveManualBtn.addEventListener("click", () => {
       const workoutStored = {
         id: lastParsedWorkout.id,
         sourceName: lastParsedWorkout.sourceName,
+        /*
         distKm: lastParsedWorkout.distKm,
         durationSec: lastParsedWorkout.durationSec,
         durationStr: lastParsedWorkout.durationStr,
         avgPaceSec: lastParsedWorkout.avgPaceSec,
         avgPaceStr: lastParsedWorkout.avgPaceStr,
+        */
+        // patch du 13/03
+        distKm: Number.isFinite(lastParsedWorkout.distKm) ? lastParsedWorkout.distKm : null,
+        durationSec: Number.isFinite(lastParsedWorkout.durationSec) ? lastParsedWorkout.durationSec : null,
+        durationStr: lastParsedWorkout.durationStr || "—",
+        avgPaceSec: Number.isFinite(lastParsedWorkout.avgPaceSec) ? lastParsedWorkout.avgPaceSec : null,
+        avgPaceStr: lastParsedWorkout.avgPaceStr || "—",
+
         dateStr: lastParsedWorkout.dateStr,
         compliance: {
           score: evalRes.score,
