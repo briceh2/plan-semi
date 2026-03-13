@@ -305,6 +305,9 @@
 
 <script>
   // afficher les erreurs
+  window.onerror = function(msg, src, line, col){
+    alert("Erreur JS: " + msg + "\nLigne: " + line + ":" + col);
+  };
   /*
   window.onerror = function(msg, src, line, col, err){
     alert(
