@@ -2633,35 +2633,9 @@ function renderPlan(){
 
       // -------- Format séance sur 2 lignes (titre + allure/détail)
       // DEBUG
+      // TEST 16/03
       /*
-      if (w === 5){
-          alert(
-          "DEBUG expectedSpec (line 1904)\n" +
-          "week = " + w + "\n" + 
-          "override = " + attachTypeEl.value
-          );
-      }
-      */
       const spec = expectedSpec(w, key);
-      
-      // DEBUG
-      /*
-      if (w === 4 && key === "tue"){
-        alert("DEBUG S4 mardi kind = " + (spec?.kind ?? "undefined") + " / label = " + (spec?.label ?? "undefined"));
-      }
-       */ 
-      // DEBUG
-      /*
-      if (w === 5){
-        alert(
-          "DEBUG retour expectedSpec (line 1904)\n" +
-          "spec = " + JSON.stringify(spec)
-          "state.spec.kind = " + (state?.spec?.kind ?? "undefined") + "\n" +
-          "state.spec.label = " + (state?.spec?.label ?? "undefined") + "\n" +
-          "state.specLabel = " + (state?.specLabel ?? "undefined")
-          );
-        }
-      */
       const lines = specTitleAndPaceText(spec, rawText);
 
       // Si endurance/long, tenter de récupérer une plage d'allure dans le texte (si tu l'as gardée)
@@ -2674,6 +2648,10 @@ function renderPlan(){
       const textHTML = `
         <div>${lines.line1}</div>
         ${line2 ? `<div class="mini">${line2}</div>` : ``}
+      `;
+      */
+      const textHTML = `
+        <div>${rawText || ""}</div>
       `;
 
       const sec = document.createElement("div");
