@@ -2638,8 +2638,6 @@ function renderPlan(){
 
       // -------- Format séance sur 2 lignes (titre + allure/détail)
 
-      // TEST 16/03
-      /*
       const spec = expectedSpec(w, key);
       const lines = specTitleAndPaceText(spec, rawText);
 
@@ -2654,25 +2652,16 @@ function renderPlan(){
         <div>${lines.line1}</div>
         ${line2 ? `<div class="mini">${line2}</div>` : ``}
       `;
-      */
-      const textHTML = `
-        <div>${rawText || ""}</div>
-      `;
 
       const sec = document.createElement("div");
       sec.className = "session";
-      // patch pente du 09/03 2605
-      // TEST 16/03
-      /*
+      // construction affichage de la pente
       const slopeMini = (workout?.compliance &&
             isFinite(workout.compliance.slopeMin) &&
             isFinite(workout.compliance.slopeAvg) &&
             isFinite(workout.compliance.slopeMax))
             ? `<div class="mini">⛰️ Pente blocs : min ${workout.compliance.slopeMin.toFixed(1)}% • moy ${workout.compliance.slopeAvg.toFixed(1)}% • max ${workout.compliance.slopeMax.toFixed(1)}%</div>`
             : "";
-            */
-      const slopeMini = "";
-      // patch pente fin
       
       sec.innerHTML = `
         <div class="s-title">${dayName} ${badge1} ${badge2}</div>
