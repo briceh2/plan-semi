@@ -1771,30 +1771,10 @@ function score400m(samples, spec){
   const intervals = picked.map(b => ({ t0:b.t0, t1:b.t1, kind:"work" }));
   return { score, reasons, notes, intervals };
 }
-  /*
-  function scoreEndurance(samples, spec){
-    const durSec = (samples[samples.length-1].tMs - samples[0].tMs)/1000;
-    const distKm = samples[samples.length-1].distM / 1000;
-    const avgPace = durSec / Math.max(0.01, distKm);
-    let score = 60;
-    const reasons = [];
-    const notes = [];
-    if (spec.minMin){
-      const minSec = spec.minMin * 60;
-      reasons.push(`Durée : ${durationStr(durSec)} (attendu ≥ ${spec.minMin} min).`);
-      if (durSec >= minSec) score += 25;
-      else { score -= 20; notes.push(`Durée trop courte : ${Math.round(durSec/60)} min.`); }
-    } else reasons.push(`Durée : ${durationStr(durSec)}.`);
-    const fastThr = 320;
-    reasons.push(`Allure moyenne : ${paceStr(avgPace)}/km.`);
-    if (avgPace < fastThr) { score -= 15; notes.push("Allure moyenne rapide pour une endurance."); }
-    else score += 5;
-    return { score: clamp(score,0,100), reasons, notes, intervals:[] };
-  }
-*/
+  //   function scoreEndurance(samples, spec)
   function scoreEndurance(samples, spec){
     const pts = smoothPace(buildPaceSeries(samples), 10);
-    if (!pts.length){
+      if (!pts.length){
       return { score: 30, reasons:["Données insuffisantes."], notes:[], intervals:[] };
     }
     
@@ -1803,64 +1783,101 @@ function score400m(samples, spec){
     }
     
     const totalSec = (pts[pts.length - 1].tMs - pts[0].tMs) / 1000;
-      if (totalSec < 20 * 60){
-      return { score: 40, reasons:["Séance trop courte pour détecter un bloc d’endurance central."], notes:[], intervals:[] };
+    if (totalSec < 20 * 60){
+      return {
+        score: 40,
+        reasons:["Séance trop courte pour détecter un bloc d’endurance central."],
+        notes:[],
+        intervals:[]
+      };
     }
     
-    // 1) fenêtre centrale de 30 min
+    // 1) fenêtre centrale de référence
     const centerWindowSec = Math.min(30 * 60, Math.round(totalSec * 0.7));
     const midT = (pts[0].tMs + pts[pts.length - 1].tMs) / 2;
     const winStart = midT - (centerWindowSec * 1000) / 2;
     const winEnd = midT + (centerWindowSec * 1000) / 2;
     
-    const centerPts = pts.filter(p => p.tMs >= winStart && p.tMs <= winEnd && Number.isFinite(p.pace));
+    const centerPts = pts.filter(
+      p => p.tMs >= winStart && p.tMs <= winEnd && Number.isFinite(p.pace)
+    );
+    
     if (!centerPts.length){
-      return { score: 40, reasons:["Impossible de calculer la vitesse centrale."], notes:[], intervals:[] };
+      return {
+        score: 40,
+        reasons:["Impossible de calculer la vitesse centrale."],
+        notes:[],
+        intervals:[]
+      };
     }
     
     // 2) vitesse moyenne centrale
     const centerSpeeds = centerPts.map(p => paceToKmh(p.pace)).filter(Number.isFinite);
     const vRef = mean(centerSpeeds);
     
-    // 3) bande de stabilité autour de la vitesse centrale
-    const tolKmh = 2.5;
+    // 3) bande de stabilité
+    const tolKmh = 1.2;
     const vMin = vRef - tolKmh;
     const vMax = vRef + tolKmh;
     
-    // 4) on cherche le plus long bloc continu dans cette bande
     const tagged = pts
     .map(p => ({ ...p, kmh: paceToKmh(p.pace) }))
     .filter(p => Number.isFinite(p.kmh));
     
+    // 4) détection du plus long bloc avec tolérance de rupture
     let best = null;
     let cur = null;
+    
+    const breakToleranceSec = 20;
+    let breakStart = null;
     
     for (let i = 0; i < tagged.length; i++){
       const p = tagged[i];
       const inside = p.kmh >= vMin && p.kmh <= vMax;
       
       if (inside){
-        if (!cur){
-          cur = { t0: p.tMs, t1: p.tMs, vals: [p.pace], speeds: [p.kmh] };
-        } else {
-          cur.t1 = p.tMs;
-          cur.vals.push(p.pace);
-          cur.speeds.push(p.kmh);
-        }
+      if (!cur){
+      cur = {
+      t0: p.tMs,
+      t1: p.tMs,
+      vals: [p.pace],
+      speeds: [p.kmh]
+      };
+      } else {
+      cur.t1 = p.tMs;
+      cur.vals.push(p.pace);
+      cur.speeds.push(p.kmh);
+      }
+      breakStart = null;
       } else {
         if (cur){
-        cur.durSec = (cur.t1 - cur.t0) / 1000;
-        if (!best || cur.durSec > best.durSec) best = cur;
-        cur = null;
+          if (breakStart == null){
+          breakStart = p.tMs;
+          }
+          
+          const breakDur = (p.tMs - breakStart) / 1000;
+          
+          if (breakDur <= breakToleranceSec){
+            // on garde le bloc ouvert malgré une petite sortie
+            cur.t1 = p.tMs;
+            cur.vals.push(p.pace);
+            cur.speeds.push(p.kmh);
+          } else {
+            cur.durSec = (cur.t1 - cur.t0) / 1000;
+            if (!best || cur.durSec > best.durSec) best = cur;
+            cur = null;
+            breakStart = null;
+          }
         }
       }
     }
+    
     if (cur){
       cur.durSec = (cur.t1 - cur.t0) / 1000;
       if (!best || cur.durSec > best.durSec) best = cur;
     }
     
-    // sécurité : si rien de stable trouvé, on prend la fenêtre centrale
+    // 5) fallback si aucun bloc robuste trouvé
     if (!best || best.durSec < 10 * 60){
       best = {
         t0: winStart,
@@ -1875,7 +1892,7 @@ function score400m(samples, spec){
     const avgSpeed = mean(best.speeds);
     const paceMM = minmax(best.vals);
     
-    // 5) comparaison à la plage cible
+    // 6) comparaison à la plage cible
     let minTarget = null, maxTarget = null;
     if (spec.paceRange){
       const m = String(spec.paceRange).match(/(\d+)'\s*(\d{2})\s*[-–]\s*(\d+)'\s*(\d{2})/);
@@ -1889,14 +1906,14 @@ function score400m(samples, spec){
     const reasons = [];
     const notes = [];
     
-    reasons.push(`Bloc d’endurance détecté automatiquement autour de la vitesse centrale.`);
+    reasons.push(`Bloc d’endurance détecté automatiquement à partir de la vitesse centrale.`);
     reasons.push(`Vitesse centrale de référence : ${vRef.toFixed(1)} km/h.`);
     reasons.push(`Bloc retenu : ${Math.round(best.durSec / 60)} min • allure moy ${paceStr(avgPace)}/km.`);
     reasons.push(`Allure bloc : min ${paceStr(paceMM.min)} • max ${paceStr(paceMM.max)}.`);
     
     if (minTarget != null && maxTarget != null){
-        reasons.push(`Plage cible : ${paceStr(minTarget)}–${paceStr(maxTarget)}/km.`);
-        if (avgPace >= minTarget && avgPace <= maxTarget){
+      reasons.push(`Plage cible : ${paceStr(minTarget)}–${paceStr(maxTarget)}/km.`);
+      if (avgPace >= minTarget && avgPace <= maxTarget){
         score = 95;
       } else {
         const gap = avgPace < minTarget ? (minTarget - avgPace) : (avgPace - maxTarget);
@@ -1911,20 +1928,6 @@ function score400m(samples, spec){
       notes,
       intervals: [{ t0: best.t0, t1: best.t1, kind:"endurance" }]
     };
-  }
-  function scoreLong(samples, spec){
-    const durSec = (samples[samples.length-1].tMs - samples[0].tMs)/1000;
-    const distKm = samples[samples.length-1].distM / 1000;
-    const avgPace = durSec / Math.max(0.01, distKm);
-    let score = 55;
-    const reasons = [];
-    const notes = [];
-    const minSec = (spec.minMin||75) * 60;
-    reasons.push(`Durée : ${durationStr(durSec)} (attendu ≥ ${Math.round(minSec/60)} min).`);
-    if (durSec >= minSec) score += 35;
-    else { score -= 18; notes.push(`Durée trop courte : ${Math.round(durSec/60)} min.`); }
-    reasons.push(`Allure moyenne : ${paceStr(avgPace)}/km.`);
-    return { score: clamp(score,0,100), reasons, notes, intervals:[] };
   }
 
   function scoreRace(samples, spec){
