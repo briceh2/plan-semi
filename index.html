@@ -305,10 +305,6 @@
 
 <script>
   // afficher les erreurs
-  window.onerror = function(msg, src, line, col){
-    alert("Erreur JS: " + msg + "\nLigne: " + line + ":" + col);
-  };
-  /*
   window.onerror = function(msg, src, line, col, err){
     alert(
       "Erreur JS globale: \n" + 
@@ -317,7 +313,7 @@
       "stack: " + (err?.stack || "n.d")
       );  
   };
-  */
+  
   // version
   const APP_VERSION = "v26-17-03_2.1";
   // ===== Dates =====
@@ -3481,9 +3477,13 @@ saveManualBtn.addEventListener("click", () => {
     updateCountdown();
     updateHeaderKPI();
     renderStats();
+    
+    alert("Script chargé avant renderPlan");
     renderPlan();
   }
   fillWeekSelect();
+  
+  alert("Script chargé avant updateAll");
   updateAll();
   setInterval(updateCountdown, 60 * 60 * 1000);
 </script>
