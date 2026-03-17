@@ -2680,19 +2680,12 @@ function renderPlan(){
           <input type="checkbox" ${state.done[key] ? "checked" : ""} data-week="${w}" data-key="${key}">
           <span>${textHTML}</span>
         </label>
-      // TEST 16/03
-      /*
          ${workout
           ? `<div class="mini">Importé le ${workout.dateStr} • Durée ${workout.durationStr} • Réf: ${workout.compliance?.specLabel || "-"} • Pentes ${slopeMini}</div>
              ${workout.compliance?.manualAdjusted ? `<div class="mini">✍️ Blocs ajustés manuellement (score recalculé)</div>` : ``}
              ${reasonsCompact}`
           : `<div class="mini"></div>`
         }
-        */
-          ${workout
-            ? `<div class="mini">Importé</div>`
-            : `<div class="mini"></div>`
-          }
       `;
       details.appendChild(sec);
     });
