@@ -2668,18 +2668,26 @@ function renderPlan(){
             */
       const slopeMini = "";
       // patch pente fin
+      
       sec.innerHTML = `
         <div class="s-title">${dayName} ${badge1} ${badge2}</div>
         <label class="cb">
           <input type="checkbox" ${state.done[key] ? "checked" : ""} data-week="${w}" data-key="${key}">
           <span>${textHTML}</span>
         </label>
-        ${workout
+      // TEST 16/03
+      /*
+         ${workout
           ? `<div class="mini">Importé le ${workout.dateStr} • Durée ${workout.durationStr} • Réf: ${workout.compliance?.specLabel || "-"} • Pentes ${slopeMini}</div>
              ${workout.compliance?.manualAdjusted ? `<div class="mini">✍️ Blocs ajustés manuellement (score recalculé)</div>` : ``}
              ${reasonsCompact}`
           : `<div class="mini"></div>`
         }
+        */
+          ${workout
+            ? <div class="mini">Importé</div>
+            : <div class="mini"></div>
+          }
       `;
       details.appendChild(sec);
     });
