@@ -2659,9 +2659,12 @@ function renderPlan(){
       const sec = document.createElement("div");
       sec.className = "session";
       // construction affichage de la pente
+      /*
       const slopeMini = workout?.compliance &&
             ? `<div class="mini">⛰️ Pente blocs : min ${safeFixed(workout.compliance.slopeMin, 1)}% • moy ${safeFixed(workout.compliance.slopeAvg,1)}% • max ${safeFixed(workout.compliance.slopeMax,1)}%</div>`
             : "";
+            */
+      const slopeMini = "";
       
       sec.innerHTML = `
         <div class="s-title">${dayName} ${badge1} ${badge2}</div>
