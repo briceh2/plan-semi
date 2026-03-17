@@ -2563,12 +2563,14 @@ const weeksEl = document.getElementById("weeks");
 function renderPlan(){
   weeksEl.innerHTML = "";
   // affiche le numéro de version
+  /*
   const versionDiv = document.createElement("div");
   versionDiv.style.fontSize = "12px";
   versionDiv.style.opacity = "0.6";
   versionDiv.style.marginBottom = "6px";
   versionDiv.textContent = "Version : " + APP_VERSION;
   weeksEl.appendChild(versionDiv);
+  */
   
   for (let w=1; w<=WEEKS; w++){
     ensureWeek(w);
