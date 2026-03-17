@@ -542,9 +542,11 @@ function sessionsForWeek(w){
   function saveData(){ localStorage.setItem(KEY, JSON.stringify(data)); updateAll(); }
 
   // ===== Helpers =====
+  /*
   function safeFixed(value, digits=1, fallback"-"){
     return Number.isFinite(value) ? value.toFixed(digits) : fallback;
   }
+  */
   function toNum(s){ return parseFloat(String(s||"").replace(",", ".")); }
   function pad2(n){ return n<10 ? "0"+n : ""+n; }
   function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
@@ -2664,7 +2666,12 @@ function renderPlan(){
             ? `<div class="mini">⛰️ Pente blocs : min ${safeFixed(workout.compliance.slopeMin, 1)}% • moy ${safeFixed(workout.compliance.slopeAvg,1)}% • max ${safeFixed(workout.compliance.slopeMax,1)}%</div>`
             : "";
             */
-      const slopeMini = "";
+      const slopeMini = (workout?.compliance &&
+            isFinite(workout.compliance.slopeMin) &&
+            isFinite(workout.compliance.slopeAvg) &&
+            isFinite(workout.compliance.slopeMax))
+            ? `<div class="mini">⛰️ Pente blocs : min ${workout.compliance.slopeMin.toFixed(1)}% • moy ${workout.compliance.slopeAvg.toFixed(1)}% • max ${workout.compliance.slopeMax.toFixed(1)}%</div>`
+            : "";
       
       sec.innerHTML = `
         <div class="s-title">${dayName} ${badge1} ${badge2}</div>
