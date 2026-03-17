@@ -1823,7 +1823,7 @@ function score400m(samples, spec){
     const vRef = mean(centerSpeeds);
     
     // 3) bande de stabilité autour de la vitesse centrale
-    const tolKmh = 0.9;
+    const tolKmh = 1.5;
     const vMin = vRef - tolKmh;
     const vMax = vRef + tolKmh;
     
