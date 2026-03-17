@@ -542,7 +542,7 @@ function sessionsForWeek(w){
   function saveData(){ localStorage.setItem(KEY, JSON.stringify(data)); updateAll(); }
 
   // ===== Helpers =====
-  function safeFixed(value, digits=1, fallback="-"){
+  function safeFixed(value, digits=1, fallback="—"){
     return Number.isFinite(value) ? value.toFixed(digits) : fallback;
   }
   function toNum(s){ return parseFloat(String(s||"").replace(",", ".")); }
