@@ -2658,33 +2658,33 @@ function renderPlan(){
 
       const sec = document.createElement("div");
       sec.className = "session";
+
       // construction affichage de la pente
       const slopeMini = (
         workout?.compliance &&
         Number.isFinite(workout.compliance.slopeMin) &&
         Number.isFinite(workout.compliance.slopeAvg) &&
         Number.isFinite(workout.compliance.slopeMax)
-        )
-        ? `<div class="mini">⛰️ Pente blocs : min ${safeFixed(workout.compliance.slopeMin, 1)}% • moy ${safeFixed(workout.compliance.slopeAvg, 1)}% • max ${safeFixed(workout.compliance.slopeMax, 1)}%</div>`
-        : "";
-
+      )
+      ? `<div class="mini">⛰️ Pente blocs : min ${safeFixed(workout.compliance.slopeMin, 1)}% • moy ${safeFixed(workout.compliance.slopeAvg, 1)}% • max ${safeFixed(workout.compliance.slopeMax, 1)}%</div>`
+      : "";
+      
       sec.innerHTML = `
         <div class="s-title">${dayName} ${badge1} ${badge2}</div>
         <label class="cb">
-          <input type="checkbox" ${state.done[key] ? "checked" : ""} data-week="${w}" data-key="${key}">
-          <span>${textHTML}</span>
+        <input type="checkbox" ${state.done[key] ? "checked" : ""} data-week="${w}" data-key="${key}">
+        <span>${textHTML}</span>
         </label>
-         ${workout
-           ? `<div class="mini">Importé le ${workout.dateStr} • Durée ${workout.durationStr} • Réf: ${workout.compliance?.specLabel || "-"}</div>
-              ${slopeMini}
-              ${workout.compliance?.manualAdjusted ? `<div class="mini">✍️ Blocs ajustés manuellement (score recalculé)</div>` : ``}
-              ${reasonsCompact}`
+        ${workout
+          ? `<div class="mini">Importé le ${workout.dateStr} • Durée ${workout.durationStr} • Réf: ${workout.compliance?.specLabel || "-"}</div>
+          ${slopeMini}
+          ${workout.compliance?.manualAdjusted ? `<div class="mini">✍️ Blocs ajustés manuellement (score recalculé)</div>` : ``}
+          ${reasonsCompact}`
           : `<div class="mini"></div>`
         }
       `;
       details.appendChild(sec);
     });
-
     // ===== Nutrition détaillée de la semaine =====
     if (s && s.nutrition){
       const nut = document.createElement("div");
