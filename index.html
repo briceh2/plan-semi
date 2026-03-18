@@ -442,9 +442,9 @@ function sessionsForWeek(w){
   // =========================
   if (w === 8){
     weekPlan = {
-      tue: `5 × 400 m — 4'10–4'20/km (récup 1'30)`,
-      thu: `2 × 8 min seuil — 5'05/km (récup 2 min)` ,
-      sat: `Footing très facile — 25–30 min — 6'00–6'20/km`,
+      tue: `Footing très facile 20 min — 4 × 400 m — 4'10–4'20/km (récup 1'30)`,
+      thu: `Footing très facile 20 min — 1 × 8 min seuil — 5'05/km` ,
+      sat: `Footing très facile — 20 min — 6'00–6'20/km`,
       sun: `🏁 Semi Bayeux (vallonné)`,
       nutrition: `
       • 3 jours avant : augmenter glucides
@@ -1335,18 +1335,18 @@ function stripTime(d){
     if (week === 8){
       if (day === "tue") return {
         kind:"hill_reps",
-        reps:10, repSec:45,
-        label:"Côtes courtes 10×45s",
+        reps:4, repSec:45,
+        label:"Côtes courtes 4×45s",
         effortHint:"Effort 8/10 (puissant, propre) • récup descente très facile"
       };
       if (day === "thu") return {
         kind:"tempo_time",
-        reps:2, repMin:8, recMin:3,
+        reps:1, repMin:8, recMin:3,
         paceTarget:305, paceTol:20,
-        label:"Seuil vallonné 2×8",
+        label:"Seuil vallonné 1×8",
         hillHint:"en côte = effort constant (RPE 7/10), pas l’allure"
       };
-      if (day === "sat") return { kind:"endurance", minMin:25, paceRange:"5'55-6'35/km", label:"Footing très facile + 3 lignes droites" };
+      if (day === "sat") return { kind:"endurance", minMin:20, paceRange:"5'55-6'35/km", label:"Footing très facile" };
       if (day === "sun") return { kind:"race", distKm:21.1, tolKm:1.8, label:"🏁 Semi de Bayeux", paceTarget:305, paceTol:35 };
     }
     
