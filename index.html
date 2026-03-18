@@ -315,7 +315,7 @@
   };
   
   // version
-  const APP_VERSION = "v26-17-03_2.3";
+  const APP_VERSION = "v26-17-03_2.4";
   // ===== Dates =====
   const START = new Date("2026-02-02T00:00:00");
   const RACE  = new Date("2026-05-10T00:00:00");
@@ -3375,6 +3375,13 @@ saveManualBtn.addEventListener("click", () => {
       </div>`
       : "";
 
+      // DEBUG
+      alert(
+        "DEBUG renderModal (line 3380)\n" +
+        "intervals = " + modalState.intervals.length + " \n" +
+        "intervals = " + modalState?.intervals
+        );
+    
     const blockLines =
       (modalState?.intervals && modalState.intervals.length)
         ? blockLinesForIntervals(modalState.samples, modalState.intervals)
