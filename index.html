@@ -3394,6 +3394,7 @@ saveManualBtn.addEventListener("click", () => {
             `${x.durSec}s` +
             (Number.isFinite(x.distM) ? ` • ${Math.round(x.distM)} m` : ` • dist. n.d.`) +
             (Number.isFinite(x.avgSpeedKmh) ? ` • ${x.avgSpeedKmh.toFixed(1)} km/h` : ` • vit. n.d.`) +
+            (Number.isFinite(x.avgSpeedKmh) ? ` • ${paceStr(3600 / x.avgSpeedKmh)}/km` : ` • allure n.d.`) +
             (x.slope != null ? ` • ${x.slope.toFixed(1)}%` : ` • pente n.d.`)
             ).join("<br>")}
           </div>`
