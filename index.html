@@ -612,22 +612,6 @@ function sessionsForWeek(w){
     if (days < 0) return 0;
     return Math.floor(days / 7) + 1;
   }
-  /*
-  function computeKPI(){
-    let total=0, done=0, painWeeks=0, sleepLowWeeks=0;
-    for (let w=1; w<=WEEKS; w++){
-      ensureWeek(w);
-      const d = data.weeks[w].done;
-      const count = ["tue","thu","sat","sun"].reduce((a,k)=>a+(d[k]?1:0),0);
-      total += 4; done += count;
-      const pain = (data.weeks[w].pain || "").trim(); if (pain.length >= 3) painWeeks++;
-      const sleep = parseFloat(String(data.weeks[w].sleep||"").replace(",","."));
-      if (!Number.isNaN(sleep) && sleep>0 && sleep<6) sleepLowWeeks++;
-    }
-    const pct = total ? Math.round(done*100/total) : 0;
-    return { total, done, pct, painWeeks, sleepLowWeeks };
-  }
-  */
   // patch ok du 20/02
   function computeKPI(){
     let total=0, done=0;
@@ -692,11 +676,6 @@ function sessionsForWeek(w){
     ensureWeek(w);
     const d = data.weeks[w].done;
     const count = ["tue","thu","sat","sun"].reduce((a,k)=>a+(d[k]?1:0),0);
-    /*
-    const pain = (data.weeks[w].pain||"").trim().length >= 3;
-    const sleep = parseFloat(String(data.weeks[w].sleep||"").replace(",","."));
-    const sleepLow = (!Number.isNaN(sleep) && sleep>0 && sleep<6);
-    */
     // patch 3 ok du 20/02
     const pain = parseInt(data.weeks[w].pain, 10);
     const painHigh = Number.isFinite(pain) && pain >= 3;
@@ -721,11 +700,6 @@ function sessionsForWeek(w){
     return { level:"warn", label:"🟠 Attention (prudence)", reasons: reasons.length?reasons:["Surveille la récup."] };
     
     return { level:"ok", label:"🟢 OK (continue)", reasons:["Bon équilibre charge / récupération."] };
-    /*
-    if ((pain && count>=3) || (sleepLow && count>=3)) return { level:"warn", label:"🔴 Vigilance (allège)", reasons: reasons.length?reasons:["Charge élevée avec signaux faibles."] };
-    if (pain || sleepLow) return { level:"warn", label:"🟠 Attention (prudence)", reasons: reasons.length?reasons:["Surveille la récup."] };
-    return { level:"ok", label:"🟢 OK (continue)", reasons:["Bon équilibre charge / récupération."] };
-    */
   }
 
   // ===== Tabs =====
@@ -2319,6 +2293,21 @@ function evaluateCompliance(samples, spec){
     });
   }
   // patch pente fin
+  function blockLinesForIntervals(samples, intervals){
+    if (!samples || !intervals || !intervals.length) return [];
+    
+    return intervals.map((iv, idx) => {
+      const st = blockStatsForInterval(samples, iv.t0, iv.t1);
+      
+      return {
+        index: idx + 1,
+        durSec: Math.round(st.durSec),
+        distM: st.distM,
+        avgSpeedKmh: st.avgSpeedKmh,
+        slope: isFinite(st.slope) ? st.slope : null
+      };
+    });
+  }
 
   function intervalStats(pts, interval){
     // returns {durSec, distM, avgPace}
@@ -2680,6 +2669,27 @@ function getCurrentWeek(){
   const week = Math.floor(diffDays / 7) + 1;
   return Math.min( Math.max(week, 1) , WEEKS);
 }
+  function blockStatsForInterval(samples, t0, t1){
+    const d0 = interpolateFieldAt(samples, t0, "distM");
+    const d1 = interpolateFieldAt(samples, t1, "distM");
+    
+    const durSec = (t1 - t0) / 1000;
+    const distM = (isFinite(d0) && isFinite(d1)) ? (d1 - d0) : null;
+    
+    let avgSpeedKmh = null;
+    if (isFinite(distM) && durSec > 0){
+      avgSpeedKmh = (distM / durSec) * 3.6;
+    }
+    
+    const slope = slopePctForInterval(samples, t0, t1);
+    
+    return {
+      durSec,
+      distM,
+      avgSpeedKmh,
+      slope
+    };
+  }
   
 const weeksEl = document.getElementById("weeks");
   
@@ -3365,6 +3375,23 @@ saveManualBtn.addEventListener("click", () => {
       </div>`
       : "";
 
+    const blockLines =
+      (modalState?.spec?.kind === "hill_reps")
+        ? blockLinesForIntervals(modalState?.samples, modalState?.intervals || [])
+        : [];
+      
+      const blocksHTML = blockLines.length
+        ? `<div class="mini" style="margin-top:6px">
+          ${blockLines.map(x =>
+            `Bloc ${x.index}: ` +
+            `${x.durSec}s` +
+            (Number.isFinite(x.distM) ? ` • ${Math.round(x.distM)} m` : ` • dist. n.d.`) +
+            (Number.isFinite(x.avgSpeedKmh) ? ` • ${x.avgSpeedKmh.toFixed(1)} km/h` : ` • vit. n.d.`) +
+            (x.slope != null ? ` • ${x.slope.toFixed(1)}%` : ` • pente n.d.`)
+            ).join("<br>")}
+          </div>`
+        : "";
+
       // DEBUG
       alert(
         "DEBUG renderModal (line 3176)\n" +
@@ -3372,10 +3399,17 @@ saveManualBtn.addEventListener("click", () => {
         "slope = " + slopeLines
         );
     // patch pente fin
+    /*
     analysisSummary.innerHTML = `${verdictBadge}
       <div class="mini" style="margin-top:8px;"><b>Raisons :</b></div>
       <ul class="reasonsInline">${reasons.slice(0,12).map(r=>`<li>${r}</li>`).join("")}</ul>
       ${slopesHTML}
+      ${notes.length ? `<div class="mini" style="margin-top:8px;"><b>Conseils :</b> ${notes.join(" ")}</div>` : ""}`;
+    */
+    analysisSummary.innerHTML = `${verdictBadge}
+      <div class="mini" style="margin-top:8px;"><b>Raisons :</b></div>
+      <ul class="reasonsInline">${reasons.slice(0,12).map(r=>`<li>${r}</li>`).join("")}</ul>
+      ${blocksHTML}
       ${notes.length ? `<div class="mini" style="margin-top:8px;"><b>Conseils :</b> ${notes.join(" ")}</div>` : ""}`;
 
     manualHint.textContent = `Blocs manuels : ${manualIntervals.length}` + (pendingClickT ? " (début posé)" : "");
