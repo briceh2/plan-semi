@@ -443,7 +443,7 @@ function sessionsForWeek(w){
   if (w === 8){
     weekPlan = {
       tue: `Footing très facile 20 min — 4 × 400 m — 4'10–4'20/km (récup 1'30)`,
-      thu: `Footing très facile 20 min — 1 × 8 min seuil — 5'05/km` ,
+      thu: `Footing très facile 20 min — 2 × 5 min seuil — 5'05/km` ,
       sat: `Footing très facile — 20 min — 6'00–6'20/km`,
       sun: `🏁 Semi Bayeux (vallonné)`,
       nutrition: `
@@ -1341,9 +1341,9 @@ function stripTime(d){
       };
       if (day === "thu") return {
         kind:"tempo_time",
-        reps:1, repMin:8, recMin:3,
+        reps:2, repMin:5, recMin:3,
         paceTarget:305, paceTol:20,
-        label:"Seuil vallonné 1×8",
+        label:"Seuil vallonné 2x5",
         hillHint:"en côte = effort constant (RPE 7/10), pas l’allure"
       };
       if (day === "sat") return { kind:"endurance", minMin:20, paceRange:"5'55-6'35/km", label:"Footing très facile" };
