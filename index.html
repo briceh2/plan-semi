@@ -3376,8 +3376,8 @@ saveManualBtn.addEventListener("click", () => {
       : "";
 
     const blockLines =
-      (modalState?.spec?.kind === "hill_reps")
-        ? blockLinesForIntervals(modalState?.samples, modalState?.intervals || [])
+      (modalState?.intervals && modalState.intervals.length)
+        ? blockLinesForIntervals(modalState.samples, modalState.intervals)
         : [];
       
       const blocksHTML = blockLines.length
@@ -3390,7 +3390,7 @@ saveManualBtn.addEventListener("click", () => {
             (x.slope != null ? ` • ${x.slope.toFixed(1)}%` : ` • pente n.d.`)
             ).join("<br>")}
           </div>`
-        : "";
+        : `<div class="mini" style="margin-top:6px">Aucun bloc détecté.</div>`;
 
       // DEBUG
       alert(
