@@ -2167,6 +2167,152 @@ function scoreHillReps(samples, spec){
   const intervals = picked.map(b => ({ t0:b.t0, t1:b.t1, kind:"work" }));
   return { score, reasons, notes, intervals };
 }
+  function scoreLong(samples, spec){
+    const pts = smoothPace(buildPaceSeries(samples), 10);
+    if (!pts.length){
+      return { score: 30, reasons:["Données insuffisantes."], notes:[], intervals:[] };
+    }
+    
+    function paceToKmh(pace){
+      return (Number.isFinite(pace) && pace > 0) ? (3600 / pace) : null;
+    }
+    
+    const totalSec = (pts[pts.length - 1].tMs - pts[0].tMs) / 1000;
+    if (totalSec < 30 * 60){
+      return {
+        score: 40,
+        reasons:["Séance trop courte pour une sortie longue."],
+        notes:[],
+        intervals:[]
+      };
+    }
+    
+    // fenêtre centrale de référence
+    const centerWindowSec = Math.min(45 * 60, Math.round(totalSec * 0.65));
+    const midT = (pts[0].tMs + pts[pts.length - 1].tMs) / 2;
+    const winStart = midT - (centerWindowSec * 1000) / 2;
+    const winEnd = midT + (centerWindowSec * 1000) / 2;
+    
+    const centerPts = pts.filter(
+      p => p.tMs >= winStart && p.tMs <= winEnd && Number.isFinite(p.pace)
+    );
+    
+    if (!centerPts.length){
+      return {
+        score: 40,
+        reasons:["Impossible de calculer la vitesse centrale."],
+        notes:[],
+        intervals:[]
+      };
+    }
+    
+    const centerSpeeds = centerPts.map(p => paceToKmh(p.pace)).filter(Number.isFinite);
+    const vRef = mean(centerSpeeds);
+    
+    const tolKmh = 1.2;
+    const vMin = vRef - tolKmh;
+    const vMax = vRef + tolKmh;
+    
+    const tagged = pts
+    .map(p => ({ ...p, kmh: paceToKmh(p.pace) }))
+    .filter(p => Number.isFinite(p.kmh));
+    
+    let best = null;
+    let cur = null;
+    const breakToleranceSec = 25;
+    let breakStart = null;
+    
+    for (let i = 0; i < tagged.length; i++){
+      const p = tagged[i];
+      const inside = p.kmh >= vMin && p.kmh <= vMax;
+      
+      if (inside){
+        if (!cur){
+          cur = {
+          t0: p.tMs,
+          t1: p.tMs,
+          vals: [p.pace],
+          speeds: [p.kmh]
+        };
+      } else {
+        cur.t1 = p.tMs;
+        cur.vals.push(p.pace);
+        cur.speeds.push(p.kmh);
+      }
+      breakStart = null;
+      } else if (cur){
+        if (breakStart == null) breakStart = p.tMs;
+        const breakDur = (p.tMs - breakStart) / 1000;
+        
+        if (breakDur <= breakToleranceSec){
+          cur.t1 = p.tMs;
+          cur.vals.push(p.pace);
+          cur.speeds.push(p.kmh);
+        } else {
+          cur.durSec = (cur.t1 - cur.t0) / 1000;
+          if (!best || cur.durSec > best.durSec) best = cur;
+          cur = null;
+          breakStart = null;
+        }
+      }
+    }
+    
+    if (cur){
+      cur.durSec = (cur.t1 - cur.t0) / 1000;
+      if (!best || cur.durSec > best.durSec) best = cur;
+    }
+    
+    // fallback
+    if (!best || best.durSec < 20 * 60){
+      best = {
+        t0: winStart,
+        t1: winEnd,
+        durSec: centerWindowSec,
+        vals: centerPts.map(p => p.pace),
+        speeds: centerSpeeds
+      };
+    }
+    
+    const avgPace = mean(best.vals);
+    const paceMM = minmax(best.vals);
+    
+    let minTarget = null, maxTarget = null;
+    if (spec.paceRange){
+      const m = String(spec.paceRange).match(/(\d+)'\s*(\d{2})\s*[-–]\s*(\d+)'\s*(\d{2})/);
+      if (m){
+        minTarget = parseInt(m[1],10)*60 + parseInt(m[2],10);
+        maxTarget = parseInt(m[3],10)*60 + parseInt(m[4],10);
+      }
+    }
+    
+    let score = 80;
+    const reasons = [];
+    const notes = [];
+    
+    reasons.push(`Bloc de sortie longue détecté automatiquement à partir de la vitesse centrale.`);
+    reasons.push(`Vitesse centrale de référence : ${vRef.toFixed(1)} km/h.`);
+    reasons.push(`Bloc retenu : ${Math.round(best.durSec / 60)} min • allure moy ${paceStr(avgPace)}/km.`);
+    reasons.push(`Allure bloc : min ${paceStr(paceMM.min)} • max ${paceStr(paceMM.max)}.`);
+    
+    if (minTarget != null && maxTarget != null){
+      reasons.push(`Plage cible : ${paceStr(minTarget)}–${paceStr(maxTarget)}/km.`);
+      if (avgPace >= minTarget && avgPace <= maxTarget){
+      score = 95;
+      } else {
+        const gap = avgPace < minTarget ? (minTarget - avgPace) : (avgPace - maxTarget);
+        score = Math.max(45, 95 - Math.round(gap / 3));
+        notes.push(`Allure moyenne du bloc un peu hors cible.`);
+      }
+    }
+    
+    return {
+      score,
+      reasons,
+      notes,
+      intervals: [{ t0: best.t0, t1: best.t1, kind:"long" }]
+    };
+  }
+
   
 function evaluateCompliance(samples, spec){
   // 1) Normalize / sécurise
