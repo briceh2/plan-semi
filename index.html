@@ -2885,8 +2885,10 @@ function getCurrentWeek(){
 const weeksEl = document.getElementById("weeks");
 
 function renderBayeuxRacePlan(){
-  const el = document.getElementById("bayeuxRacePlanTable");
+  const el = document.getElementById("bayeux");
   if (!el) return;
+
+  alert("renderBayeuxRacePlan");
   
   // allures en min/km
   const plan = [
