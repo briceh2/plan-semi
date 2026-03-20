@@ -752,7 +752,7 @@ function sessionsForWeek(w){
     if (which==="plan"){ document.getElementById("planSection").classList.remove("hidden"); document.getElementById("tabPlan").classList.add("active"); }
     if (which==="import"){ document.getElementById("importSection").classList.remove("hidden"); document.getElementById("tabImport").classList.add("active"); }
     if (which==="stats"){ document.getElementById("statsSection").classList.remove("hidden"); document.getElementById("tabStats").classList.add("active"); }
-    if (which==="tabBayeux"){ document.getElementById("bayeuxSection").classList.remove("hidden"); document.getElementById("tabBayeux").classList.add("active"); }
+    if (which==="bayeux"){ document.getElementById("bayeuxSection").classList.remove("hidden"); document.getElementById("tabBayeux").classList.add("active"); }
     window.scrollTo({top:0, behavior:"smooth"});
   }
   document.getElementById("tabPlan").onclick = ()=>show("plan");
