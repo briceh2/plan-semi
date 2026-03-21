@@ -746,6 +746,7 @@ function sessionsForWeek(w){
   }
 
   // ===== Tabs =====
+  /*
   function show(which){
     ["planSection","importSection","statsSection"].forEach(id=>document.getElementById(id).classList.add("hidden"));
     ["tabPlan","tabImport","tabStats","tabBayeux"].forEach(id=>document.getElementById(id).classList.remove("active"));
@@ -755,6 +756,40 @@ function sessionsForWeek(w){
     if (which==="bayeux"){ document.getElementById("bayeuxSection").classList.remove("hidden"); document.getElementById("tabBayeux").classList.add("active"); }
     window.scrollTo({top:0, behavior:"smooth"});
   }
+  */
+  function show(which){
+    ["planSection","importSection","statsSection","bayeuxSection"].forEach(id =>
+    document.getElementById(id).classList.add("hidden")
+    );
+    
+    ["tabPlan","tabImport","tabStats","tabBayeux"].forEach(id =>
+    document.getElementById(id).classList.remove("active")
+    );
+    
+    if (which === "plan"){
+      document.getElementById("planSection").classList.remove("hidden");
+      document.getElementById("tabPlan").classList.add("active");
+    }
+    
+    if (which === "import"){
+      document.getElementById("importSection").classList.remove("hidden");
+      document.getElementById("tabImport").classList.add("active");
+    }
+    
+    if (which === "stats"){
+      document.getElementById("statsSection").classList.remove("hidden");
+      document.getElementById("tabStats").classList.add("active");
+    }
+    
+    if (which === "bayeux"){
+      document.getElementById("bayeuxSection").classList.remove("hidden");
+      document.getElementById("tabBayeux").classList.add("active");
+      renderBayeuxRacePlan(); // ✅ important
+    }
+    
+    window.scrollTo({ top:0, behavior:"smooth" });
+  }
+
   document.getElementById("tabPlan").onclick = ()=>show("plan");
   document.getElementById("tabImport").onclick = ()=>show("import");
   document.getElementById("tabStats").onclick = ()=>show("stats");
@@ -3925,10 +3960,7 @@ saveManualBtn.addEventListener("click", () => {
     updateCountdown();
     updateHeaderKPI();
     renderStats();
-    
     renderPlan();
-    alert("Script chargé avant renderBayeux");
-    renderBayeuxRacePlan();
   }
   fillWeekSelect();
   
