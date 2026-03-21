@@ -335,6 +335,7 @@
   <div class="card">
     <div class="s-title">Plan de course — Semi de Bayeux</div>
     <div class="meta">Objectif : 1h46–1h48 • stratégie vallonnée • effort constant</div>
+    <div class="meta">Fenêtre visée : 1h43:50 à 1h49:55 • objectif central : 1h46–1h48</div>
     <div id="bayeux"></div>
   </div>
 
@@ -3016,22 +3017,22 @@ function renderBayeuxRacePlan(){
   if (!el) return;
 
   const plan = [
-    ["Départ", "1–3", 5.15, 5.20, "Partir doucement, facile, sans se crisper"],
-    ["Stabilisation", "4–7", 5.05, 5.10, "Trouver le rythme, respiration stable"],
-    ["Montées", "8–12", 5.30, 5.50, "Effort constant, raccourcir la foulée"],
-    ["Descentes", "8–12", 4.45, 5.00, "Laisser filer sans freiner"],
-    ["Gestion", "13–16", 5.05, 5.15, "Maintenir sans forcer"],
-    ["Difficile", "17–19", 5.10, 5.20, "Rester concentré, cadence"],
-    ["Finish", "20–21.1", 4.50, 5.00, "Accélération progressive si tu es bien"]
+    ["Départ", "1–3", 5.05, 5.20, "Partir doucement, sans se crisper"],
+    ["Stabilisation", "4–7", 4.90, 5.10, "Trouver le rythme, respiration stable"],
+    ["Montées", "8–10", 5.15, 5.45, "Effort constant, raccourcir la foulée"],
+    ["Descentes", "11–12", 4.40, 5.00, "Laisser filer sans freiner"],
+    ["Gestion", "13–16", 4.90, 5.10, "Maintenir sans forcer"],
+    ["Difficile", "17–19", 5.00, 5.20, "Rester concentré, cadence"],
+    ["Finish", "20–21.1", 4.40, 5.30, "Accélération progressive si tu es bien"]
   ];
-
   let cumLow = 0;
   let cumHigh = 0;
 
   function kmCount(label){
     if (label === "1–3") return 3;
     if (label === "4–7") return 4;
-    if (label === "8–12") return 5;
+    if (label === "8–10") return 3;
+    if (label === "11–12") return 2;
     if (label === "13–16") return 4;
     if (label === "17–19") return 3;
     if (label === "20–21.1") return 2.1;
@@ -3076,13 +3077,13 @@ function renderBayeuxSplits(){
 
   // repères réalistes pour un objectif vallonné 1h46–1h48
   const splits = [
-    { km: 5,  low: 25 + 35/60, high: 26 + 10/60 },
-    { km: 10, low: 51 + 15/60, high: 52 + 20/60 },
-    { km: 15, low: 76 + 55/60, high: 78 + 20/60 },
-    { km: 20, low: 102 + 25/60, high: 104 + 20/60 },
-    { km: 21.1, low: 106, high: 108 }
+    { km: 5,    low: 24 + 57/60, high: 25 + 54/60 },
+    { km: 10,   low: 50 + 12/60, high: 51 + 45/60 },
+    { km: 15,   low: 74 + 36/60, high: 77 + 15/60 },
+    { km: 20,   low: 99 + 0/60,  high: 104 + 24/60 },
+    { km: 21.1, low: 103 + 52/60, high: 109 + 55/60 }
   ];
-
+  
   el.innerHTML = `
     <div class="kpiRow">
       ${splits.map(s => `
