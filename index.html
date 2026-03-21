@@ -152,6 +152,48 @@
       font-size:12px;
       color:#555;
     }
+    .racePlanTable{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:10px;
+      font-size:13px;
+    }
+    .racePlanTable td, .racePlanTable th{
+      padding:8px;
+      border-bottom:1px solid #ddd;
+      text-align:left;
+      vertical-align:top;
+    }
+    .racePlanTable th{
+      background:#f5f5f5;
+      font-weight:700;
+    }
+    .kpiRow{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0,1fr));
+      gap:10px;
+      margin-top:10px;
+    }
+    .kpiBox{
+      border:1px solid #e5e7eb;
+      border-radius:10px;
+      padding:10px;
+      background:#fafafa;
+    }
+    .kpiBox .label{
+      font-size:12px;
+      color:#666;
+    }
+    .kpiBox .value{
+      font-size:18px;
+      font-weight:800;
+      margin-top:4px;
+    }
+    .bayeuxNote{
+      font-size:13px;
+      line-height:1.45;
+      margin-top:8px;
+    }
 
   </style>
 </head>
@@ -289,13 +331,32 @@
     </div>
   </section>
 
-  <section id="bayeuxSection" class="hidden">
-    <div class="card" id="bayeuxd">
-      <div class="s-title">Plan de course — Semi de Bayeux</div>
-      <div class="meta">Objectif : 1h46–1h48 • stratégie vallonnée à effort constant</div>
-      <div id="bayeux"></div>
-    </div>
-  </section>
+<section id="bayeuxSection" class="hidden">
+  <div class="card">
+    <div class="s-title">Plan de course — Semi de Bayeux</div>
+    <div class="meta">Objectif : 1h46–1h48 • stratégie vallonnée • effort constant</div>
+    <div id="bayeux"></div>
+  </div>
+
+  <div class="card">
+    <div class="s-title">Temps de passage</div>
+    <div class="meta">Repères simples à vérifier pendant la course</div>
+    <div id="bayeuxSplits"></div>
+  </div>
+
+  <div class="card">
+    <div class="s-title">Nutrition / hydratation</div>
+    <div class="meta">Plan simple pour le jour J</div>
+    <div id="bayeuxNutrition"></div>
+  </div>
+
+  <div class="card">
+    <div class="s-title">Lien avec tes séances</div>
+    <div class="meta">Repères tirés de tes entraînements importés</div>
+    <div id="bayeuxTrainingLink"></div>
+  </div>
+</section>
+  
 </div>
 
 
@@ -744,19 +805,48 @@ function sessionsForWeek(w){
   function meanPaceMinPerKm(p1, p2){
     return (p1 + p2) / 2;
   }
+function mmssFromMinutes(mins){
+  const total = Math.round(mins * 60);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (h > 0) return `${h}h${String(m).padStart(2,"0")}m${String(s).padStart(2,"0")}s`;
+  return `${m}:${String(s).padStart(2,"0")}`;
+}
+
+function paceMinToSec(minPerKm){
+  return Math.round(minPerKm * 60);
+}
+
+function avg(a, b){
+  return (a + b) / 2;
+}
+
+function findBestWorkoutBySpecKind(kind){
+  if (!data?.workouts?.length) return null;
+  const matches = data.workouts.filter(w => w?.compliance?.specLabel && w?.compliance && w?.compliance.score != null);
+  const filtered = matches.filter(w => {
+    const label = String(w.compliance.specLabel || "").toLowerCase();
+    if (kind === "hill") return label.includes("côte");
+    if (kind === "tempo") return label.includes("seuil") || label.includes("tempo");
+    if (kind === "long") return label.includes("sortie longue");
+    return false;
+  });
+  if (!filtered.length) return null;
+  filtered.sort((a,b) => (b.compliance.score || 0) - (a.compliance.score || 0));
+  return filtered[0];
+}
+
+function workoutSummaryLine(workout){
+  if (!workout) return "Aucune séance importée pertinente pour le moment.";
+  const dist = Number.isFinite(workout.distKm) ? `${workout.distKm.toFixed(2)} km` : "distance n.d.";
+  const pace = workout.avgPaceStr || "allure n.d.";
+  const score = Number.isFinite(workout?.compliance?.score) ? `${workout.compliance.score}/100` : "score n.d.";
+  return `${workout.dateStr || "date n.d."} • ${dist} • ${pace} • ${score}`;
+}
+  // ===== Helpers fin =====
 
   // ===== Tabs =====
-  /*
-  function show(which){
-    ["planSection","importSection","statsSection"].forEach(id=>document.getElementById(id).classList.add("hidden"));
-    ["tabPlan","tabImport","tabStats","tabBayeux"].forEach(id=>document.getElementById(id).classList.remove("active"));
-    if (which==="plan"){ document.getElementById("planSection").classList.remove("hidden"); document.getElementById("tabPlan").classList.add("active"); }
-    if (which==="import"){ document.getElementById("importSection").classList.remove("hidden"); document.getElementById("tabImport").classList.add("active"); }
-    if (which==="stats"){ document.getElementById("statsSection").classList.remove("hidden"); document.getElementById("tabStats").classList.add("active"); }
-    if (which==="bayeux"){ document.getElementById("bayeuxSection").classList.remove("hidden"); document.getElementById("tabBayeux").classList.add("active"); }
-    window.scrollTo({top:0, behavior:"smooth"});
-  }
-  */
   function show(which){
     ["planSection","importSection","statsSection","bayeuxSection"].forEach(id =>
     document.getElementById(id).classList.add("hidden")
@@ -784,9 +874,11 @@ function sessionsForWeek(w){
     if (which === "bayeux"){
       document.getElementById("bayeuxSection").classList.remove("hidden");
       document.getElementById("tabBayeux").classList.add("active");
-      renderBayeuxRacePlan(); // ✅ important
-    }
-    
+      renderBayeuxRacePlan();
+      renderBayeuxSplits();
+      renderBayeuxNutrition();
+      renderBayeuxTrainingLink();
+    }    
     window.scrollTo({ top:0, behavior:"smooth" });
   }
 
@@ -2923,104 +3015,166 @@ function renderBayeuxRacePlan(){
   const el = document.getElementById("bayeux");
   if (!el) return;
 
-  alert("renderBayeuxRacePlan");
-  
-  // allures en min/km
   const plan = [
-  {
-    segment: "Départ",
-    kmLabel: "1–3",
-    kmCount: 3,
-    paceMin: 5 + 15/60,
-    paceMax: 5 + 20/60,
-    consigne: "Partir doucement, rester facile"
-  },
-  {
-    segment: "Stabilisation",
-    kmLabel: "4–7",
-    kmCount: 4,
-    paceMin: 5 + 5/60,
-    paceMax: 5 + 10/60,
-    consigne: "Trouver le rythme, respiration stable"
-  },
-  {
-    segment: "Vallonné (montées)",
-    kmLabel: "8–12",
-    kmCount: 5,
-    paceMin: 5 + 30/60,
-    paceMax: 5 + 50/60,
-    consigne: "Effort constant, ne pas forcer"
-  },
-  {
-    segment: "Vallonné (descentes)",
-    kmLabel: "8–12",
-    kmCount: 5,
-    paceMin: 4 + 45/60,
-    paceMax: 5 + 0/60,
-    consigne: "Laisser filer sans freiner"
-  },
-  {
-    segment: "Gestion",
-    kmLabel: "13–16",
-    kmCount: 4,
-    paceMin: 5 + 5/60,
-    paceMax: 5 + 15/60,
-    consigne: "Maintenir sans forcer"
-  },
-  {
-    segment: "Difficile",
-    kmLabel: "17–19",
-    kmCount: 3,
-    paceMin: 5 + 10/60,
-    paceMax: 5 + 20/60,
-    consigne: "Rester concentré, cadence"
-  },
-  {
-    segment: "Finish",
-    kmLabel: "20–21.1",
-    kmCount: 2.1,
-    paceMin: 4 + 50/60,
-    paceMax: 5 + 0/60,
-    consigne: "Accélération progressive"
-  }
+    ["Départ", "1–3", 5.15, 5.20, "Partir doucement, facile, sans se crisper"],
+    ["Stabilisation", "4–7", 5.05, 5.10, "Trouver le rythme, respiration stable"],
+    ["Montées", "8–12", 5.30, 5.50, "Effort constant, raccourcir la foulée"],
+    ["Descentes", "8–12", 4.45, 5.00, "Laisser filer sans freiner"],
+    ["Gestion", "13–16", 5.05, 5.15, "Maintenir sans forcer"],
+    ["Difficile", "17–19", 5.10, 5.20, "Rester concentré, cadence"],
+    ["Finish", "20–21.1", 4.50, 5.00, "Accélération progressive si tu es bien"]
   ];
-  
-  let cumMinLow = 0;
-  let cumMinHigh = 0;
-  
+
+  let cumLow = 0;
+  let cumHigh = 0;
+
+  function kmCount(label){
+    if (label === "1–3") return 3;
+    if (label === "4–7") return 4;
+    if (label === "8–12") return 5;
+    if (label === "13–16") return 4;
+    if (label === "17–19") return 3;
+    if (label === "20–21.1") return 2.1;
+    return 0;
+  }
+
   const rows = plan.map(p => {
-    cumMinLow += p.kmCount * p.paceMin;
-    cumMinHigh += p.kmCount * p.paceMax;
-    
-    const avgPace = meanPaceMinPerKm(p.paceMin, p.paceMax);
-    const avgPaceSec = Math.round(avgPace * 60);
-    const paceTxt = `${paceStr(avgPaceSec)}/km`;
-    const paceRangeTxt = `${paceStr(Math.round(p.paceMin*60))}–${paceStr(Math.round(p.paceMax*60))}/km`;
-    
+    const km = kmCount(p[1]);
+    cumLow += km * p[2];
+    cumHigh += km * p[3];
+
     return `
       <tr>
-      <td>${p.segment}<div class="racePlanSmall">${p.consigne}</div></td>
-      <td>${p.kmLabel}</td>
-      <td>${paceRangeTxt}</td>
-      <td>${mmssFromMinutes(cumMinLow)} – ${mmssFromMinutes(cumMinHigh)}</td>
+        <td><b>${p[0]}</b><div class="racePlanSmall">${p[4]}</div></td>
+        <td>${p[1]}</td>
+        <td>${paceStr(paceMinToSec(p[2]))}–${paceStr(paceMinToSec(p[3]))}/km</td>
+        <td>${mmssFromMinutes(cumLow)} – ${mmssFromMinutes(cumHigh)}</td>
       </tr>
     `;
   }).join("");
-  
+
   el.innerHTML = `
     <table class="racePlanTable">
-    <thead>
-    <tr>
-    <th>Segment</th>
-    <th>Km</th>
-    <th>Allure cible</th>
-    <th>Temps cumulé</th>
-    </tr>
-    </thead>
-    <tbody>
-    ${rows}
-    </tbody>
+      <thead>
+        <tr>
+          <th>Segment</th>
+          <th>Km</th>
+          <th>Allure cible</th>
+          <th>Temps cumulé</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
     </table>
+    <div class="bayeuxNote">
+      Règle clé : <b>ne pas courir à allure constante en montée</b>. En côte tu acceptes de ralentir ; en descente tu laisses filer sans forcer.
+    </div>
+  `;
+}
+function renderBayeuxSplits(){
+  const el = document.getElementById("bayeuxSplits");
+  if (!el) return;
+
+  // repères réalistes pour un objectif vallonné 1h46–1h48
+  const splits = [
+    { km: 5,  low: 25 + 35/60, high: 26 + 10/60 },
+    { km: 10, low: 51 + 15/60, high: 52 + 20/60 },
+    { km: 15, low: 76 + 55/60, high: 78 + 20/60 },
+    { km: 20, low: 102 + 25/60, high: 104 + 20/60 },
+    { km: 21.1, low: 106, high: 108 }
+  ];
+
+  el.innerHTML = `
+    <div class="kpiRow">
+      ${splits.map(s => `
+        <div class="kpiBox">
+          <div class="label">Passage ${s.km} km</div>
+          <div class="value">${mmssFromMinutes(s.low)} – ${mmssFromMinutes(s.high)}</div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+function renderBayeuxNutrition(){
+  const el = document.getElementById("bayeuxNutrition");
+  if (!el) return;
+
+  el.innerHTML = `
+    <table class="racePlanTable">
+      <thead>
+        <tr>
+          <th>Moment</th>
+          <th>Conseil</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>J-3 à J-1</td>
+          <td>Augmenter légèrement les glucides, bien t’hydrater, éviter les repas trop gras.</td>
+        </tr>
+        <tr>
+          <td>Petit-déjeuner</td>
+          <td>3h avant : pain + miel/confiture + banane + boisson habituelle.</td>
+        </tr>
+        <tr>
+          <td>15 min avant</td>
+          <td>Quelques gorgées d’eau, rien de nouveau.</td>
+        </tr>
+        <tr>
+          <td>Km 7</td>
+          <td>1er gel + eau.</td>
+        </tr>
+        <tr>
+          <td>Km 14</td>
+          <td>2e gel + eau.</td>
+        </tr>
+        <tr>
+          <td>Ravitaillements</td>
+          <td>Boire quelques gorgées sans te précipiter.</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="bayeuxNote">
+      Objectif : arriver au km 15 encore relâché musculairement pour bien finir.
+    </div>
+  `;
+}
+function renderBayeuxTrainingLink(){
+  const el = document.getElementById("bayeuxTrainingLink");
+  if (!el) return;
+
+  const hill = findBestWorkoutBySpecKind("hill");
+  const tempo = findBestWorkoutBySpecKind("tempo");
+  const long = findBestWorkoutBySpecKind("long");
+
+  el.innerHTML = `
+    <table class="racePlanTable">
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Repère issu de tes séances</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Côtes</td>
+          <td>${workoutSummaryLine(hill)}</td>
+        </tr>
+        <tr>
+          <td>Seuil</td>
+          <td>${workoutSummaryLine(tempo)}</td>
+        </tr>
+        <tr>
+          <td>Sortie longue</td>
+          <td>${workoutSummaryLine(long)}</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="bayeuxNote">
+      Idée de lecture :
+      <br>• si tes séances de côtes sont bonnes, tu montes sans te crisper
+      <br>• si tes séances seuil sont régulières, tu tiens bien l’effort entre 10 et 17 km
+      <br>• si tes sorties longues sont maîtrisées, tu peux finir fort
+    </div>
   `;
 }
   
@@ -3961,6 +4115,10 @@ saveManualBtn.addEventListener("click", () => {
     updateHeaderKPI();
     renderStats();
     renderPlan();
+    renderBayeuxRacePlan();
+    renderBayeuxSplits();
+    renderBayeuxNutrition();
+    renderBayeuxTrainingLink();
   }
   fillWeekSelect();
   
