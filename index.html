@@ -539,11 +539,20 @@ function sessionsForWeek(w){
       tue: "8x400m (allure 4'35)",
       thu: "2x12min à 5'00/km",
       sat: "endurance 45min",
-      sun: "1h15 dont 15min à 5'10"
+      sun: "🏁 Semi Bayeux"
     };
   }
 
   if (w === 9){
+    return {
+      tue: "footing 40min très facile",
+      thu: "2x10min à 5'05/km",
+      sat: "endurance 45min",
+      sun: "1h150 dont 10min à 5'10"
+    };
+  }
+
+  if (w === 10){
     return {
       tue: "10x400m (allure 4'30)",
       thu: "3x12min à 5'00/km",
@@ -552,46 +561,22 @@ function sessionsForWeek(w){
     };
   }
 
-  if (w === 10){
+  if (w === 11){
     return {
       tue: "6x800m (allure 4'45)",
       thu: "2x15min à 5'00/km",
-      sat: "endurance 45min",
-      sun: "1h20 dont 25min à 5'00"
-    };
-  }
-
-  if (w === 11){
-    return {
-      tue: "8x300m (allure 4'20)",
-      thu: "2x10min à 5'00/km",
       sat: "endurance 40min",
-      sun: "1h10 dont 15min à 5'00"
+      sun: "1h20 dont 25min à 5'00"
     };
   }
 
   if (w === 12){
     return {
-      tue: "6x200m (allure 4'15)",
-      thu: "30min + 3x2min allure semi",
-      sat: "footing 20min très facile",
-      sun: "SEMI OBJECTIF (Troyes)"
+      tue: "8x500m (allure 4'35)",
+      thu: "2x20min à 5'00/km",
+      sat: "endurance 40min",
+      sun: "1h15 dont 30min à 5'00"
     };
-  }
-
-  if (w <= 12){
-    weekPlan = {
-      tue: `10 × 400 m — ${VMA400}`,
-      thu: `2 × 15 min allure semi — ${AS21}`,
-      sat: `Endurance — ${EASY}`,
-      sun: `Sortie longue`,
-      nutrition: `
-      • Avant VMA : collation légère  
-      • Après : protéines + glucides  
-      • Sortie longue : gel à 50 min  
-      • Hydratation : 2 L/jour`
-    };
-    return weekPlan;
   }
 
   // =========================
@@ -599,10 +584,10 @@ function sessionsForWeek(w){
   // =========================
   if (w === 13){
     return {
-      tue: `6 × 200 m`,
-      thu: `2 × 10 min allure semi`,
-      sat: `Footing facile`,
-      sun: `Sortie facile`,
+      tue: `6×300m (allure 4'20)`,
+      thu: `2×10min à 5'00/km`,
+      sat: "endurance 35min",
+      sun: "1h00 dont 315in à 5'00",
       nutrition: `
       • Réduire fibres  
       • Bien hydrater  
@@ -614,9 +599,9 @@ function sessionsForWeek(w){
   // Semaine course objectif
   // =========================
   return {
-    tue: `Footing + lignes droites`,
-    thu: `8 min allure semi`,
-    sat: `20 min très facile`,
+    tue: `5×320m (allure 4'15)`,
+    thu: `30min + 3x2min allure semi`,
+    sat: `20min très facile`,
     sun: `🏁 Semi objectif 10 mai`,
     nutrition: `
     • 3 jours avant : pâtes/riz  
@@ -1548,13 +1533,49 @@ function stripTime(d){
       };
     }
     
+    // =========================
+    // Semaine 9 : reprise post-Bayeux
+    // =========================
     if (week === 9){
+      if (day === "tue") return {
+        kind:"endurance",
+        minMin:40,
+        paceRange:"6'00-6'35/km",
+        label:"Footing 40 min très facile"
+      };
+      if (day === "thu") return {
+        kind:"tempo_time",
+        reps:2,
+        repMin:10,
+        recMin:3,
+        paceTarget:305,   // 5'05/km
+        paceTol:20,
+        label:"Seuil 2x10"
+      };
+      if (day === "sat") return {
+        kind:"endurance",
+        minMin:45,
+        paceRange:"5'55-6'30/km",
+        label:"Endurance 45 min"
+      };
+      if (day === "sun") return {
+        kind:"long",
+        minMin:70,
+        paceRange:"5'55-6'25/km",
+        label:"SL 1h10 dont 10 min à 5'10"
+      };
+    }
+    
+    // =========================
+    // Semaine 10 : construction
+    // =========================
+    if (week === 10){
       if (day === "tue") return {
         kind:"interval_dist",
         reps:10,
         repDistM:400,
         recSec:90,
-        paceTarget:270,
+        paceTarget:270,   // 4'30/km
         paceTol:20,
         label:"VMA 10x400"
       };
@@ -1563,8 +1584,8 @@ function stripTime(d){
         reps:3,
         repMin:12,
         recMin:3,
-        paceTarget:300,
-        paceTol:20,
+        paceTarget:300,   // 5'00/km
+        paceTol:18,
         label:"Seuil 3x12"
       };
       if (day === "sat") return {
@@ -1576,18 +1597,21 @@ function stripTime(d){
       if (day === "sun") return {
         kind:"long",
         minMin:80,
-        paceRange:"5'55-6'25/km",
-        label:"SL 1h20 avec bloc 20 min à 5'05"
+        paceRange:"5'55-6'20/km",
+        label:"SL 1h20 dont 20 min à 5'05"
       };
     }
     
-    if (week === 10){
+    // =========================
+    // Semaine 11 : semaine clé
+    // =========================
+    if (week === 11){
       if (day === "tue") return {
         kind:"interval_dist",
         reps:6,
         repDistM:800,
         recSec:120,
-        paceTarget:285,
+        paceTarget:285,   // 4'45/km
         paceTol:20,
         label:"6x800"
       };
@@ -1596,7 +1620,7 @@ function stripTime(d){
         reps:2,
         repMin:15,
         recMin:3,
-        paceTarget:300,
+        paceTarget:300,   // 5'00/km
         paceTol:18,
         label:"Seuil 2x15"
       };
@@ -1609,29 +1633,32 @@ function stripTime(d){
       if (day === "sun") return {
         kind:"long",
         minMin:80,
-        paceRange:"5'55-6'20/km",
-        label:"SL 1h20 avec bloc 25 min à 5'00"
+        paceRange:"5'50-6'20/km",
+        label:"SL 1h20 dont 25 min à 5'00"
       };
     }
     
-    if (week === 11){
+    // =========================
+    // Semaine 12 : spécifique pur
+    // =========================
+    if (week === 12){
       if (day === "tue") return {
         kind:"interval_dist",
         reps:8,
-        repDistM:300,
-        recSec:75,
-        paceTarget:260,
+        repDistM:500,
+        recSec:90,
+        paceTarget:275,   // 4'35/km
         paceTol:20,
-        label:"8x300"
+        label:"8x500"
       };
       if (day === "thu") return {
         kind:"tempo_time",
         reps:2,
-        repMin:10,
+        repMin:20,
         recMin:3,
-        paceTarget:300,
+        paceTarget:300,   // 5'00/km
         paceTol:18,
-        label:"Seuil 2x10"
+        label:"Seuil 2x20"
       };
       if (day === "sat") return {
         kind:"endurance",
@@ -1641,46 +1668,85 @@ function stripTime(d){
       };
       if (day === "sun") return {
         kind:"long",
-        minMin:70,
-        paceRange:"5'55-6'20/km",
-        label:"SL 1h10 avec bloc 15 min à 5'00"
+        minMin:75,
+        paceRange:"5'50-6'15/km",
+        label:"SL 1h15 dont 30 min à 5'00"
       };
     }
     
-    if (week === 12){
+    // =========================
+    // Semaine 13 : affûtage
+    // =========================
+    if (week === 13){
       if (day === "tue") return {
         kind:"interval_dist",
         reps:6,
+        repDistM:300,
+        recSec:75,
+        paceTarget:260,   // 4'20/km
+        paceTol:20,
+        label:"6x300"
+      };
+      if (day === "thu") return {
+        kind:"tempo_time",
+        reps:2,
+        repMin:10,
+        recMin:3,
+        paceTarget:300,   // 5'00/km
+        paceTol:18,
+        label:"Seuil 2x10"
+      };
+      if (day === "sat") return {
+        kind:"endurance",
+        minMin:35,
+        paceRange:"6'00-6'35/km",
+        label:"Endurance 35 min"
+      };
+      if (day === "sun") return {
+        kind:"long",
+        minMin:60,
+        paceRange:"5'55-6'25/km",
+        label:"1h00 dont 15 min à 5'00"
+      };
+    }
+    
+    // =========================
+    // Semaine 14 : semaine course Troyes
+    // =========================
+    if (week === 14){
+      if (day === "tue") return {
+        kind:"interval_dist",
+        reps:5,
         repDistM:200,
         recSec:60,
-        paceTarget:255,
+        paceTarget:255,   // 4'15/km
         paceTol:20,
-        label:"Rappel 6x200"
+        label:"Rappel 5x200"
       };
       if (day === "thu") return {
         kind:"tempo_time",
         reps:3,
         repMin:2,
         recMin:2,
-        paceTarget:300,
-        paceTol:18,
+        paceTarget:298,   // ~4'58/km
+        paceTol:15,
         label:"3x2 min allure semi"
       };
       if (day === "sat") return {
         kind:"endurance",
         minMin:20,
-        paceRange:"6'00-6'35/km",
-        label:"Footing très facile"
+        paceRange:"6'05-6'40/km",
+        label:"Footing 20 min très facile"
       };
       if (day === "sun") return {
         kind:"race",
         distKm:21.1,
-        tolKm:1.8,
+        tolKm:1.5,
         label:"Semi objectif (Troyes)",
-        paceTarget:298,
-        paceTol:20
+        paceTarget:298,   // sub 1h45 ≈ 4'58/km
+        paceTol:15
       };
-    }    
+    }
     // --- Par défaut (si tu veux ensuite compléter au-delà)
     // on retombe sur ton modèle standard "futur"
     if (week <= 12){
