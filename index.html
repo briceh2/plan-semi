@@ -682,7 +682,16 @@ function sessionsForWeek(w){
 
   function ensureWeek(w){
     if (!data.weeks[w]) {
-      data.weeks[w] = { done:{tue:false,thu:false,sat:false,sun:false}, sleep:"", feel:"", pain:"", attached:{tue:null,thu:null,sat:null,sun:null} };
+      data.weeks[w] = { 
+        done:{tue:false,thu:false,sat:false,sun:false}, 
+        attached:{tue:null,thu:null,sat:null,sun:null},
+        sleep:"", 
+        feel:"", 
+        pain:"", 
+        open:false
+      };
+    } else if (typeof data.weeks[w].open !== "boolean"){
+      data.weeks[w].open = false;
     }
   }
   function saveData(){ localStorage.setItem(KEY, JSON.stringify(data)); updateAll(); }
@@ -3268,8 +3277,25 @@ function renderPlan(){
     card.className = "card";
 
     const details = document.createElement("details");
+    details.addEventListener("toggle", () => {
+      ensureWeek(w);
+      data.weeks[w].open = details.open;
+      saveData();
+    });
     const currentWeek = getCurrentWeek();
-    details.open = (w === currentWeek);
+    //details.open = (w === currentWeek);
+    const hasSavedOpenState = Object.values(data.weeks || {}).some(x => typeof x?.open === "boolean");
+
+    if (hasSavedOpenState){
+      details.open = !!state.open;
+    } else {
+      // ouverture par défaut : semaine en cours
+      const today = new Date();
+      today.setHours(0,0,0,0);
+    
+      const currentWeek = Math.floor((today - START) / (7 * 24 * 3600 * 1000)) + 1;
+      details.open = (w === currentWeek);
+    }
 
     const summary = document.createElement("summary");
     summary.innerHTML = `
