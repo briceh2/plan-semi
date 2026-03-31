@@ -720,6 +720,9 @@ function sessionsForWeek(w){
   function saveData(){ localStorage.setItem(KEY, JSON.stringify(data)); updateAll(); }
 
   // ===== Helpers =====
+  function persistDataOnly(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
   function safeFixed(value, digits=1, fallback="—"){
     return Number.isFinite(value) ? value.toFixed(digits) : fallback;
   }
@@ -3311,7 +3314,11 @@ function renderBayeuxTrainingLink(){
     </div>
   `;
 }
-  
+function getCurrentWeekIndex(){
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  return Math.floor((today - START) / (7 * 24 * 3600 * 1000)) + 1;
+}  
 function renderPlan(){
   weeksEl.innerHTML = "";
   // affiche le numéro de version
@@ -3321,6 +3328,29 @@ function renderPlan(){
   versionDiv.style.marginBottom = "6px";
   versionDiv.textContent = "Version : " + APP_VERSION;
   weeksEl.appendChild(versionDiv);
+
+  const toolbar = document.createElement("div");
+  toolbar.style.display = "flex";
+  toolbar.style.gap = "8px";
+  toolbar.style.marginBottom = "10px";
+  
+  const btnOpenCurrent = document.createElement("button");
+  btnOpenCurrent.className = "ghostBtn";
+  btnOpenCurrent.textContent = "Ouvrir la semaine en cours";
+  
+  btnOpenCurrent.addEventListener("click", () => {
+    const currentWeek = getCurrentWeekIndex();
+  
+    for (let i = 1; i <= WEEKS; i++){
+      ensureWeek(i);
+      data.weeks[i].open = (i === currentWeek);
+    }
+  
+    saveData();
+  });
+  
+  toolbar.appendChild(btnOpenCurrent);
+  weeksEl.appendChild(toolbar);
   
   for (let w=1; w<=WEEKS; w++){
     ensureWeek(w);
@@ -3341,7 +3371,9 @@ function renderPlan(){
     details.addEventListener("toggle", () => {
       ensureWeek(w);
       data.weeks[w].open = details.open;
-      saveData();
+      persistDataOnly();
+      // on persiste seulement, sans rerender complet du plan
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     });
     const currentWeek = getCurrentWeek();
     //details.open = (w === currentWeek);
