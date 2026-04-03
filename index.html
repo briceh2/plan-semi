@@ -4388,8 +4388,7 @@ saveManualBtn.addEventListener("click", () => {
     const readinessHTML = (typeof hrStats !== "undefined" && hrStats)
       ? renderReadinessBox(readiness, targetHr, driftAlert)
       : "";
-    /* TEST DEBUG
-    FIN TEST DEBUG */
+
       // DEBUG
       alert(
         "DEBUG renderModal (line 3380)\n" +
@@ -4560,11 +4559,17 @@ saveManualBtn.addEventListener("click", () => {
       // TEST DEBUG
       alert(
         "DEBUG HR\n" +
+        "samples total = " + (lastParsedWorkout._samples?.length || 0)
+        );
+      /*
+      alert(
+        "DEBUG HR\n" +
         "samples total = " + (lastParsedWorkout._samples?.length || 0) + "\n" +
         "samples hr = " + hrSamples.filter(x => Number.isFinite(x.hr)).length + "\n" +
         "samples pace = " + hrSamples.filter(x => Number.isFinite(x.pace)).length + "\n" +
         "samples null = " + (hrStats == null)
         );
+        */
         
       // Analyse préparation vs smei de Troyes
       const readiness = (typeof hrStats !== "undefined" && hrStats)
