@@ -4432,18 +4432,6 @@ saveManualBtn.addEventListener("click", () => {
       ${notes.length ? `<div class="mini" style="margin-top:8px;"><b>Conseils :</b> ${notes.join(" ")}</div>` : ""}
     `;
 
-    /* TEST DEBUG
-    analysisSummary.innerHTML = `
-      ${verdictBadge}
-      <div class="mini" style="margin-top:8px;"><b>Raisons :</b></div>
-      <ul class="reasonsInline">${reasons.slice(0,12).map(r=>`<li>${r}</li>`).join("")}</ul>
-      ${blocksHTML}
-      ${hrHTML}
-      ${readinessHTML}
-      ${notes.length ? `<div class="mini" style="margin-top:8px;"><b>Conseils :</b> ${notes.join(" ")}</div>` : ""}
-    `;
-    FIN TEST DEBUG */
-
     manualHint.textContent = `Blocs manuels : ${manualIntervals.length}` + (pendingClickT ? " (début posé)" : "");
     clearManualBtn.disabled = manualIntervals.length === 0;
     saveManualBtn.disabled = false;
@@ -4572,7 +4560,7 @@ saveManualBtn.addEventListener("click", () => {
       // TEST DEBUG
       alert(
         "DEBUG HR\n" +
-        "samples total = " + (lastParsedWorkout.?.length || 0) + "\n" +
+        "samples total = " + (lastParsedWorkout._samples?.length || 0) + "\n" +
         "samples hr = " + hrSamples.filter(x => Number.isFinite(x.hr)).length + "\n" +
         "samples pace = " + hrSamples.filter(x => Number.isFinite(x.pace)).length + "\n" +
         "samples null = " + (hrStats == null)
