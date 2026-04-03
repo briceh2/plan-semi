@@ -4553,14 +4553,24 @@ saveManualBtn.addEventListener("click", () => {
       console.log(spec);
       const evalRes = evaluateCompliance(lastParsedWorkout._samples, spec);
       // Calculer l’analyse cardio au moment de l’import
-      const hrSamples = enrichSamplesWithPace(lastParsedWorkout._samples);
-      const hrStats = analyzeHeartRateSamples(hrSamples);
-
-      // TEST DEBUG
       alert(
         "DEBUG HR\n" +
         "samples total = " + (lastParsedWorkout._samples?.length || 0)
         );
+      const hrSamples = enrichSamplesWithPace(lastParsedWorkout._samples);
+       alert(
+        "DEBUG HR\n" +
+        "samples total = " + (lastParsedWorkout._samples?.length || 0) + "\n" +
+         "Pace"
+        );
+     const hrStats = analyzeHeartRateSamples(hrSamples);
+       alert(
+        "DEBUG HR\n" +
+        "samples total = " + (lastParsedWorkout._samples?.length || 0) + "\n" +
+         "hrStats"
+        );
+
+      // TEST DEBUG
       /*
       alert(
         "DEBUG HR\n" +
