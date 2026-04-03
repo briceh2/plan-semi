@@ -4382,8 +4382,12 @@ saveManualBtn.addEventListener("click", () => {
         ).join("<br>")}
       </div>`
       : "";
-    const hrHTML = renderHeartRateBox(hrStats);
-    const readinessHTML = renderReadinessBox(readiness, targetHr, driftAlert);
+    const hrHTML = (typeof hrStats !== "undefined" && hrStats)
+      ? renderHeartRateBox(hrStats)
+      : "";
+    const readinessHTML = (typeof hrStats !== "undefined" && hrStats)
+      ? renderReadinessBox(readiness, targetHr, driftAlert)
+      : "";
     /* TEST DEBUG
     FIN TEST DEBUG */
       // DEBUG
@@ -4565,9 +4569,15 @@ saveManualBtn.addEventListener("click", () => {
       const hrSamples = enrichSamplesWithPace(lastParsedWorkout._samples);
       const hrStats = analyzeHeartRateSamples(hrSamples);
       // Analyse préparation vs smei de Troyes
-      const readiness = estimateTroyesRaceReadiness(spec, hrStats, evalRes);
-      const targetHr = estimateTroyesTargetHr(hrStats);
-      const driftAlert = longRunDriftAlert(spec, hrStats);
+      const readiness = (typeof hrStats !== "undefined" && hrStats)
+        ? estimateTroyesRaceReadiness(spec, hrStats, evalRes)
+        : null;
+      const targetHr = (typeof hrStats !== "undefined" && hrStats)
+        ? estimateTroyesTargetHr(hrStats)
+        : null;
+      const driftAlert = (typeof hrStats !== "undefined" && hrStats)
+        ? longRunDriftAlert(spec, hrStats)
+        : null;
       // patch pente du 09/03 3299
       const slopeInfo = slopeSummaryForIntervals(lastParsedWorkout._samples, evalRes.intervals || []);
       
