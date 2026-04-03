@@ -1114,15 +1114,33 @@ function workoutSummaryLine(workout){
     return splits;
   }
   function extractHeartRateFromTrkpt(pt){
-    // Apple / Garmin / GPX extensions
-    const cand = pt.querySelector(
-      "gpxtpx\\:hr, hr, TrackPointExtension gpxtpx\\:hr, TrackPointExtension hr"
-    );
-    if (!cand) return null;
-    const v = Number(cand.textContent);
-    return Number.isFinite(v) ? v : null;
-  }
+    const tagNames = [
+      "gpxtpx:hr",
+      "hr",
+      "ns3:hr",
+      "ns2:hr"
+    ];
   
+    for (const tag of tagNames){
+      const nodes = pt.getElementsByTagName(tag);
+      if (nodes && nodes.length){
+        const v = Number(nodes[0].textContent);
+        if (Number.isFinite(v)) return v;
+      }
+    }
+  
+    // fallback : on cherche n'importe quel enfant dont le nom finit par "hr"
+    const all = pt.getElementsByTagName("*");
+    for (let i = 0; i < all.length; i++){
+      const name = (all[i].tagName || "").toLowerCase();
+      if (name.endsWith(":hr") || name === "hr"){
+        const v = Number(all[i].textContent);
+        if (Number.isFinite(v)) return v;
+      }
+    }
+  
+    return null;
+  }  
   function pearsonCorrelation(xs, ys){
     if (!xs || !ys || xs.length !== ys.length || xs.length < 3) return null;
   
@@ -1412,8 +1430,12 @@ function workoutSummaryLine(workout){
     const pts = Array.from(doc.getElementsByTagName("trkpt"));
     if (pts.length < 2) throw new Error("Pas assez de points GPX.");
 
+    let foundHr = 0;
     const points = [];
     for (const p of pts){
+      const hr = extractHeartRateFromTrkpt(p);
+      if (Number.isFinite(hr)) foundHr++;
+
       const lat = toNum(p.getAttribute("lat"));
       const lon = toNum(p.getAttribute("lon"));
       const timeEl = p.getElementsByTagName("time")[0];
@@ -1433,6 +1455,9 @@ function workoutSummaryLine(workout){
         });
       }
     }
+    alert("Nombre de points avec HR = " + foundHr);
+    console.log("Nombre de points avec HR = " + foundHr);
+    
     if (points.length < 2) throw new Error("Timestamps manquants : impossible d'analyser.");
 
     points.sort((a,b)=>a.tMs-b.tMs);
