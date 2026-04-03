@@ -1154,17 +1154,9 @@ function workoutSummaryLine(workout){
     return out;
   }
   function enrichSamplesWithPace(samples){
-    alert(
-      "DEBUG enrichSamplesWithPace\n"
-    );
 
     const pts = buildPaceSeries(samples); // doit renvoyer {tMs, pace, ...}
-    
-    alert(
-      "DEBUG buildPaceSeries\n"
-    );
     const byTime = new Map(pts.map(p => [p.tMs, p.pace]));
-
     
     return (samples || []).map(s => ({
       ...s,
@@ -4566,6 +4558,13 @@ saveManualBtn.addEventListener("click", () => {
         "DEBUG HR\n"
         );
       const hrSamples = enrichSamplesWithPace(lastParsedWorkout._samples);
+      console.log(
+        hrSamples.slice(0,10).map(x => ({
+          hr: x.hr,
+          pace: x.pace,
+          tMs: x.tMs
+        }))
+        );
      const hrStats = analyzeHeartRateSamples(hrSamples);
 
       // TEST DEBUG
