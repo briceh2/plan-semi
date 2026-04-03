@@ -4652,7 +4652,174 @@ function renderModal(){
   }
   
   // Redessine la courbe
-  drawAnalysisCanvas();
+  requestAnimationFrame(() => {
+    drawAnalysisCanvas();
+  });
+}
+function drawAnalysisCanvas(){
+  const canvas = document.getElementById("analysisCanvas");
+  if (!canvas || !modalState || !modalState.samples || !modalState.samples.length) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const cssW = Math.max(320, Math.round(rect.width || 640));
+  const cssH = Math.max(220, Math.round(rect.height || 260));
+  const dpr = window.devicePixelRatio || 1;
+
+  canvas.width = Math.round(cssW * dpr);
+  canvas.height = Math.round(cssH * dpr);
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cssW, cssH);
+
+  const ptsRaw = buildPaceSeries(modalState.samples) || [];
+  const pts = smoothPace(ptsRaw, 10).filter(p => Number.isFinite(p.pace) && Number.isFinite(p.tMs));
+  if (!pts.length) return;
+
+  const padL = 36;
+  const padR = 16;
+  const padT = 12;
+  const padB = 26;
+  const W = cssW - padL - padR;
+  const H = cssH - padT - padB;
+
+  const tMin = pts[0].tMs;
+  const tMax = pts[pts.length - 1].tMs;
+  if (!(tMax > tMin)) return;
+
+  const paces = pts.map(p => p.pace).filter(Number.isFinite);
+  let pMin = Math.min(...paces);
+  let pMax = Math.max(...paces);
+
+  // on clippe un peu les extrêmes pour garder une courbe lisible
+  pMin = Math.max(150, pMin);
+  pMax = Math.min(600, pMax);
+  if (pMax - pMin < 30) pMax = pMin + 30;
+
+  function xFromT(t){
+    return padL + ((t - tMin) / (tMax - tMin)) * W;
+  }
+
+  function yFromPace(p){
+    // plus rapide = plus haut
+    return padT + ((pMax - p) / (pMax - pMin)) * H;
+  }
+
+  // fond
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, cssW, cssH);
+
+  // grille horizontale
+  ctx.strokeStyle = "#ececec";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+
+  const gridCount = 4;
+  for (let i = 0; i <= gridCount; i++){
+    const y = padT + (H * i / gridCount);
+    ctx.moveTo(padL, y);
+    ctx.lineTo(padL + W, y);
+  }
+  ctx.stroke();
+
+  // labels allure à gauche
+  ctx.fillStyle = "#666";
+  ctx.font = "11px sans-serif";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+
+  for (let i = 0; i <= gridCount; i++){
+    const pace = pMax - ((pMax - pMin) * i / gridCount);
+    const y = padT + (H * i / gridCount);
+    ctx.fillText(`${paceStr(Math.round(pace))}/km`, padL - 6, y);
+  }
+
+  // grille temps en bas
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  const totalSec = (tMax - tMin) / 1000;
+  const timeTicks = 4;
+
+  for (let i = 0; i <= timeTicks; i++){
+    const t = tMin + ((tMax - tMin) * i / timeTicks);
+    const x = xFromT(t);
+
+    ctx.strokeStyle = "#f3f3f3";
+    ctx.beginPath();
+    ctx.moveTo(x, padT);
+    ctx.lineTo(x, padT + H);
+    ctx.stroke();
+
+    const sec = Math.round((t - tMin) / 1000);
+    const mm = Math.floor(sec / 60);
+    const ss = sec % 60;
+    ctx.fillStyle = "#666";
+    ctx.fillText(`${mm}:${String(ss).padStart(2,"0")}`, x, padT + H + 6);
+  }
+
+  // bandes de blocs auto
+  const intervals = modalState.intervals || [];
+  if (intervals.length){
+    ctx.fillStyle = "rgba(59,130,246,0.12)";
+    for (const iv of intervals){
+      if (!Number.isFinite(iv.t0) || !Number.isFinite(iv.t1)) continue;
+      const x0 = xFromT(iv.t0);
+      const x1 = xFromT(iv.t1);
+      ctx.fillRect(x0, padT, Math.max(2, x1 - x0), H);
+    }
+  }
+
+  // bandes de blocs manuels
+  const manualIntervals = modalState.manualIntervals || [];
+  if (manualIntervals.length){
+    ctx.fillStyle = "rgba(245,158,11,0.16)";
+    for (const iv of manualIntervals){
+      if (!Number.isFinite(iv.t0) || !Number.isFinite(iv.t1)) continue;
+      const x0 = xFromT(iv.t0);
+      const x1 = xFromT(iv.t1);
+      ctx.fillRect(x0, padT, Math.max(2, x1 - x0), H);
+    }
+  }
+
+  // courbe d'allure
+  ctx.strokeStyle = "#111827";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+
+  pts.forEach((p, idx) => {
+    const x = xFromT(p.tMs);
+    const y = yFromPace(p.pace);
+    if (idx === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+
+  ctx.stroke();
+
+  // contour
+  ctx.strokeStyle = "#d9d9d9";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(padL, padT, W, H);
+
+  // légende simple
+  let legendX = padL;
+  const legendY = 4;
+
+  function legendItem(color, text){
+    ctx.fillStyle = color;
+    ctx.fillRect(legendX, legendY, 10, 10);
+    ctx.fillStyle = "#444";
+    ctx.font = "11px sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText(text, legendX + 14, legendY - 1);
+    legendX += 14 + ctx.measureText(text).width + 18;
+  }
+
+  legendItem("#111827", "Allure");
+  if (intervals.length) legendItem("rgba(59,130,246,0.55)", "Blocs auto");
+  if (manualIntervals.length) legendItem("rgba(245,158,11,0.7)", "Blocs manuels");
 }
 
 /*
