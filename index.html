@@ -213,6 +213,41 @@
       background:#111;
       color:#fff;
     }
+    .hrBox{
+      margin-top:10px;
+      padding:10px 12px;
+      border:1px solid #e5e7eb;
+      border-radius:10px;
+      background:#fafafa;
+      font-size:13px;
+      line-height:1.45;
+    }
+    .hrGrid{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0,1fr));
+      gap:8px;
+      margin-top:8px;
+    }
+    .hrKpi{
+      border:1px solid #ececec;
+      border-radius:8px;
+      padding:8px;
+      background:#fff;
+    }
+    .hrKpi .label{
+      font-size:11px;
+      color:#666;
+    }
+    .hrKpi .value{
+      font-size:17px;
+      font-weight:800;
+      margin-top:2px;
+    }
+    .hrNote{
+      margin-top:8px;
+      font-size:12px;
+      color:#444;
+    }
   </style>
 </head>
 
@@ -1022,18 +1057,22 @@ function workoutSummaryLine(workout){
   function computeDistanceTimeArrays(points){
     let distM = 0;
     const samples = [];
-    samples.push({ 
-      tMs: points[0].tMs, 
+  
+    samples.push({
+      tMs: points[0].tMs,
       distM: 0,
-      eleM: isFinite(points[0].eleM) ? points[0].eleM : null
+      eleM: isFinite(points[0].eleM) ? points[0].eleM : null,
+      hr: Number.isFinite(points[0].hr) ? points[0].hr : null
     });
-    for (let i=1;i<points.length;i++){
+  
+    for (let i=1; i<points.length; i++){
       const d = haversine(points[i-1].lat, points[i-1].lon, points[i].lat, points[i].lon);
       distM += d;
-      samples.push({ 
-        tMs: points[i].tMs, 
+      samples.push({
+        tMs: points[i].tMs,
         distM,
-        eleM: isFinite(points[i].eleM) ? points[i].eleM : null
+        eleM: isFinite(points[i].eleM) ? points[i].eleM : null,
+        hr: Number.isFinite(points[i].hr) ? points[i].hr : null
       });
     }
     return { distM, samples };
@@ -1074,7 +1113,176 @@ function workoutSummaryLine(workout){
     }
     return splits;
   }
-
+  function extractHeartRateFromTrkpt(pt){
+    // Apple / Garmin / GPX extensions
+    const cand = pt.querySelector(
+      "gpxtpx\\:hr, hr, TrackPointExtension gpxtpx\\:hr, TrackPointExtension hr"
+    );
+    if (!cand) return null;
+    const v = Number(cand.textContent);
+    return Number.isFinite(v) ? v : null;
+  }
+  
+  function pearsonCorrelation(xs, ys){
+    if (!xs || !ys || xs.length !== ys.length || xs.length < 3) return null;
+  
+    const n = xs.length;
+    const mx = xs.reduce((a,b)=>a+b,0) / n;
+    const my = ys.reduce((a,b)=>a+b,0) / n;
+  
+    let num = 0, dx = 0, dy = 0;
+    for (let i=0; i<n; i++){
+      const a = xs[i] - mx;
+      const b = ys[i] - my;
+      num += a * b;
+      dx += a * a;
+      dy += b * b;
+    }
+  
+    if (dx <= 0 || dy <= 0) return null;
+    return num / Math.sqrt(dx * dy);
+  }
+  
+  function movingAverage(arr, win){
+    if (!arr || !arr.length) return [];
+    const out = [];
+    for (let i=0; i<arr.length; i++){
+      const a = Math.max(0, i - win + 1);
+      const sub = arr.slice(a, i + 1);
+      out.push(sub.reduce((s,x)=>s+x,0) / sub.length);
+    }
+    return out;
+  }
+  function enrichSamplesWithPace(samples){
+    const pts = buildPaceSeries(samples); // doit renvoyer {tMs, pace, ...}
+    const byTime = new Map(pts.map(p => [p.tMs, p.pace]));
+  
+    return (samples || []).map(s => ({
+      ...s,
+      pace: byTime.has(s.tMs) ? byTime.get(s.tMs) : null
+    }));
+  }
+  function analyzeHeartRateSamples(samples){
+    // samples : [{tMs, distM, hr, pace}]
+    const pts = (samples || []).filter(p => Number.isFinite(p.hr) && Number.isFinite(p.pace));
+    if (!pts.length) return null;
+  
+    const hrs = pts.map(p => p.hr);
+    const avgHr = Math.round(hrs.reduce((a,b)=>a+b,0) / hrs.length);
+    const maxHr = Math.max(...hrs);
+  
+    // dérive cardiaque : première moitié vs seconde moitié
+    const mid = Math.floor(pts.length / 2);
+    const first = pts.slice(0, mid);
+    const second = pts.slice(mid);
+  
+    const avgHr1 = first.length ? first.reduce((a,b)=>a+b.hr,0) / first.length : null;
+    const avgHr2 = second.length ? second.reduce((a,b)=>a+b.hr,0) / second.length : null;
+    const driftBpm = (avgHr1 != null && avgHr2 != null) ? Math.round(avgHr2 - avgHr1) : null;
+  
+    // relation FC ↔ allure : on compare HR avec vitesse (km/h)
+    const speeds = pts.map(p => 3600 / p.pace); // km/h
+    const corr = pearsonCorrelation(hrs, speeds);
+  
+    // seuil cardio estimé :
+    // approximation simple = meilleure moyenne lissée sur 20 min
+    const startT = pts[0].tMs;
+    const endT = pts[pts.length - 1].tMs;
+    const totalSec = (endT - startT) / 1000;
+  
+    let thresholdHr = null;
+    if (totalSec >= 20 * 60){
+      let best = null;
+      for (let i=0; i<pts.length; i++){
+        const t0 = pts[i].tMs;
+        const t1 = t0 + 20 * 60 * 1000;
+        const sub = pts.filter(p => p.tMs >= t0 && p.tMs <= t1);
+        if (sub.length < 30) continue;
+        const h = sub.reduce((a,b)=>a+b.hr,0) / sub.length;
+        if (best == null || h > best) best = h;
+      }
+      if (best != null) thresholdHr = Math.round(best);
+    }
+  
+    // score cardio simple
+    let hrScore = 75;
+    if (driftBpm != null){
+      if (driftBpm <= 2) hrScore = 95;
+      else if (driftBpm <= 5) hrScore = 85;
+      else if (driftBpm <= 8) hrScore = 70;
+      else hrScore = 55;
+    }
+  
+    let verdict = "Analyse cardio disponible";
+    if (driftBpm != null){
+      if (driftBpm <= 2) verdict = "Très bonne tenue cardio";
+      else if (driftBpm <= 5) verdict = "Tenue cardio correcte";
+      else if (driftBpm <= 8) verdict = "Dérive cardio notable";
+      else verdict = "Dérive cardio élevée";
+    }
+  
+    let note = "";
+    if (corr != null){
+      if (corr > 0.55) note = "FC et vitesse évoluent de façon cohérente.";
+      else if (corr > 0.20) note = "Relation FC/allure modérée, fatigue ou terrain possible.";
+      else note = "Relation FC/allure faible, probable influence du terrain ou de la fatigue musculaire.";
+    }
+  
+    return {
+      avgHr,
+      maxHr,
+      driftBpm,
+      corr,
+      thresholdHr,
+      hrScore,
+      verdict,
+      note
+    };
+  }
+  
+  function renderHeartRateBox(hr){
+    if (!hr) return "";
+  
+    const corrTxt = (hr.corr == null) ? "n.d." : hr.corr.toFixed(2);
+    const driftTxt = (hr.driftBpm == null) ? "n.d." : `${hr.driftBpm > 0 ? "+" : ""}${hr.driftBpm} bpm`;
+    const thresholdTxt = Number.isFinite(hr.thresholdHr) ? `${hr.thresholdHr}` : "n.d.";
+  
+    return `
+      <div class="hrBox">
+        <div><b>Analyse fréquence cardiaque</b></div>
+  
+        <div class="hrGrid">
+          <div class="hrKpi">
+            <div class="label">FC moyenne</div>
+            <div class="value">${hr.avgHr ?? "n.d."}</div>
+          </div>
+          <div class="hrKpi">
+            <div class="label">FC max</div>
+            <div class="value">${hr.maxHr ?? "n.d."}</div>
+          </div>
+          <div class="hrKpi">
+            <div class="label">Dérive cardio</div>
+            <div class="value">${driftTxt}</div>
+          </div>
+          <div class="hrKpi">
+            <div class="label">Seuil estimé</div>
+            <div class="value">${thresholdTxt}</div>
+          </div>
+          <div class="hrKpi">
+            <div class="label">Corrélation FC / vitesse</div>
+            <div class="value">${corrTxt}</div>
+          </div>
+          <div class="hrKpi">
+            <div class="label">Score cardio</div>
+            <div class="value">${hr.hrScore}/100</div>
+          </div>
+        </div>
+  
+        <div class="hrNote"><b>Verdict :</b> ${hr.verdict}</div>
+        ${hr.note ? `<div class="hrNote">${hr.note}</div>` : ``}
+      </div>
+    `;
+  }
   function parseGPX(xmlText){
     const parser = new DOMParser();
     const doc = parser.parseFromString(xmlText, "application/xml");
@@ -1088,20 +1296,20 @@ function workoutSummaryLine(workout){
       const lat = toNum(p.getAttribute("lat"));
       const lon = toNum(p.getAttribute("lon"));
       const timeEl = p.getElementsByTagName("time")[0];
-      const tMs = timeEl ? Date.parse(timeEl.textContent.trim()) : null;
-      // patch pente du 09/03 821
       const eleEl = p.getElementsByTagName("ele")[0];
+    
+      const tMs = timeEl ? Date.parse(timeEl.textContent.trim()) : null;
       const eleM = eleEl ? toNum(eleEl.textContent.trim()) : null;
-      
+      const hr = extractHeartRateFromTrkpt(p);
+    
       if (isFinite(lat) && isFinite(lon) && typeof tMs === "number" && !Number.isNaN(tMs)){
-        
         points.push({
           lat,
           lon,
           tMs,
-          eleM: isFinite(eleM) ? eleM : null
+          eleM: isFinite(eleM) ? eleM : null,
+          hr: Number.isFinite(hr) ? hr : null
         });
-        //points.push({ lat, lon, tMs });
       }
     }
     if (points.length < 2) throw new Error("Timestamps manquants : impossible d'analyser.");
@@ -3415,11 +3623,7 @@ function renderPlan(){
     sessions.forEach(([key, dayName, rawText]) => {
       const workoutId = state.attached[key];
       const workout = workoutId ? data.workouts.find(x => x.id === workoutId) : null;
-/*
-      const badge1 = workout
-        ? `<span class="badge">📎 ${workout.distKm.toFixed(2)} km • ${workout.avgPaceStr}</span>`
-        : `<span class="badge">📎 aucune séance importée</span>`;
-*/
+
       const distTxt = (workout && Number.isFinite(workout.distKm))
         ? `${workout.distKm.toFixed(2)} km`
         : `distance n.d.`;
@@ -3471,6 +3675,10 @@ function renderPlan(){
       )
       ? `<div class="mini">⛰️ Pente blocs : min ${safeFixed(workout.compliance.slopeMin, 1)}% • moy ${safeFixed(workout.compliance.slopeAvg, 1)}% • max ${safeFixed(workout.compliance.slopeMax, 1)}%</div>`
       : "";
+
+      const hrMini = workout?.compliance?.heartRate
+        ? `<div class="mini">❤️ FC : moy ${workout.compliance.heartRate.avgHr ?? "n.d."} • max ${workout.compliance.heartRate.maxHr ?? "n.d."} • dérive ${workout.compliance.heartRate.driftBpm != null ? (workout.compliance.heartRate.driftBpm > 0 ? "+" : "") + workout.compliance.heartRate.driftBpm : "n.d."} bpm</div>`
+        : "";
       
       sec.innerHTML = `
         <div class="s-title">${dayName} ${badge1} ${badge2}</div>
@@ -3481,6 +3689,7 @@ function renderPlan(){
         ${workout
           ? `<div class="mini">Importé le ${workout.dateStr} • Durée ${workout.durationStr} • Réf: ${workout.compliance?.specLabel || "-"}</div>
           ${slopeMini}
+          ${hrMini}
           ${workout.compliance?.manualAdjusted ? `<div class="mini">✍️ Blocs ajustés manuellement (score recalculé)</div>` : ``}
           ${reasonsCompact}`
           : `<div class="mini"></div>`
@@ -4043,6 +4252,7 @@ saveManualBtn.addEventListener("click", () => {
         ).join("<br>")}
       </div>`
       : "";
+    const hrHTML = renderHeartRateBox(hrStats);
 
       // DEBUG
       alert(
@@ -4075,20 +4285,16 @@ saveManualBtn.addEventListener("click", () => {
         "nombre = " + blockLines.length + " \n" +
         "slope = " + blockLines
         );
-    // patch pente fin
-    /*
-    analysisSummary.innerHTML = `${verdictBadge}
-      <div class="mini" style="margin-top:8px;"><b>Raisons :</b></div>
-      <ul class="reasonsInline">${reasons.slice(0,12).map(r=>`<li>${r}</li>`).join("")}</ul>
-      ${slopesHTML}
-      ${notes.length ? `<div class="mini" style="margin-top:8px;"><b>Conseils :</b> ${notes.join(" ")}</div>` : ""}`;
-    */
-    analysisSummary.innerHTML = `${verdictBadge}
+
+    analysisSummary.innerHTML = `
+      ${verdictBadge}
       <div class="mini" style="margin-top:8px;"><b>Raisons :</b></div>
       <ul class="reasonsInline">${reasons.slice(0,12).map(r=>`<li>${r}</li>`).join("")}</ul>
       ${blocksHTML}
-      ${notes.length ? `<div class="mini" style="margin-top:8px;"><b>Conseils :</b> ${notes.join(" ")}</div>` : ""}`;
-
+      ${hrHTML}
+      ${notes.length ? `<div class="mini" style="margin-top:8px;"><b>Conseils :</b> ${notes.join(" ")}</div>` : ""}
+    `;
+    
     manualHint.textContent = `Blocs manuels : ${manualIntervals.length}` + (pendingClickT ? " (début posé)" : "");
     clearManualBtn.disabled = manualIntervals.length === 0;
     saveManualBtn.disabled = false;
@@ -4210,6 +4416,9 @@ saveManualBtn.addEventListener("click", () => {
 
       console.log(spec);
       const evalRes = evaluateCompliance(lastParsedWorkout._samples, spec);
+      // Calculer l’analyse cardio au moment de l’import
+      const hrSamples = enrichSamplesWithPace(lastParsedWorkout._samples);
+      const hrStats = analyzeHeartRateSamples(hrSamples);
       // patch pente du 09/03 3299
       const slopeInfo = slopeSummaryForIntervals(lastParsedWorkout._samples, evalRes.intervals || []);
       
@@ -4241,11 +4450,10 @@ saveManualBtn.addEventListener("click", () => {
           reasons: evalRes.reasons || [],
           notes: evalRes.notes || [],
           intervals: evalRes.intervals || [],
-          // patch pente du 09/03 3322
           slopeMin: slopeInfo?.min ?? null,
           slopeAvg: slopeInfo?.avg ?? null,
           slopeMax: slopeInfo?.max ?? null,
-          // patch pente fin
+          heartRate: hrStats || null
           manualAdjusted: false
         }
       };
