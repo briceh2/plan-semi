@@ -1433,7 +1433,8 @@ function workoutSummaryLine(workout){
     let foundHr = 0;
     const points = [];
     for (const p of pts){
-      const hr = extractHeartRateFromTrkpt(p);
+      
+      //const hr = extractHeartRateFromTrkpt(p);
       if (Number.isFinite(hr)) foundHr++;
 
       const lat = toNum(p.getAttribute("lat"));
