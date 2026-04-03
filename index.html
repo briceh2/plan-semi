@@ -4423,6 +4423,7 @@ saveManualBtn.addEventListener("click", () => {
       <div class="mini" style="margin-top:8px;"><b>Raisons :</b></div>
       <ul class="reasonsInline">${reasons.slice(0,12).map(r=>`<li>${r}</li>`).join("")}</ul>
       ${blocksHTML}
+      ${hrHTML}
       ${notes.length ? `<div class="mini" style="margin-top:8px;"><b>Conseils :</b> ${notes.join(" ")}</div>` : ""}
     `;
 
