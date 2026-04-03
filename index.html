@@ -4563,12 +4563,100 @@ saveManualBtn.addEventListener("click", () => {
   alert("Score recalculé et sauvegardé ✅");
 });
 
+function renderModal(){
+  const overlay = document.getElementById("analysisOverlay");
+  const titleEl = document.getElementById("analysisTitle");
+  const subEl = document.getElementById("analysisSub");
+  const summaryEl = document.getElementById("analysisSummary");
+  const manualHint = document.getElementById("manualHint");
   
-
-  function renderModal(){
-    // DEBUG
-    alert("DEBUG renderModal (début)\n");
+  if (!modalState){
+    if (overlay) overlay.style.display = "none";
+    return;
+  }
+  
+  if (overlay) overlay.style.display = "flex";
+  
+  // Titre / sous-titre
+  if (titleEl){
+    titleEl.textContent = modalState.title || "Analyse séance";
+  }
+  
+  if (subEl){
+    const distTxt = Number.isFinite(modalState.distKm)
+    ? `${modalState.distKm.toFixed(2)} km`
+    : "distance n.d.";
     
+    const durTxt = modalState.durationStr || "durée n.d.";
+    const paceTxt = modalState.avgPaceStr || "allure n.d.";
+    const specTxt = modalState.spec?.label || modalState.specLabel || "séance";
+    
+    subEl.textContent = `${distTxt} • ${durTxt} • ${paceTxt} • ${specTxt}`;
+  }
+  
+  // Résumé texte
+  const reasons = modalState.reasons || [];
+  const notes = modalState.notes || [];
+  const verdictBadge = `<span class="badge ${modalState.badgeClass || ""}">${modalState.verdict || "Analyse"} • ${modalState.score ?? "—"}/100</span>`;
+  
+  // Blocs détectés / manuels
+  const blockLines =
+    (modalState?.intervals && modalState.intervals.length)
+    ? blockLinesForIntervals(modalState.samples, modalState.intervals)
+    : [];
+  
+  const blocksHTML = blockLines.length
+    ? `<div class="mini" style="margin-top:6px">
+    ${blockLines.map(x =>
+    `Bloc ${x.index}: ` +
+    `${x.durSec}s` +
+    (Number.isFinite(x.distM) ? ` • ${Math.round(x.distM)} m` : ` • dist. n.d.`) +
+    (Number.isFinite(x.avgSpeedKmh) ? ` • ${paceStr(3600 / x.avgSpeedKmh)}/km` : ` • allure n.d.`) +
+    (x.slope != null ? ` • ${x.slope.toFixed(1)}%` : ` • pente n.d.`)
+    ).join("<br>")}
+    </div>`
+    : `<div class="mini" style="margin-top:6px">Aucun bloc détecté.</div>`;
+  
+  // FC : une seule définition, propre
+  const hr = modalState.heartRate || modalState.hrStats || null;
+    const hrHTML = hr
+    ? renderHeartRateBox(hr)
+    : (typeof renderHeartRateMissingBox === "function"
+    ? renderHeartRateMissingBox()
+    : "");
+  
+  // Readiness : une seule définition, propre
+  const readiness = modalState.readiness || null;
+  const targetHr = modalState.targetHr || null;
+  const driftAlert = modalState.driftAlert || null;
+  
+  const readinessHTML =
+    (readiness && typeof renderReadinessBox === "function")
+    ? renderReadinessBox(readiness, targetHr, driftAlert)
+    : "";
+  
+  summaryEl.innerHTML = `
+    ${verdictBadge}
+    <div class="mini" style="margin-top:8px;"><b>Raisons :</b></div>
+    <ul class="reasonsInline">${reasons.slice(0,12).map(r => `<li>${r}</li>`).join("")}</ul>
+    ${blocksHTML}
+    ${hrHTML}
+    ${readinessHTML}
+    ${notes.length ? `<div class="mini" style="margin-top:8px;"><b>Conseils :</b> ${notes.join(" ")}</div>` : ""}
+    `;
+  
+  // Hint blocs manuels
+  if (manualHint){
+    const manualCount = (modalState.manualIntervals || []).length;
+    manualHint.textContent = `Blocs manuels : ${manualCount}`;
+  }
+  
+  // Redessine la courbe
+  drawAnalysisCanvas();
+}
+
+/*
+  function renderModal(){    
     if (!modalState) return;
 
     analysisTitle.textContent = `Analyse séance • ${modalState.specLabel}`;
@@ -4593,13 +4681,6 @@ saveManualBtn.addEventListener("click", () => {
     const readinessHTML = (typeof hrStats !== "undefined" && hrStats)
       ? renderReadinessBox(readiness, targetHr, driftAlert)
       : "";
-
-      // DEBUG
-      alert(
-        "DEBUG renderModal (line 3380)\n" +
-        "intervals = " + modalState.intervals.length + " \n" +
-        "intervals = " + modalState?.intervals
-        );
     
     const blockLines =
       (modalState?.intervals && modalState.intervals.length)
@@ -4618,13 +4699,6 @@ saveManualBtn.addEventListener("click", () => {
             ).join("<br>")}
           </div>`
         : `<div class="mini" style="margin-top:6px">Aucun bloc détecté.</div>`;
-
-      // DEBUG
-      alert(
-        "DEBUG renderModal (line 3176)\n" +
-        "nombre = " + blockLines.length + " \n" +
-        "slope = " + blockLines
-        );
 
     analysisSummary.innerHTML = `
       ${verdictBadge}
@@ -4703,8 +4777,6 @@ saveManualBtn.addEventListener("click", () => {
         ctx.lineTo(bounds.x0 + bounds.w, yp);
         ctx.stroke();
       }
-      // DEBUG
-      alert("DEBUG renderModal (fin)\n");
     }
 
     // Curve
@@ -4719,6 +4791,7 @@ saveManualBtn.addEventListener("click", () => {
     }
     ctx.stroke();
   }
+  */
 
   // ===== Attach =====
   attachBtn.addEventListener("click", () => {
