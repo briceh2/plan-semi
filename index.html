@@ -1154,9 +1154,18 @@ function workoutSummaryLine(workout){
     return out;
   }
   function enrichSamplesWithPace(samples){
+    alert(
+      "DEBUG enrichSamplesWithPace\n"
+    );
+
     const pts = buildPaceSeries(samples); // doit renvoyer {tMs, pace, ...}
+    
+    alert(
+      "DEBUG buildPaceSeries\n"
+    );
     const byTime = new Map(pts.map(p => [p.tMs, p.pace]));
-  
+
+    
     return (samples || []).map(s => ({
       ...s,
       pace: byTime.has(s.tMs) ? byTime.get(s.tMs) : null
