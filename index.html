@@ -299,20 +299,20 @@
       </div>
 
       <div class="session">
-        <div class="s-title">1) Choisir le fichier</div>
+        <div class="s-title">1) Choisir le fichier GPX</div>
         <input type="file" id="fileInputGPX"
                accept=".gpx,.gtx,application/gpx+xml,application/xml,text/xml,*/*" />
         <div class="mini">Si les fichiers .gtx apparaissent grisés : essaye “Fichiers” → “Sur mon iPhone” et renomme .gtx en .gpx (copie), ou partage le fichier en GPX.</div>
       </div>
       
-      <label class="btnLike">
-        Importer export Santé XML
-        <input type="file" id="healthXmlInput" accept=".xml,text/xml" hidden>
-      </label>
-      <div id="healthXmlStatus" class="mini"></div>
+      <div class="session">
+        <div class="s-title">2) Choisir le fichier Export.xml</div>
+        <input type="file" id="healthXmlInput" 
+          accept=".xml,text/xml" />
+      </div>
 
       <div class="session">
-        <div class="s-title">2) Attacher la séance à ton plan</div>
+        <div class="s-title">3) Attacher la séance à ton plan</div>
         <div class="grid3">
           <div><div class="meta">Semaine</div><select id="attachWeek"></select></div>
           <div>
