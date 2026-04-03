@@ -1436,9 +1436,6 @@ function workoutSummaryLine(workout){
     const points = [];
     for (const p of pts){
       
-      //const hr = extractHeartRateFromTrkpt(p);
-      //if (Number.isFinite(hr)) foundHr++;
-
       const lat = toNum(p.getAttribute("lat"));
       const lon = toNum(p.getAttribute("lon"));
       const timeEl = p.getElementsByTagName("time")[0];
@@ -1447,7 +1444,8 @@ function workoutSummaryLine(workout){
       const tMs = timeEl ? Date.parse(timeEl.textContent.trim()) : null;
       const eleM = eleEl ? toNum(eleEl.textContent.trim()) : null;
       const hr = extractHeartRateFromTrkpt(p);
-    
+       if (Number.isFinite(hr)) foundHr++;
+   
       if (isFinite(lat) && isFinite(lon) && typeof tMs === "number" && !Number.isNaN(tMs)){
         points.push({
           lat,
