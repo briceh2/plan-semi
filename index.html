@@ -4704,7 +4704,8 @@ function drawAnalysisCanvas(){
 
   function yFromPace(p){
     // plus rapide = plus haut
-    return padT + ((pMax - p) / (pMax - pMin)) * H;
+    //return padT + ((pMax - p) / (pMax - pMin)) * H;
+    return padT + ((p - pMin) / (pMax - pMin)) * H;
   }
 
   // fond
@@ -4731,7 +4732,8 @@ function drawAnalysisCanvas(){
   ctx.textBaseline = "middle";
 
   for (let i = 0; i <= gridCount; i++){
-    const pace = pMax - ((pMax - pMin) * i / gridCount);
+    //const pace = pMax + ((pMax - pMin) * i / gridCount);
+    const pace = pMin - ((pMax - pMin) * i / gridCount);
     const y = padT + (H * i / gridCount);
     ctx.fillText(`${paceStr(Math.round(pace))}/km`, padL - 6, y);
   }
