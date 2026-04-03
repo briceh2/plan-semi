@@ -304,6 +304,12 @@
                accept=".gpx,.gtx,application/gpx+xml,application/xml,text/xml,*/*" />
         <div class="mini">Si les fichiers .gtx apparaissent grisés : essaye “Fichiers” → “Sur mon iPhone” et renomme .gtx en .gpx (copie), ou partage le fichier en GPX.</div>
       </div>
+      
+      <label class="btnLike">
+        Importer export Santé XML
+        <input type="file" id="healthXmlInput" accept=".xml,text/xml" hidden>
+      </label>
+      <div id="healthXmlStatus" class="mini"></div>
 
       <div class="session">
         <div class="s-title">2) Attacher la séance à ton plan</div>
@@ -1304,6 +1310,19 @@ function workoutSummaryLine(workout){
       </div>
     `;
   }
+  function renderHeartRateMissingBox(){
+    return `
+      <div class="hrBox">
+        <div><b>Analyse fréquence cardiaque</b></div>
+        <div class="hrNote">
+          Aucune donnée de fréquence cardiaque trouvée dans ce GPX.
+        </div>
+        <div class="hrNote">
+          L’analyse cardio avancée (FC moyenne, FC max, dérive, readiness) n’est donc pas disponible pour cette séance.
+        </div>
+      </div>
+    `;
+  }
 
   function estimateTroyesRaceReadiness(spec, hrStats, evalRes){
     if (!hrStats || !evalRes) return null;
@@ -1424,6 +1443,148 @@ function workoutSummaryLine(workout){
       </div>
     `;
   }
+  function simpleHash(str){
+  let h = 0;
+  for (let i = 0; i < str.length; i++){
+    h = ((h << 5) - h) + str.charCodeAt(i);
+    h |= 0;
+  }
+  return String(h);
+}
+
+function getFcCacheKey(gpxText){
+  return FC_CACHE_PREFIX + simpleHash(gpxText || "");
+}
+
+function saveFcCache(gpxText, payload){
+  try {
+    localStorage.setItem(getFcCacheKey(gpxText), JSON.stringify(payload));
+  } catch (e){
+    console.log("saveFcCache failed:", e);
+  }
+}
+
+function loadFcCache(gpxText){
+  try {
+    const raw = localStorage.getItem(getFcCacheKey(gpxText));
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e){
+    console.log("loadFcCache failed:", e);
+    return null;
+  }
+}
+
+function parseHealthXmlHeartRatesInWindow(xmlText, startMs, endMs){
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(xmlText, "text/xml");
+
+  const records = Array.from(xml.getElementsByTagName("Record"));
+  const out = [];
+
+  const startPad = startMs - 2 * 60 * 1000;
+  const endPad   = endMs + 2 * 60 * 1000;
+
+  for (const r of records){
+    if (r.getAttribute("type") !== "HKQuantityTypeIdentifierHeartRate") continue;
+
+    const s = Date.parse(r.getAttribute("startDate"));
+    const e = Date.parse(r.getAttribute("endDate"));
+    const bpm = Number(r.getAttribute("value"));
+
+    if (!Number.isFinite(s) || !Number.isFinite(e) || !Number.isFinite(bpm)) continue;
+    if (e < startPad || s > endPad) continue;
+
+    out.push({
+      startMs: s,
+      endMs: e,
+      bpm
+    });
+  }
+
+  return out;
+}
+
+function getTimeWindowFromSamples(samples){
+  if (!samples?.length) return null;
+  return {
+    startMs: samples[0].tMs,
+    endMs: samples[samples.length - 1].tMs
+  };
+}
+
+function attachHeartRateToSamples(samples, heartRates){
+  if (!samples?.length) return samples || [];
+
+  if (!heartRates?.length){
+    return samples.map(s => ({ ...s, hr: null }));
+  }
+
+  return samples.map(s => {
+    let hit = null;
+
+    for (const hr of heartRates){
+      if (s.tMs >= hr.startMs && s.tMs <= hr.endMs){
+        hit = hr;
+        break;
+      }
+    }
+
+    if (!hit){
+      let best = null;
+      let bestDt = Infinity;
+
+      for (const hr of heartRates){
+        const mid = (hr.startMs + hr.endMs) / 2;
+        const dt = Math.abs(s.tMs - mid);
+        if (dt < bestDt){
+          bestDt = dt;
+          best = hr;
+        }
+      }
+
+      if (best && bestDt <= 15000){
+        hit = best;
+      }
+    }
+
+    return {
+      ...s,
+      hr: hit ? Math.round(hit.bpm) : null
+    };
+  });
+}
+
+function getHeartRatesForGpxWithCache(gpxText, samples){
+  const cached = loadFcCache(gpxText);
+  if (cached?.heartRates?.length){
+    return { heartRates: cached.heartRates, source: "cache" };
+  }
+
+  if (!lastHealthXmlLoaded || !lastHealthXmlText){
+    return { heartRates: [], source: "none" };
+  }
+
+  const win = getTimeWindowFromSamples(samples);
+  if (!win){
+    return { heartRates: [], source: "none" };
+  }
+
+  const heartRates = parseHealthXmlHeartRatesInWindow(
+    lastHealthXmlText,
+    win.startMs,
+    win.endMs
+  );
+
+  saveFcCache(gpxText, {
+    startMs: win.startMs,
+    endMs: win.endMs,
+    heartRates
+  });
+
+  return { heartRates, source: "xml" };
+}
+
   function parseGPX(xmlText){
     const parser = new DOMParser();
     const doc = parser.parseFromString(xmlText, "application/xml");
@@ -3825,8 +3986,8 @@ function renderPlan(){
 
       const hrMini = workout?.compliance?.heartRate
         ? `<div class="mini">❤️ FC : moy ${workout.compliance.heartRate.avgHr ?? "n.d."} • max ${workout.compliance.heartRate.maxHr ?? "n.d."} • dérive ${workout.compliance.heartRate.driftBpm != null ? (workout.compliance.heartRate.driftBpm > 0 ? "+" : "") + workout.compliance.heartRate.driftBpm : "n.d."} bpm</div>`
-        : "";
-
+        : `<div class="mini">❤️ FC : non disponible</div>`;
+      
       const readinessMini = workout?.compliance?.readiness
         ? `<div class="mini">🎯 Troyes : ${workout.compliance.readiness.score}/100 • ${workout.compliance.readiness.verdict}</div>`
         : "";
@@ -4115,6 +4276,9 @@ function renderPlan(){
   const gpxComplianceEl = document.getElementById("gpxCompliance");
 
   let lastParsedWorkout = null;
+  let lastHealthXmlText = "";
+  let lastHealthXmlLoaded = false;
+  const FC_CACHE_PREFIX = "fc_cache_";
 
   function fillWeekSelect(){
     attachWeekEl.innerHTML = "";
@@ -4156,7 +4320,8 @@ function renderPlan(){
     try {
       const text = await file.text();
       const parsed = parseGPX(text);
-
+      parsed._gpxText = text;
+      
       alert(
         "DEBUG parse altitude\n" +
         "samples = " + parsed._samples.length + "\n" +
@@ -4173,6 +4338,19 @@ function renderPlan(){
       gpxSummaryEl.textContent = "Impossible d'analyser ce fichier.";
       gpxSplitsEl.textContent = "—";
       gpxComplianceEl.textContent = (err && err.message) ? err.message : "—";
+    }
+  });
+
+  document.getElementById("healthXmlInput").addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+  
+    lastHealthXmlText = await file.text();
+    lastHealthXmlLoaded = true;
+  
+    const status = document.getElementById("healthXmlStatus");
+    if (status){
+      status.textContent = `Export Santé chargé : ${file.name}`;
     }
   });
 
@@ -4453,11 +4631,12 @@ saveManualBtn.addEventListener("click", () => {
       <div class="mini" style="margin-top:8px;"><b>Raisons :</b></div>
       <ul class="reasonsInline">${reasons.slice(0,12).map(r=>`<li>${r}</li>`).join("")}</ul>
       ${blocksHTML}
+      ${hrSourceMini}
       ${hrHTML}
       ${readinessHTML}
       ${notes.length ? `<div class="mini" style="margin-top:8px;"><b>Conseils :</b> ${notes.join(" ")}</div>` : ""}
     `;
-
+    
     manualHint.textContent = `Blocs manuels : ${manualIntervals.length}` + (pendingClickT ? " (début posé)" : "");
     clearManualBtn.disabled = manualIntervals.length === 0;
     saveManualBtn.disabled = false;
@@ -4578,45 +4757,41 @@ saveManualBtn.addEventListener("click", () => {
       }
 
       console.log(spec);
-      const evalRes = evaluateCompliance(lastParsedWorkout._samples, spec);
-      // Calculer l’analyse cardio au moment de l’import
-      alert(
-        "DEBUG HR\n"
-        );
-      const hrSamples = enrichSamplesWithPace(lastParsedWorkout._samples);
-      console.log(
-        hrSamples.slice(0,10).map(x => ({
-          hr: x.hr,
-          pace: x.pace,
-          tMs: x.tMs
-        }))
-        );
-     const hrStats = analyzeHeartRateSamples(hrSamples);
-
-      // TEST DEBUG
-      /*
-      alert(
-        "DEBUG HR\n" +
-        "samples total = " + (lastParsedWorkout._samples?.length || 0) + "\n" +
-        "samples hr = " + hrSamples.filter(x => Number.isFinite(x.hr)).length + "\n" +
-        "samples pace = " + hrSamples.filter(x => Number.isFinite(x.pace)).length + "\n" +
-        "samples null = " + (hrStats == null)
-        );
-        */
-        
-      // Analyse préparation vs smei de Troyes
-      const readiness = (typeof hrStats !== "undefined" && hrStats)
-        ? estimateTroyesRaceReadiness(spec, hrStats, evalRes)
-        : null;
-      const targetHr = (typeof hrStats !== "undefined" && hrStats)
-        ? estimateTroyesTargetHr(hrStats)
-        : null;
-      const driftAlert = (typeof hrStats !== "undefined" && hrStats)
-        ? longRunDriftAlert(spec, hrStats)
-        : null;
-      // patch pente du 09/03 3299
-      const slopeInfo = slopeSummaryForIntervals(lastParsedWorkout._samples, evalRes.intervals || []);
       
+      const gpxText = lastParsedWorkout._gpxText || "";
+      
+      const hrBundle = getHeartRatesForGpxWithCache(gpxText, lastParsedWorkout._samples);
+      const heartRates = hrBundle.heartRates || [];
+      
+      const mergedSamples = attachHeartRateToSamples(lastParsedWorkout._samples, heartRates);
+      
+      const evalRes = evaluateCompliance(mergedSamples, spec);
+      
+      const hrSamples = enrichSamplesWithPace(mergedSamples);
+      const hrStats = analyzeHeartRateSamples(hrSamples);
+      
+      const hrHTML = hrStats
+        ? renderHeartRateBox(hrStats)
+        : renderHeartRateMissingBox();
+      
+      const readiness = hrStats ? estimateTroyesRaceReadiness(spec, hrStats, evalRes) : null;
+      const targetHr = hrStats ? estimateTroyesTargetHr(hrStats) : null;
+      const driftAlert = hrStats ? longRunDriftAlert(spec, hrStats) : null;
+      const readinessHTML = readiness ? renderReadinessBox(readiness, targetHr, driftAlert) : "";
+      
+      const hrSourceMini = heartRates.length
+        ? `<div class="mini">❤️ FC source : ${hrBundle.source === "cache" ? "cache local" : "export Santé XML"}</div>`
+        : `<div class="mini">❤️ FC source : aucune donnée</div>`;      
+            const hrHTML = hrStats
+        ? renderHeartRateBox(hrStats)
+        : renderHeartRateMissingBox();
+      
+      const readiness = hrStats ? estimateTroyesRaceReadiness(spec, hrStats, evalRes) : null;
+      const targetHr = hrStats ? estimateTroyesTargetHr(hrStats) : null;
+      const driftAlert = hrStats ? longRunDriftAlert(spec, hrStats) : null;
+      const readinessHTML = readiness ? renderReadinessBox(readiness, targetHr, driftAlert) : "";
+      
+      const slopeInfo = slopeSummaryForIntervals(lastParsedWorkout._samples, evalRes.intervals || []);  
       const badgeClass = verdictBadgeClass(evalRes.verdictClass);
 
       const workoutStored = {
@@ -4627,14 +4802,7 @@ saveManualBtn.addEventListener("click", () => {
         durationStr: lastParsedWorkout.durationStr,
         avgPaceSec: lastParsedWorkout.avgPaceSec,
         avgPaceStr: lastParsedWorkout.avgPaceStr,
-        // patch du 13/03
-        /*
-        distKm: Number.isFinite(lastParsedWorkout.distKm) ? lastParsedWorkout.distKm : null,
-        durationSec: Number.isFinite(lastParsedWorkout.durationSec) ? lastParsedWorkout.durationSec : null,
-        durationStr: lastParsedWorkout.durationStr || "—",
-        avgPaceSec: Number.isFinite(lastParsedWorkout.avgPaceSec) ? lastParsedWorkout.avgPaceSec : null,
-        avgPaceStr: lastParsedWorkout.avgPaceStr || "—",
-        */
+
         dateStr: lastParsedWorkout.dateStr,
         compliance: {
           score: evalRes.score,
