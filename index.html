@@ -1120,7 +1120,9 @@ function workoutSummaryLine(workout){
       "ns3:hr",
       "ns2:hr"
     ];
-  
+
+    console.log("extractHeartRateFromTrkpt\n");
+    
     for (const tag of tagNames){
       const nodes = pt.getElementsByTagName(tag);
       if (nodes && nodes.length){
