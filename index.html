@@ -4733,7 +4733,7 @@ function drawAnalysisCanvas(){
 
   for (let i = 0; i <= gridCount; i++){
     //const pace = pMax + ((pMax - pMin) * i / gridCount);
-    const pace = pMin - ((pMax - pMin) * i / gridCount);
+    const pace = pMin + ((pMax - pMin) * i / gridCount);
     const y = padT + (H * i / gridCount);
     ctx.fillText(`${paceStr(Math.round(pace))}/km`, padL - 6, y);
   }
