@@ -4761,28 +4761,16 @@ saveManualBtn.addEventListener("click", () => {
       const gpxText = lastParsedWorkout._gpxText || "";
       
       const hrBundle = getHeartRatesForGpxWithCache(gpxText, lastParsedWorkout._samples);
-      const heartRates = hrBundle.heartRates || [];
-      
-      const mergedSamples = attachHeartRateToSamples(lastParsedWorkout._samples, heartRates);
-      
-      const evalRes = evaluateCompliance(mergedSamples, spec);
-      
+      const heartRates = hrBundle.heartRates || [];      
+      const mergedSamples = attachHeartRateToSamples(lastParsedWorkout._samples, heartRates);    
+      const evalRes = evaluateCompliance(mergedSamples, spec);     
       const hrSamples = enrichSamplesWithPace(mergedSamples);
       const hrStats = analyzeHeartRateSamples(hrSamples);
-      
-      const hrHTML = hrStats
-        ? renderHeartRateBox(hrStats)
-        : renderHeartRateMissingBox();
-      
-      const readiness = hrStats ? estimateTroyesRaceReadiness(spec, hrStats, evalRes) : null;
-      const targetHr = hrStats ? estimateTroyesTargetHr(hrStats) : null;
-      const driftAlert = hrStats ? longRunDriftAlert(spec, hrStats) : null;
-      const readinessHTML = readiness ? renderReadinessBox(readiness, targetHr, driftAlert) : "";
-      
+            
       const hrSourceMini = heartRates.length
         ? `<div class="mini">❤️ FC source : ${hrBundle.source === "cache" ? "cache local" : "export Santé XML"}</div>`
         : `<div class="mini">❤️ FC source : aucune donnée</div>`;      
-            const hrHTML = hrStats
+      const hrHTML = hrStats
         ? renderHeartRateBox(hrStats)
         : renderHeartRateMissingBox();
       
