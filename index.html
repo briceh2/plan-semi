@@ -4740,7 +4740,7 @@ function drawAnalysisCanvas(){
     const y = padT + (H * i / gridCount);
     ctx.fillText(`${paceStr(Math.round(pace))}/km`, padL - 6, y);
 
-    console.log("pace : " + pace + " " + paceStr(Math.round(pace)));
+    console.log("pace(" + i + ") : " + pace + " " + paceStr(Math.round(pace)));
   }
 
   // grille temps en bas
