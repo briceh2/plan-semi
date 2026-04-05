@@ -4344,13 +4344,22 @@ function renderPlan(){
   document.getElementById("healthXmlInput").addEventListener("change", async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    try {
+      lastHealthXmlText = await file.text();
+      lastHealthXmlLoaded = true;
   
-    lastHealthXmlText = await file.text();
-    lastHealthXmlLoaded = true;
-  
-    const status = document.getElementById("healthXmlStatus");
-    if (status){
-      status.textContent = `Export Santé chargé : ${file.name}`;
+      const status = document.getElementById("healthXmlStatus");
+      if (status){
+        status.textContent = `Export Santé chargé : ${file.name}`;
+      }
+      show("import");
+    } catch (err) {
+      const status = document.getElementById("healthXmlStatus");
+      if (status){
+        status.textContent = `Imossible de mire Export Santé chargé : ${file.name}`;
+      }
+      show("import");
     }
   });
 
