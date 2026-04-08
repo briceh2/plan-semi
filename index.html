@@ -472,7 +472,7 @@
   };
   
   // version
-  const APP_VERSION = "v26-17-03_3.0";
+  const APP_VERSION = "v26-04-08_1.0";
   // ===== Dates =====
   const START = new Date("2026-02-02T00:00:00");
   const RACE  = new Date("2026-05-10T00:00:00");
@@ -761,7 +761,9 @@ function sessionsForWeek(w){
   }
   function saveData(){ localStorage.setItem(KEY, JSON.stringify(data)); updateAll(); }
 
+  // ===================
   // ===== Helpers =====
+  // ===================
   function persistDataOnly(){
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }
@@ -974,9 +976,242 @@ function workoutSummaryLine(workout){
   const score = Number.isFinite(workout?.compliance?.score) ? `${workout.compliance.score}/100` : "score n.d.";
   return `${workout.dateStr || "date n.d."} • ${dist} • ${pace} • ${score}`;
 }
-  // ===== Helpers fin =====
+// =========================
+// FC cache / XML helpers
+// =========================
+let lastHealthXmlFile = null;
+let lastHealthXmlLoaded = false;
 
+const FC_DB_NAME = "SemiAppFcCache";
+const FC_DB_VERSION = 1;
+const FC_STORE = "fcCache";
+
+function simpleHash(str){
+  let h = 0;
+  for (let i = 0; i < str.length; i++){
+    h = ((h << 5) - h) + str.charCodeAt(i);
+    h |= 0;
+  }
+  return String(h);
+}
+
+function getFcCacheKey(gpxText){
+  return "fc_" + simpleHash(gpxText || "");
+}
+
+function openFcDb(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(FC_DB_NAME, FC_DB_VERSION);
+
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(FC_STORE)){
+        db.createObjectStore(FC_STORE, { keyPath: "key" });
+      }
+    };
+
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function fcCacheGet(key){
+  const db = await openFcDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(FC_STORE, "readonly");
+    const store = tx.objectStore(FC_STORE);
+    const req = store.get(key);
+
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function fcCacheSet(key, value){
+  const db = await openFcDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(FC_STORE, "readwrite");
+    const store = tx.objectStore(FC_STORE);
+    const req = store.put({ key, ...value });
+
+    req.onsuccess = () => resolve(true);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function getTimeWindowFromSamples(samples){
+  if (!samples?.length) return null;
+  return {
+    startMs: samples[0].tMs,
+    endMs: samples[samples.length - 1].tMs
+  };
+}
+
+function parseHeartRateRecordTag(tagText){
+  if (!tagText.includes('HKQuantityTypeIdentifierHeartRate')) return null;
+
+  function getAttr(name){
+    const m = tagText.match(new RegExp(name + '="([^"]+)"'));
+    return m ? m[1] : null;
+  }
+
+  const startDate = getAttr("startDate");
+  const endDate = getAttr("endDate");
+  const value = getAttr("value");
+
+  const startMs = Date.parse(startDate);
+  const endMs = Date.parse(endDate);
+  const bpm = Number(value);
+
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || !Number.isFinite(bpm)) return null;
+
+  return { startMs, endMs, bpm };
+}
+
+async function extractHeartRatesFromXmlFileByWindow(file, startMs, endMs){
+  const startPad = startMs - 2 * 60 * 1000;
+  const endPad   = endMs + 2 * 60 * 1000;
+
+  const chunkSize = 2 * 1024 * 1024; // 2 Mo
+  let offset = 0;
+  let leftover = "";
+  const out = [];
+
+  while (offset < file.size){
+    const blob = file.slice(offset, offset + chunkSize);
+    const text = await blob.text();
+    offset += chunkSize;
+
+    const combined = leftover + text;
+    const parts = combined.split("<Record ");
+
+    leftover = parts.pop() || "";
+
+    for (let i = 1; i < parts.length; i++){
+      const candidate = "<Record " + parts[i];
+      const endIdx = candidate.indexOf("/>");
+
+      if (endIdx === -1){
+        leftover = candidate + leftover;
+        continue;
+      }
+
+      const tagText = candidate.slice(0, endIdx + 2);
+      const rec = parseHeartRateRecordTag(tagText);
+      if (!rec) continue;
+
+      if (rec.endMs < startPad || rec.startMs > endPad) continue;
+      out.push(rec);
+    }
+  }
+
+  if (leftover.includes("<Record ")){
+    const endIdx = leftover.indexOf("/>");
+    if (endIdx !== -1){
+      const tagText = leftover.slice(0, endIdx + 2);
+      const rec = parseHeartRateRecordTag(tagText);
+      if (rec && !(rec.endMs < startPad || rec.startMs > endPad)){
+        out.push(rec);
+      }
+    }
+  }
+
+  return out;
+}
+
+function attachHeartRateToSamples(samples, heartRates){
+  if (!samples?.length) return samples || [];
+
+  if (!heartRates?.length){
+    return samples.map(s => ({ ...s, hr: null }));
+  }
+
+  return samples.map(s => {
+    let hit = null;
+
+    for (const hr of heartRates){
+      if (s.tMs >= hr.startMs && s.tMs <= hr.endMs){
+        hit = hr;
+        break;
+      }
+    }
+
+    if (!hit){
+      let best = null;
+      let bestDt = Infinity;
+
+      for (const hr of heartRates){
+        const mid = (hr.startMs + hr.endMs) / 2;
+        const dt = Math.abs(s.tMs - mid);
+        if (dt < bestDt){
+          bestDt = dt;
+          best = hr;
+        }
+      }
+
+      if (best && bestDt <= 15000){
+        hit = best;
+      }
+    }
+
+    return {
+      ...s,
+      hr: hit ? Math.round(hit.bpm) : null
+    };
+  });
+}
+
+async function getHeartRatesForGpxWithCache(gpxText, samples){
+  const cacheKey = getFcCacheKey(gpxText);
+  const cached = await fcCacheGet(cacheKey);
+
+  if (cached?.heartRates?.length){
+    return {
+      heartRates: cached.heartRates,
+      source: "cache"
+    };
+  }
+
+  if (!lastHealthXmlLoaded || !lastHealthXmlFile){
+    return {
+      heartRates: [],
+      source: "none"
+    };
+  }
+
+  const win = getTimeWindowFromSamples(samples);
+  if (!win){
+    return {
+      heartRates: [],
+      source: "none"
+    };
+  }
+
+  const heartRates = await extractHeartRatesFromXmlFileByWindow(
+    lastHealthXmlFile,
+    win.startMs,
+    win.endMs
+  );
+
+  await fcCacheSet(cacheKey, {
+    startMs: win.startMs,
+    endMs: win.endMs,
+    createdAt: Date.now(),
+    heartRates
+  });
+
+  return {
+    heartRates,
+    source: "xml"
+  };
+}
+  
+  // ========================
+  // ===== Helpers fin ======
+  // ========================
+  
   // ===== Tabs =====
+  // ========================
   function show(which){
     ["planSection","importSection","statsSection","bayeuxSection"].forEach(id =>
     document.getElementById(id).classList.add("hidden")
@@ -4317,52 +4552,52 @@ function renderPlan(){
   document.getElementById("fileInputGPX").addEventListener("change", async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+  
     try {
       const text = await file.text();
       const parsed = parseGPX(text);
+  
       parsed._gpxText = text;
-      
-      alert(
-        "DEBUG parse altitude\n" +
-        "samples = " + parsed._samples.length + "\n" +
-        "ele first = " + parsed._samples[0].eleM + "\n" +
-        "ele last = " + parsed._samples[parsed._samples.length-1].eleM + "\n"
-        );
-      
-      lastParsedWorkout = { id: "w_" + Date.now(), sourceName: file.name, ...parsed };
+      lastParsedWorkout = parsed;
+  
       renderParsedWorkout(lastParsedWorkout);
-      attachBtn.disabled = false;
-    } catch (err) {
-      lastParsedWorkout = null;
-      attachBtn.disabled = true;
-      gpxSummaryEl.textContent = "Impossible d'analyser ce fichier.";
-      gpxSplitsEl.textContent = "—";
-      gpxComplianceEl.textContent = (err && err.message) ? err.message : "—";
+  
+      document.getElementById("attachBtn").disabled = false;
+      show("import");
+    } catch (err){
+      console.log(err);
+      alert("Impossible de lire ce fichier GPX/GTX.");
     }
   });
 
   document.getElementById("healthXmlInput").addEventListener("change", async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
+  
+    const status = document.getElementById("healthXmlStatus");
+  
     try {
-      lastHealthXmlText = await file.text();
+      lastHealthXmlFile = file;
       lastHealthXmlLoaded = true;
   
-      const status = document.getElementById("healthXmlStatus");
       if (status){
-        status.textContent = `Export Santé chargé : ${file.name}`;
+        const sizeMb = file.size / (1024 * 1024);
+        status.textContent = `Export Santé chargé : ${file.name} (${sizeMb.toFixed(0)} Mo)`;
       }
+  
       show("import");
-    } catch (err) {
-      const status = document.getElementById("healthXmlStatus");
+    } catch (err){
+      lastHealthXmlFile = null;
+      lastHealthXmlLoaded = false;
+  
       if (status){
-        status.textContent = `Imossible de mire Export Santé chargé : ${file.name}`;
+        status.textContent = "Impossible de charger l’export Santé.";
       }
+  
       show("import");
     }
   });
-
+  
   // ===== Modal + blocs manuels =====
   const overlay = document.getElementById("analysisOverlay");
   const canvas = document.getElementById("analysisCanvas");
@@ -4653,6 +4888,17 @@ function renderModal(){
     ${readinessHTML}
     ${notes.length ? `<div class="mini" style="margin-top:8px;"><b>Conseils :</b> ${notes.join(" ")}</div>` : ""}
     `;
+
+  analysisSummary.innerHTML = `
+    ${verdictBadge}
+    <div class="mini" style="margin-top:8px;"><b>Raisons :</b></div>
+    <ul class="reasonsInline">${reasons.slice(0,12).map(r=>`<li>${r}</li>`).join("")}</ul>
+    ${blocksHTML}
+    ${hrSourceMini}
+    ${hrHTML}
+    ${readinessHTML}
+    ${notes.length ? `<div class="mini" style="margin-top:8px;"><b>Conseils :</b> ${notes.join(" ")}</div>` : ""}
+  `;
   
   // Hint blocs manuels
   if (manualHint){
@@ -4838,203 +5084,44 @@ function drawAnalysisCanvas(){
   if (manualIntervals.length) legendItem("rgba(245,158,11,0.7)", "Blocs manuels");
 }
 
-/*
-  function renderModal(){    
-    if (!modalState) return;
-
-    analysisTitle.textContent = `Analyse séance • ${modalState.specLabel}`;
-    analysisSub.textContent = `${modalState.dateStr} • ${modalState.distKm.toFixed(2)} km • ${modalState.durationStr} • ${modalState.avgPaceStr}/km`;
-
-    const reasons = modalState.reasons || [];
-    const notes = modalState.notes || [];
-    const verdictBadge = `<span class="badge ${modalState.badgeClass}">${modalState.verdict} • ${modalState.score}/100</span>`;
-    // patch pente du 09/03 3163
-    const slopeLines = slopeLinesForIntervals(modalState?.samples, modalState?.intervals || []);
-    const slopesHTML = slopeLines.length
-      ? `<div class="mini" style="margin-top:6px">
-        ${slopeLines.map(x =>
-          `Bloc ${x.index}: ${x.durSec}s` +
-          (x.slope != null ? ` • ${x.slope.toFixed(1)}%` : ` • pente n.d.`)
-        ).join("<br>")}
-      </div>`
-      : "";
-    const hrHTML = (typeof hrStats !== "undefined" && hrStats)
-      ? renderHeartRateBox(hrStats)
-      : "";
-    const readinessHTML = (typeof hrStats !== "undefined" && hrStats)
-      ? renderReadinessBox(readiness, targetHr, driftAlert)
-      : "";
-    
-    const blockLines =
-      (modalState?.intervals && modalState.intervals.length)
-        ? blockLinesForIntervals(modalState.samples, modalState.intervals)
-        : [];
-      
-      const blocksHTML = blockLines.length
-        ? `<div class="mini" style="margin-top:6px">
-          ${blockLines.map(x =>
-            `Bloc ${x.index}: ` +
-            `${x.durSec}s` +
-            (Number.isFinite(x.distM) ? ` • ${Math.round(x.distM)} m` : ` • dist. n.d.`) +
-            (Number.isFinite(x.avgSpeedKmh) ? ` • ${x.avgSpeedKmh.toFixed(1)} km/h` : ` • vit. n.d.`) +
-            (Number.isFinite(x.avgSpeedKmh) ? ` • ${paceStr(3600 / x.avgSpeedKmh)}/km` : ` • allure n.d.`) +
-            (x.slope != null ? ` • ${x.slope.toFixed(1)}%` : ` • pente n.d.`)
-            ).join("<br>")}
-          </div>`
-        : `<div class="mini" style="margin-top:6px">Aucun bloc détecté.</div>`;
-
-    analysisSummary.innerHTML = `
-      ${verdictBadge}
-      <div class="mini" style="margin-top:8px;"><b>Raisons :</b></div>
-      <ul class="reasonsInline">${reasons.slice(0,12).map(r=>`<li>${r}</li>`).join("")}</ul>
-      ${blocksHTML}
-      ${hrSourceMini}
-      ${hrHTML}
-      ${readinessHTML}
-      ${notes.length ? `<div class="mini" style="margin-top:8px;"><b>Conseils :</b> ${notes.join(" ")}</div>` : ""}
-    `;
-    
-    manualHint.textContent = `Blocs manuels : ${manualIntervals.length}` + (pendingClickT ? " (début posé)" : "");
-    clearManualBtn.disabled = manualIntervals.length === 0;
-    saveManualBtn.disabled = false;
-
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-
-    const pacePts = smoothPace(buildPaceSeries(modalState.samples), 6);
-    if (!pacePts.length){
-      ctx.fillStyle = "#111";
-      ctx.font = "14px -apple-system, system-ui, Arial";
-      ctx.fillText("Graph indisponible (données insuffisantes).", 20, 40);
-      return;
-    }
-
-    const t0 = pacePts[0].tMs;
-    const series = pacePts.map(p => ({
-      tMin: (p.tMs - t0)/60000,
-      speed: kmhFromPaceSec(p.pace),
-      tMs: p.tMs
-    }));
-
-    const speeds = series.map(x=>x.speed);
-    let minX = Math.max(0, Math.min(...speeds) - 0.8);
-    let maxX = Math.max(...speeds) + 0.8;
-    if (maxX - minX < 2) { minX -= 1; maxX += 1; }
-
-    const bounds = { x0:60, y0:20, w:canvas.width-90, h:canvas.height-90, minX, maxX };
-    const maxY = series[series.length-1].tMin || 1;
-
-    modalState._graph = { series, t0ms:t0, bounds, maxY };
-    drawAxes(bounds);
-
-    // Auto intervals (blue)
-    const det = modalState.intervals || [];
-    ctx.globalAlpha = 0.18;
-    ctx.fillStyle = "#2563eb";
-    for (const it of det){
-      const y1 = yFromTMs(it.t0);
-      const y2 = yFromTMs(it.t1);
-      if (y1==null || y2==null) continue;
-      ctx.fillRect(bounds.x0, Math.min(y1,y2), bounds.w, Math.max(1, Math.abs(y2-y1)));
-    }
-    ctx.globalAlpha = 1;
-
-    // Manual intervals (gray)
-    ctx.globalAlpha = 0.22;
-    ctx.fillStyle = "#6b7280";
-    for (const it of manualIntervals){
-      const y1 = yFromTMs(it.t0);
-      const y2 = yFromTMs(it.t1);
-      if (y1==null || y2==null) continue;
-      ctx.fillRect(bounds.x0, Math.min(y1,y2), bounds.w, Math.max(1, Math.abs(y2-y1)));
-    }
-    ctx.globalAlpha = 1;
-
-    // Pending marker
-    if (pendingClickT){
-      const yp = yFromTMs(pendingClickT);
-      if (yp!=null){
-        ctx.strokeStyle = "#9ca3af";
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(bounds.x0, yp);
-        ctx.lineTo(bounds.x0 + bounds.w, yp);
-        ctx.stroke();
-      }
-    }
-
-    // Curve
-    ctx.strokeStyle = "#111827";
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    for (let i=0;i<series.length;i++){
-      const s = series[i];
-      const x = bounds.x0 + (s.speed - minX) * bounds.w / (maxX - minX || 1);
-      const y = bounds.y0 + (s.tMin / maxY) * bounds.h;
-      if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-    }
-    ctx.stroke();
-  }
-  */
 
   // ===== Attach =====
   attachBtn.addEventListener("click", () => {
     try {
       if (!lastParsedWorkout) return;
 
-      const week = parseInt(attachWeekEl.value, 10);
-      const day  = attachDayEl.value;
-      ensureWeek(week);
-
+      const week = Number(document.getElementById("attachWeek").value);
+      const day = document.getElementById("attachDay").value;
+      const override = document.getElementById("attachType").value;
+      
       // DEBUG
       alert(
-        "DEBUG expectedSpec (line 2566)\n" +
+        "DEBUG expectedSpec (line 5225)\n" +
         "week = " + week + "\n" + 
-        "day = " + day + "\n" + 
-        "override = " + attachTypeEl.value
-        );
-      
-      let spec = expectedSpec(week, day);
-
-      // DEBUG
-      alert(
-        "DEBUG retour expectedSpec (line 2566)\n" +
-        "spec = " + JSON.stringify(spec)
-        );
-
-      const override = attachTypeEl.value;
-
-      if (override !== "auto"){
-        if (override === "vma30")  spec = { kind:"interval_time", repFastSec:30, repSlowSec:30, sets:2, repsPerSet:8, paceTarget:255, paceTol:22, label:"(Override) VMA 30/30" };
-        if (override === "vma400") spec = { kind:"interval_dist", reps:10, repDistM:400, paceTarget:250, paceTol:20, label:"(Override) VMA 400m" };
-        if (override === "tempo")  spec = { kind:"tempo_time", reps:2, repMin:8, paceTarget:305, paceTol:28, label:"(Override) Tempo/Seuil" };
-        if (override === "easy")   spec = { kind:"endurance", minMin:40, label:"(Override) Endurance" };
-        if (override === "long")   spec = { kind:"long", minMin:75, label:"(Override) Sortie longue" };
-        if (override === "race")   spec = { kind:"race", distKm:21.1, tolKm:2.0, label:"(Override) Course", paceTarget:300, paceTol:35 };
-      }
-
+        "day = " + day
+        );      
+      const spec = expectedSpec(week, day, override);
       console.log(spec);
-      
-      const gpxText = lastParsedWorkout._gpxText || "";
-      
-      const hrBundle = getHeartRatesForGpxWithCache(gpxText, lastParsedWorkout._samples);
-      const heartRates = hrBundle.heartRates || [];      
-      const mergedSamples = attachHeartRateToSamples(lastParsedWorkout._samples, heartRates);    
-      const evalRes = evaluateCompliance(mergedSamples, spec);     
+
+      const gpxText = lastParsedWorkout._gpxText || ""; 
+      const hrBundle = await getHeartRatesForGpxWithCache(gpxText, lastParsedWorkout._samples);
+      const heartRates = hrBundle.heartRates || [];
+      const mergedSamples = attachHeartRateToSamples(lastParsedWorkout._samples, heartRates);
+      const evalRes = evaluateCompliance(mergedSamples, spec);
       const hrSamples = enrichSamplesWithPace(mergedSamples);
       const hrStats = analyzeHeartRateSamples(hrSamples);
-            
-      const hrSourceMini = heartRates.length
-        ? `<div class="mini">❤️ FC source : ${hrBundle.source === "cache" ? "cache local" : "export Santé XML"}</div>`
-        : `<div class="mini">❤️ FC source : aucune donnée</div>`;      
       const hrHTML = hrStats
         ? renderHeartRateBox(hrStats)
         : renderHeartRateMissingBox();
-      
       const readiness = hrStats ? estimateTroyesRaceReadiness(spec, hrStats, evalRes) : null;
       const targetHr = hrStats ? estimateTroyesTargetHr(hrStats) : null;
       const driftAlert = hrStats ? longRunDriftAlert(spec, hrStats) : null;
       const readinessHTML = readiness ? renderReadinessBox(readiness, targetHr, driftAlert) : "";
       
+      const hrSourceMini = heartRates.length
+        ? `<div class="mini">❤️ FC source : ${hrBundle.source === "cache" ? "cache local" : "export Santé XML"}</div>`
+        : `<div class="mini">❤️ FC source : aucune donnée</div>`;
+           
       const slopeInfo = slopeSummaryForIntervals(lastParsedWorkout._samples, evalRes.intervals || []);  
       const badgeClass = verdictBadgeClass(evalRes.verdictClass);
 
