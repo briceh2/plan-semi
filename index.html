@@ -4626,14 +4626,39 @@ function renderPlan(){
         "state.specLabel = " + (state?.specLabel ?? "undefined")
       );
 
-    modalState = state;
     pendingClickT = null;
     manualIntervals = [];
     document.body.style.overflow = "hidden";
     overlay.style.display = "flex";
     overlay.setAttribute("aria-hidden", "false");
+
+    modalState = {
+      workoutId: state.workoutId,
+      week: state.week,
+      day: state.day,
+      spec: state.spec || null,
+      specLabel: state.specLabel || state.spec?.label || "Séance",
+      score: state.score,
+      verdict: state.verdict,
+      badgeClass: state.badgeClass || "",
+      reasons: state.reasons || [],
+      notes: state.notes || [],
+      intervals: state.intervals || [],
+      manualIntervals: state.manualIntervals || [],
+      dateStr: state.dateStr || "",
+      distKm: state.distKm,
+      durationStr: state.durationStr || "",
+      avgPaceStr: state.avgPaceStr || "",
+      samples: state.samples || [],
+      heartRate: state.heartRate || null,
+      readiness: state.readiness || null,
+      targetHr: state.targetHr || null,
+      driftAlert: state.driftAlert || null
+    };   
+    
     renderModal();
   }
+  
   function closeModal(){
     overlay.style.display = "none";
     overlay.setAttribute("aria-hidden", "true");
@@ -4814,104 +4839,94 @@ function renderModal(){
   const subEl = document.getElementById("analysisSub");
   const summaryEl = document.getElementById("analysisSummary");
   const manualHint = document.getElementById("manualHint");
-  
+
   if (!modalState){
     if (overlay) overlay.style.display = "none";
     return;
   }
-  
+
   if (overlay) overlay.style.display = "flex";
-  
-  // Titre / sous-titre
+
+  // Titre
   if (titleEl){
-    titleEl.textContent = modalState.title || "Analyse séance";
+    titleEl.textContent = modalState.specLabel || modalState.spec?.label || "Analyse séance";
   }
-  
+
+  // Sous-titre
   if (subEl){
     const distTxt = Number.isFinite(modalState.distKm)
-    ? `${modalState.distKm.toFixed(2)} km`
-    : "distance n.d.";
-    
+      ? `${modalState.distKm.toFixed(2)} km`
+      : "distance n.d.";
+
     const durTxt = modalState.durationStr || "durée n.d.";
     const paceTxt = modalState.avgPaceStr || "allure n.d.";
-    const specTxt = modalState.spec?.label || modalState.specLabel || "séance";
-    
-    subEl.textContent = `${distTxt} • ${durTxt} • ${paceTxt} • ${specTxt}`;
+    const dateTxt = modalState.dateStr || "date n.d.";
+
+    subEl.textContent = `${dateTxt} • ${distTxt} • ${durTxt} • ${paceTxt}`;
   }
-  
-  // Résumé texte
+
   const reasons = modalState.reasons || [];
   const notes = modalState.notes || [];
-  const verdictBadge = `<span class="badge ${modalState.badgeClass || ""}">${modalState.verdict || "Analyse"} • ${modalState.score ?? "—"}/100</span>`;
-  
-  // Blocs détectés / manuels
+  const score = Number.isFinite(modalState.score) ? modalState.score : "—";
+  const badgeClass = modalState.badgeClass || "";
+  const verdict = modalState.verdict || "Analyse";
+
+  const verdictBadge = `<span class="badge ${badgeClass}">${verdict} • ${score}/100</span>`;
+
+  // Blocs
   const blockLines =
     (modalState?.intervals && modalState.intervals.length)
-    ? blockLinesForIntervals(modalState.samples, modalState.intervals)
-    : [];
-  
+      ? blockLinesForIntervals(modalState.samples, modalState.intervals)
+      : [];
+
   const blocksHTML = blockLines.length
     ? `<div class="mini" style="margin-top:6px">
-    ${blockLines.map(x =>
-    `Bloc ${x.index}: ` +
-    `${x.durSec}s` +
-    (Number.isFinite(x.distM) ? ` • ${Math.round(x.distM)} m` : ` • dist. n.d.`) +
-    (Number.isFinite(x.avgSpeedKmh) ? ` • ${paceStr(3600 / x.avgSpeedKmh)}/km` : ` • allure n.d.`) +
-    (x.slope != null ? ` • ${x.slope.toFixed(1)}%` : ` • pente n.d.`)
-    ).join("<br>")}
-    </div>`
+        ${blockLines.map(x =>
+          `Bloc ${x.index}: ` +
+          `${x.durSec}s` +
+          (Number.isFinite(x.distM) ? ` • ${Math.round(x.distM)} m` : ` • dist. n.d.`) +
+          (Number.isFinite(x.avgSpeedKmh) ? ` • ${paceStr(3600 / x.avgSpeedKmh)}/km` : ` • allure n.d.`) +
+          (x.slope != null ? ` • ${x.slope.toFixed(1)}%` : ` • pente n.d.`)
+        ).join("<br>")}
+      </div>`
     : `<div class="mini" style="margin-top:6px">Aucun bloc détecté.</div>`;
-  
-  // FC : une seule définition, propre
-  const hr = modalState.heartRate || modalState.hrStats || null;
-    const hrHTML = hr
+
+  // FC
+  const hr = modalState.heartRate || null;
+  const hrHTML = hr
     ? renderHeartRateBox(hr)
-    : (typeof renderHeartRateMissingBox === "function"
-    ? renderHeartRateMissingBox()
-    : "");
-  
-  // Readiness : une seule définition, propre
+    : (typeof renderHeartRateMissingBox === "function" ? renderHeartRateMissingBox() : "");
+
+  // Readiness
   const readiness = modalState.readiness || null;
   const targetHr = modalState.targetHr || null;
   const driftAlert = modalState.driftAlert || null;
-  
+
   const readinessHTML =
     (readiness && typeof renderReadinessBox === "function")
-    ? renderReadinessBox(readiness, targetHr, driftAlert)
-    : "";
-  
+      ? renderReadinessBox(readiness, targetHr, driftAlert)
+      : "";
+
   summaryEl.innerHTML = `
     ${verdictBadge}
     <div class="mini" style="margin-top:8px;"><b>Raisons :</b></div>
-    <ul class="reasonsInline">${reasons.slice(0,12).map(r => `<li>${r}</li>`).join("")}</ul>
+    <ul class="reasonsInline">${reasons.slice(0, 12).map(r => `<li>${r}</li>`).join("")}</ul>
     ${blocksHTML}
-    ${hrHTML}
-    ${readinessHTML}
-    ${notes.length ? `<div class="mini" style="margin-top:8px;"><b>Conseils :</b> ${notes.join(" ")}</div>` : ""}
-    `;
-
-  analysisSummary.innerHTML = `
-    ${verdictBadge}
-    <div class="mini" style="margin-top:8px;"><b>Raisons :</b></div>
-    <ul class="reasonsInline">${reasons.slice(0,12).map(r=>`<li>${r}</li>`).join("")}</ul>
-    ${blocksHTML}
-    ${hrSourceMini}
     ${hrHTML}
     ${readinessHTML}
     ${notes.length ? `<div class="mini" style="margin-top:8px;"><b>Conseils :</b> ${notes.join(" ")}</div>` : ""}
   `;
-  
-  // Hint blocs manuels
+
   if (manualHint){
     const manualCount = (modalState.manualIntervals || []).length;
     manualHint.textContent = `Blocs manuels : ${manualCount}`;
   }
-  
-  // Redessine la courbe
+
   requestAnimationFrame(() => {
     drawAnalysisCanvas();
   });
 }
+  
 function drawAnalysisCanvas(){
   const canvas = document.getElementById("analysisCanvas");
   if (!canvas || !modalState || !modalState.samples || !modalState.samples.length) return;
