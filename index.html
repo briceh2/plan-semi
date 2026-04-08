@@ -1205,6 +1205,37 @@ async function getHeartRatesForGpxWithCache(gpxText, samples){
     source: "xml"
   };
 }
+  /*
+function getHeartRatesForGpxWithCache(gpxText, samples){
+  const cached = loadFcCache(gpxText);
+  if (cached?.heartRates?.length){
+    return { heartRates: cached.heartRates, source: "cache" };
+  }
+
+  if (!lastHealthXmlLoaded || !lastHealthXmlText){
+    return { heartRates: [], source: "none" };
+  }
+
+  const win = getTimeWindowFromSamples(samples);
+  if (!win){
+    return { heartRates: [], source: "none" };
+  }
+
+  const heartRates = parseHealthXmlHeartRatesInWindow(
+    lastHealthXmlText,
+    win.startMs,
+    win.endMs
+  );
+
+  saveFcCache(gpxText, {
+    startMs: win.startMs,
+    endMs: win.endMs,
+    heartRates
+  });
+
+  return { heartRates, source: "xml" };
+}
+*/
   
   // ========================
   // ===== Helpers fin ======
@@ -1788,36 +1819,6 @@ function attachHeartRateToSamples(samples, heartRates){
       hr: hit ? Math.round(hit.bpm) : null
     };
   });
-}
-
-function getHeartRatesForGpxWithCache(gpxText, samples){
-  const cached = loadFcCache(gpxText);
-  if (cached?.heartRates?.length){
-    return { heartRates: cached.heartRates, source: "cache" };
-  }
-
-  if (!lastHealthXmlLoaded || !lastHealthXmlText){
-    return { heartRates: [], source: "none" };
-  }
-
-  const win = getTimeWindowFromSamples(samples);
-  if (!win){
-    return { heartRates: [], source: "none" };
-  }
-
-  const heartRates = parseHealthXmlHeartRatesInWindow(
-    lastHealthXmlText,
-    win.startMs,
-    win.endMs
-  );
-
-  saveFcCache(gpxText, {
-    startMs: win.startMs,
-    endMs: win.endMs,
-    heartRates
-  });
-
-  return { heartRates, source: "xml" };
 }
 
   function parseGPX(xmlText){
@@ -5086,100 +5087,83 @@ function drawAnalysisCanvas(){
 
 
   // ===== Attach =====
-  attachBtn.addEventListener("click", () => {
+  attachBtn.addEventListener("click", async () => {
     try {
       if (!lastParsedWorkout) return;
-
-      const week = Number(document.getElementById("attachWeek").value);
-      const day = document.getElementById("attachDay").value;
-      const override = document.getElementById("attachType").value;
-      
-      // DEBUG
-      alert(
-        "DEBUG expectedSpec (line 5225)\n" +
-        "week = " + week + "\n" + 
-        "day = " + day
-        );      
-      const spec = expectedSpec(week, day, override);
-      console.log(spec);
-
-      const gpxText = lastParsedWorkout._gpxText || ""; 
+  
+      const week = parseInt(attachWeekEl.value, 10);
+      const day  = attachDayEl.value;
+      ensureWeek(week);
+  
+      let spec = expectedSpec(week, day);
+      const override = attachTypeEl.value;
+  
+      if (override !== "auto"){
+        if (override === "vma30")  spec = { kind:"interval_time", repFastSec:30, repSlowSec:30, sets:2, repsPerSet:8, paceTarget:255, paceTol:22, label:"(Override) VMA 30/30" };
+        if (override === "vma400") spec = { kind:"interval_dist", reps:10, repDistM:400, paceTarget:250, paceTol:20, label:"(Override) VMA 400m" };
+        if (override === "tempo")  spec = { kind:"tempo_time", reps:2, repMin:8, paceTarget:305, paceTol:28, label:"(Override) Tempo/Seuil" };
+        if (override === "easy")   spec = { kind:"endurance", minMin:40, label:"(Override) Endurance" };
+        if (override === "long")   spec = { kind:"long", minMin:75, label:"(Override) Sortie longue" };
+        if (override === "race")   spec = { kind:"race", distKm:21.1, tolKm:2.0, label:"(Override) Course", paceTarget:300, paceTol:35 };
+      }
+  
+      const gpxText = lastParsedWorkout._gpxText || "";
       const hrBundle = await getHeartRatesForGpxWithCache(gpxText, lastParsedWorkout._samples);
-
-      console.log("FC source =", hrBundle.source, "count =", hrBundle.heartRates.length);
-      
       const heartRates = hrBundle.heartRates || [];
+  
       const mergedSamples = attachHeartRateToSamples(lastParsedWorkout._samples, heartRates);
+  
       const evalRes = evaluateCompliance(mergedSamples, spec);
+      const slopeInfo = slopeSummaryForIntervals(mergedSamples, evalRes.intervals || []);
+      const badgeClass = verdictBadgeClass(evalRes.verdictClass);
+  
       const hrSamples = enrichSamplesWithPace(mergedSamples);
       const hrStats = analyzeHeartRateSamples(hrSamples);
-      const hrHTML = hrStats
-        ? renderHeartRateBox(hrStats)
-        : renderHeartRateMissingBox();
+  
       const readiness = hrStats ? estimateTroyesRaceReadiness(spec, hrStats, evalRes) : null;
       const targetHr = hrStats ? estimateTroyesTargetHr(hrStats) : null;
       const driftAlert = hrStats ? longRunDriftAlert(spec, hrStats) : null;
-      const readinessHTML = readiness ? renderReadinessBox(readiness, targetHr, driftAlert) : "";
-      
-      const hrSourceMini = heartRates.length
-        ? `<div class="mini">❤️ FC source : ${hrBundle.source === "cache" ? "cache local" : "export Santé XML"}</div>`
-        : `<div class="mini">❤️ FC source : aucune donnée</div>`;
-           
-      const slopeInfo = slopeSummaryForIntervals(lastParsedWorkout._samples, evalRes.intervals || []);  
-      const badgeClass = verdictBadgeClass(evalRes.verdictClass);
-
+  
       const workoutStored = {
         id: lastParsedWorkout.id,
         sourceName: lastParsedWorkout.sourceName,
         distKm: lastParsedWorkout.distKm,
-        durationSec: lastParsedWorkout.durationSec,
         durationStr: lastParsedWorkout.durationStr,
-        avgPaceSec: lastParsedWorkout.avgPaceSec,
         avgPaceStr: lastParsedWorkout.avgPaceStr,
-
         dateStr: lastParsedWorkout.dateStr,
+        _samples: mergedSamples,
         compliance: {
           score: evalRes.score,
           verdict: evalRes.verdict,
-          badgeClass,
-          specLabel: evalRes.specLabel,
-          spec: spec, // store spec for reference
+          verdictClass: evalRes.verdictClass,
           reasons: evalRes.reasons || [],
           notes: evalRes.notes || [],
           intervals: evalRes.intervals || [],
+          specLabel: evalRes.specLabel || spec?.label || "Séance",
+          manualAdjusted: false,
           slopeMin: slopeInfo?.min ?? null,
           slopeAvg: slopeInfo?.avg ?? null,
           slopeMax: slopeInfo?.max ?? null,
           heartRate: hrStats || null,
           readiness: readiness || null,
           targetHr: targetHr || null,
-          driftAlert: driftAlert || null,
-          manualAdjusted: false
+          driftAlert: driftAlert || null
         }
       };
-
-      data.workouts.push(workoutStored);
+  
       data.weeks[week].attached[day] = workoutStored.id;
-      data.weeks[week].done[day] = true;
+  
+      const idx = data.workouts.findIndex(w => w.id === workoutStored.id);
+      if (idx >= 0) data.workouts[idx] = workoutStored;
+      else data.workouts.push(workoutStored);
+  
       saveData();
-
-      gpxComplianceEl.innerHTML = `<span class="badge ${badgeClass}">${evalRes.verdict} • ${evalRes.score}/100</span> <span class="badge">${evalRes.specLabel}</span>`;
-      attachBtn.disabled = true;
-
-      // debug
-      alert(
-        "DEBUG avant openModal\n" + 
-        "spec.kind = " + (spec?.kind ?? "undefined") + "\n" +
-        "spec.label = " + (spec?.label ?? "undefined") + "\n" +
-        "week = " + week + "\n" +
-        "day = " + day + "\n" +
-        "override = " + (override ?? "undefined")
-        );
-
+  
       openModal({
         workoutId: workoutStored.id,
-        week, day,
-        spec: spec,
+        week,
+        day,
+        spec,
         specLabel: evalRes.specLabel,
         score: evalRes.score,
         verdict: evalRes.verdict,
@@ -5191,16 +5175,19 @@ function drawAnalysisCanvas(){
         distKm: workoutStored.distKm,
         durationStr: workoutStored.durationStr,
         avgPaceStr: workoutStored.avgPaceStr,
-        samples: lastParsedWorkout._samples
+        samples: mergedSamples,
+        heartRate: hrStats || null,
+        readiness: readiness || null,
+        targetHr: targetHr || null,
+        driftAlert: driftAlert || null
       });
-
+  
+      attachBtn.disabled = true;
     } catch (err) {
       alert("Erreur lors de l’attache.\n\nDétail: " + (err?.message || err));
     }
-    saveManualBtn.disabled = (!manualDirty || !manualIntervals || manualIntervals.length === 0);
-    saveManualBtn.style.opacity = saveManualBtn.disabled ? "0.5" : "1";
   });
-
+  
   // ===== Init =====
   function updateAll(){
     updateCountdown();
