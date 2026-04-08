@@ -5105,6 +5105,9 @@ function drawAnalysisCanvas(){
 
       const gpxText = lastParsedWorkout._gpxText || ""; 
       const hrBundle = await getHeartRatesForGpxWithCache(gpxText, lastParsedWorkout._samples);
+
+      console.log("FC source =", hrBundle.source, "count =", hrBundle.heartRates.length);
+      
       const heartRates = hrBundle.heartRates || [];
       const mergedSamples = attachHeartRateToSamples(lastParsedWorkout._samples, heartRates);
       const evalRes = evaluateCompliance(mergedSamples, spec);
