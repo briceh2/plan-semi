@@ -1688,7 +1688,7 @@ async function getHeartRatesForGpxWithCache(gpxText, samples){
 }
 
 function getFcCacheKey(gpxText){
-  return FC_CACHE_PREFIX + simpleHash(gpxText || "");
+  return "fc_" + simpleHash(gpxText || "");
 }
 
 function getTimeWindowFromSamples(samples){
