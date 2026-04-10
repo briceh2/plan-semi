@@ -1047,6 +1047,22 @@ function getTimeWindowFromSamples(samples){
   };
 }
 
+function parseAppleHealthDate(s){
+  if (!s) return NaN;
+
+  // "2026-03-29 10:06:12 +0100" -> "2026-03-29T10:06:12+01:00"
+  const m = String(s).match(
+    /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) ([+-]\d{2})(\d{2})$/
+  );
+
+  if (m){
+    const iso = `${m[1]}T${m[2]}${m[3]}:${m[4]}`;
+    return Date.parse(iso);
+  }
+
+  return Date.parse(s);
+}
+  
 function parseHeartRateRecordTag(tagText){
   if (!tagText.includes('HKQuantityTypeIdentifierHeartRate')) return null;
 
@@ -1059,9 +1075,17 @@ function parseHeartRateRecordTag(tagText){
   const endDate = getAttr("endDate");
   const value = getAttr("value");
 
+  /*
   const startMs = Date.parse(startDate);
   const endMs = Date.parse(endDate);
+  */
+  const startMs = parseAppleHealthDate(startDate);
+  const endMs = parseAppleHealthDate(endDate);
   const bpm = Number(value);
+
+  if (Number.isFinite(startMs) && Number.isFinite(endMs) && bpm){
+    console.log("HR record", new Date(startMs).toISOString(), new Date(endMs).toISOString(), bpm);
+  }
 
   if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || !Number.isFinite(bpm)) return null;
 
@@ -1085,6 +1109,9 @@ async function extractHeartRatesFromXmlFileByWindow(file, startMs, endMs){
     const combined = leftover + text;
     const parts = combined.split("<Record ");
 
+    console.log("XML chunk size =", text.length);
+    console.log("combined contains HKQuantityTypeIdentifierHeartRate =", combined.includes("HKQuantityTypeIdentifierHeartRate"));
+
     leftover = parts.pop() || "";
 
     for (let i = 1; i < parts.length; i++){
@@ -1101,6 +1128,9 @@ async function extractHeartRatesFromXmlFileByWindow(file, startMs, endMs){
       if (!rec) continue;
 
       if (rec.endMs < startPad || rec.startMs > endPad) continue;
+
+      console.log("heart rate records extracted =", out.length);
+      
       out.push(rec);
     }
   }
@@ -1187,6 +1217,8 @@ async function getHeartRatesForGpxWithCache(gpxText, samples){
     };
   }
 
+  console.log("GPX window", new Date(win.startMs).toISOString(), new Date(win.endMs).toISOString());
+  
   const heartRates = await extractHeartRatesFromXmlFileByWindow(
     lastHealthXmlFile,
     win.startMs,
@@ -2195,7 +2227,7 @@ function stripTime(d){
         recMin:2,
         paceTarget:300,   // 5'00/km
         paceTol:18,
-        label:"Seuil 3x12"
+        label:"Seuil 3x9"
       };
       if (day === "sat") return {
         kind:"endurance",
