@@ -1205,37 +1205,6 @@ async function getHeartRatesForGpxWithCache(gpxText, samples){
     source: "xml"
   };
 }
-  /*
-function getHeartRatesForGpxWithCache(gpxText, samples){
-  const cached = loadFcCache(gpxText);
-  if (cached?.heartRates?.length){
-    return { heartRates: cached.heartRates, source: "cache" };
-  }
-
-  if (!lastHealthXmlLoaded || !lastHealthXmlText){
-    return { heartRates: [], source: "none" };
-  }
-
-  const win = getTimeWindowFromSamples(samples);
-  if (!win){
-    return { heartRates: [], source: "none" };
-  }
-
-  const heartRates = parseHealthXmlHeartRatesInWindow(
-    lastHealthXmlText,
-    win.startMs,
-    win.endMs
-  );
-
-  saveFcCache(gpxText, {
-    startMs: win.startMs,
-    endMs: win.endMs,
-    heartRates
-  });
-
-  return { heartRates, source: "xml" };
-}
-*/
   
   // ========================
   // ===== Helpers fin ======
@@ -1720,55 +1689,6 @@ function getHeartRatesForGpxWithCache(gpxText, samples){
 
 function getFcCacheKey(gpxText){
   return FC_CACHE_PREFIX + simpleHash(gpxText || "");
-}
-
-function saveFcCache(gpxText, payload){
-  try {
-    localStorage.setItem(getFcCacheKey(gpxText), JSON.stringify(payload));
-  } catch (e){
-    console.log("saveFcCache failed:", e);
-  }
-}
-
-function loadFcCache(gpxText){
-  try {
-    const raw = localStorage.getItem(getFcCacheKey(gpxText));
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch (e){
-    console.log("loadFcCache failed:", e);
-    return null;
-  }
-}
-
-function parseHealthXmlHeartRatesInWindow(xmlText, startMs, endMs){
-  const parser = new DOMParser();
-  const xml = parser.parseFromString(xmlText, "text/xml");
-
-  const records = Array.from(xml.getElementsByTagName("Record"));
-  const out = [];
-
-  const startPad = startMs - 2 * 60 * 1000;
-  const endPad   = endMs + 2 * 60 * 1000;
-
-  for (const r of records){
-    if (r.getAttribute("type") !== "HKQuantityTypeIdentifierHeartRate") continue;
-
-    const s = Date.parse(r.getAttribute("startDate"));
-    const e = Date.parse(r.getAttribute("endDate"));
-    const bpm = Number(r.getAttribute("value"));
-
-    if (!Number.isFinite(s) || !Number.isFinite(e) || !Number.isFinite(bpm)) continue;
-    if (e < startPad || s > endPad) continue;
-
-    out.push({
-      startMs: s,
-      endMs: e,
-      bpm
-    });
-  }
-
-  return out;
 }
 
 function getTimeWindowFromSamples(samples){
@@ -4512,9 +4432,6 @@ function renderPlan(){
   const gpxComplianceEl = document.getElementById("gpxCompliance");
 
   let lastParsedWorkout = null;
-  let lastHealthXmlText = "";
-  let lastHealthXmlLoaded = false;
-  const FC_CACHE_PREFIX = "fc_cache_";
 
   function fillWeekSelect(){
     attachWeekEl.innerHTML = "";
