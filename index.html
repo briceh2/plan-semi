@@ -2172,10 +2172,14 @@ function stripTime(d){
         label:"Endurance 45 min"
       };
       if (day === "sun") return {
-        kind:"long",
-        minMin:75,
-        paceRange:"5'55-6'25/km",
-        label:"SL 1h15 avec bloc 15 min à 5'10"
+        kind:"race",
+        minMin:105,
+        distKm:21.1,
+        tolKm:1.5,
+        label:"Semi Bayeux",
+        paceRange:"5'00-5'10/km",
+        paceTarget:298,
+        paceTol:15
       };
     }
     // --- Semaine 9 : reprise post-Bayeux
