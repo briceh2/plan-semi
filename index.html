@@ -3449,22 +3449,41 @@ function evaluateCompliance(samples, spec){
     });
   }
   // patch pente fin
-  function blockLinesForIntervals(samples, intervals){
-    if (!samples || !intervals || !intervals.length) return [];
-    
-    return intervals.map((iv, idx) => {
-      const st = blockStatsForInterval(samples, iv.t0, iv.t1);
-      
-      return {
-        index: idx + 1,
-        durSec: Math.round(st.durSec),
-        distM: st.distM,
-        avgSpeedKmh: st.avgSpeedKmh,
-        slope: isFinite(st.slope) ? st.slope : null
-      };
-    });
-  }
+function blockLinesForIntervals(samples, intervals){
+  if (!samples || !intervals || !intervals.length) return [];
 
+  return intervals.map((iv, idx) => {
+    const st = blockStatsForInterval(samples, iv.t0, iv.t1);
+
+    return {
+      index: idx + 1,
+      durSec: Math.round(st.durSec),
+      distM: st.distM,
+      avgSpeedKmh: st.avgSpeedKmh,
+      slope: isFinite(st.slope) ? st.slope : null,
+      avgHr: Number.isFinite(st.avgHr) ? st.avgHr : null,
+      maxHr: Number.isFinite(st.maxHr) ? st.maxHr : null
+    };
+  });
+}
+function summarizeBlockHeartRate(blockLines){
+  if (!blockLines || !blockLines.length) return null;
+
+  const vals = blockLines
+    .map(x => x.avgHr)
+    .filter(Number.isFinite);
+
+  const maxVals = blockLines
+    .map(x => x.maxHr)
+    .filter(Number.isFinite);
+
+  if (!vals.length && !maxVals.length) return null;
+
+  return {
+    avgHr: vals.length ? Math.round(vals.reduce((a,b)=>a+b,0) / vals.length) : null,
+    maxHr: maxVals.length ? Math.max(...maxVals) : null
+  };
+}
   function intervalStats(pts, interval){
     // returns {durSec, distM, avgPace}
     const t0 = interval.t0, t1 = interval.t1;
@@ -3813,28 +3832,41 @@ function getCurrentWeek(){
   const week = Math.floor(diffDays / 7) + 1;
   return Math.min( Math.max(week, 1) , WEEKS);
 }
-  function blockStatsForInterval(samples, t0, t1){
-    const d0 = interpolateFieldAt(samples, t0, "distM");
-    const d1 = interpolateFieldAt(samples, t1, "distM");
-    
-    const durSec = (t1 - t0) / 1000;
-    const distM = (isFinite(d0) && isFinite(d1)) ? (d1 - d0) : null;
-    
-    let avgSpeedKmh = null;
-    if (isFinite(distM) && durSec > 0){
-      avgSpeedKmh = (distM / durSec) * 3.6;
-    }
-    
-    const slope = slopePctForInterval(samples, t0, t1);
-    
-    return {
-      durSec,
-      distM,
-      avgSpeedKmh,
-      slope
-    };
+function blockStatsForInterval(samples, t0, t1){
+  const d0 = interpolateFieldAt(samples, t0, "distM");
+  const d1 = interpolateFieldAt(samples, t1, "distM");
+
+  const durSec = (t1 - t0) / 1000;
+  const distM = (isFinite(d0) && isFinite(d1)) ? (d1 - d0) : null;
+
+  let avgSpeedKmh = null;
+  if (isFinite(distM) && durSec > 0){
+    avgSpeedKmh = (distM / durSec) * 3.6;
   }
-  
+
+  const slope = slopePctForInterval(samples, t0, t1);
+
+  const hrVals = (samples || [])
+    .filter(p => p.tMs >= t0 && p.tMs <= t1 && Number.isFinite(p.hr))
+    .map(p => p.hr);
+
+  const avgHr = hrVals.length
+    ? Math.round(hrVals.reduce((a,b)=>a+b,0) / hrVals.length)
+    : null;
+
+  const maxHr = hrVals.length
+    ? Math.max(...hrVals)
+    : null;
+
+  return {
+    durSec,
+    distM,
+    avgSpeedKmh,
+    slope,
+    avgHr,
+    maxHr
+  };
+}  
 const weeksEl = document.getElementById("weeks");
 
 function renderBayeuxRacePlan(){
@@ -4513,6 +4545,16 @@ function renderPlan(){
   
       parsed._gpxText = text;
       lastParsedWorkout = parsed;
+
+      console.log("Premier sample : ", lastParsedWorkout?._samples?.[0]);
+      console.log("Clés du premier sample : ", Object.keys(lastParsedWorkout?._samples?.[0] || {}));
+      const samplePreview = (lastParsedWorkout?._samples ||  []).slice(0,20).map(s => ({
+        tMs: s.tMs,
+        ppm: s.ppm,
+        spm: s.spm,
+        cadence: s.cadence
+      }));
+      console.log("Cadence preview : ", samplePreview);
   
       renderParsedWorkout(lastParsedWorkout);
   
@@ -4832,18 +4874,29 @@ function renderModal(){
       ? blockLinesForIntervals(modalState.samples, modalState.intervals)
       : [];
 
-  const blocksHTML = blockLines.length
-    ? `<div class="mini" style="margin-top:6px">
-        ${blockLines.map(x =>
-          `Bloc ${x.index}: ` +
-          `${x.durSec}s` +
-          (Number.isFinite(x.distM) ? ` • ${Math.round(x.distM)} m` : ` • dist. n.d.`) +
-          (Number.isFinite(x.avgSpeedKmh) ? ` • ${paceStr(3600 / x.avgSpeedKmh)}/km` : ` • allure n.d.`) +
-          (x.slope != null ? ` • ${x.slope.toFixed(1)}%` : ` • pente n.d.`)
-        ).join("<br>")}
-      </div>`
-    : `<div class="mini" style="margin-top:6px">Aucun bloc détecté.</div>`;
+const blocksHTML = blockLines.length
+  ? `<div class="mini" style="margin-top:6px">
+      ${blockLines.map(x =>
+        `Bloc ${x.index}: ` +
+        `${x.durSec}s` +
+        (Number.isFinite(x.distM) ? ` • ${Math.round(x.distM)} m` : ` • dist. n.d.`) +
+        (Number.isFinite(x.avgSpeedKmh) ? ` • ${paceStr(3600 / x.avgSpeedKmh)}/km` : ` • allure n.d.`) +
+        (x.slope != null ? ` • ${x.slope.toFixed(1)}%` : ` • pente n.d.`) +
+        (x.avgHr != null ? ` • ${x.avgHr} bpm` : ``)
+      ).join("<br>")}
+    </div>`
+  : `<div class="mini" style="margin-top:6px">Aucun bloc détecté.</div>`;
 
+  const blockHrSummary = summarizeBlockHeartRate(blockLines);
+
+const blockHrHTML = blockHrSummary
+  ? `<div class="mini" style="margin-top:8px;">
+      <b>Résumé cardio blocs :</b>
+      ${blockHrSummary.avgHr != null ? `FC moy blocs ${blockHrSummary.avgHr} bpm` : `FC moy blocs n.d.`}
+      ${blockHrSummary.maxHr != null ? ` • FC max blocs ${blockHrSummary.maxHr} bpm` : ``}
+    </div>`
+  : "";
+  
   // FC
   const hr = modalState.heartRate || null;
   const hrHTML = hr
@@ -4865,11 +4918,12 @@ function renderModal(){
     <div class="mini" style="margin-top:8px;"><b>Raisons :</b></div>
     <ul class="reasonsInline">${reasons.slice(0, 12).map(r => `<li>${r}</li>`).join("")}</ul>
     ${blocksHTML}
+    ${blockHrHTML}
     ${hrHTML}
     ${readinessHTML}
     ${notes.length ? `<div class="mini" style="margin-top:8px;"><b>Conseils :</b> ${notes.join(" ")}</div>` : ""}
   `;
-
+  
   if (manualHint){
     const manualCount = (modalState.manualIntervals || []).length;
     manualHint.textContent = `Blocs manuels : ${manualCount}`;
