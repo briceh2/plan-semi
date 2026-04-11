@@ -4161,7 +4161,7 @@ function renderPlan(){
       const workout = workoutId ? data.workouts.find(x => x.id === workoutId) : null;
       //const workout = (data.workouts || []).find(x => Sring(x.id) === String(workoutId));
         
-      console.log("resolved workout = ", workout);
+      //console.log("resolved workout = ", workout);
 
       const distTxt = (workout && Number.isFinite(workout.distKm))
         ? `${workout.distKm.toFixed(2)} km`
