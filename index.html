@@ -4158,8 +4158,8 @@ function renderPlan(){
       console.log("slot attached id = ", workoutId);
       console.log("all workout ids = ", (data.workouts || []).map(x => x.id));
 
-      //const workout = workoutId ? data.workouts.find(x => x.id === workoutId) : null;
-      const workout = (data.workouts || []).find(x => Sring(x.id) === String(workoutId));
+      const workout = workoutId ? data.workouts.find(x => x.id === workoutId) : null;
+      //const workout = (data.workouts || []).find(x => Sring(x.id) === String(workoutId));
         
       console.log("resolved workout = ", workout);
 
