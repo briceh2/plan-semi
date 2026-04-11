@@ -4157,6 +4157,10 @@ function renderPlan(){
 
       console.log("slot attached id = ", workoutId);
       console.log("all workout ids = ", (data.workouts || []).map(x => x.id));
+      console.log("week = ", w);
+      console.log("state.attached = ", state.attached);
+      console.log("keys attached = ", Object.keys(state.attached || {}));
+      console.log("current key used = ", key);
 
       //const workout = workoutId ? data.workouts.find(x => x.id === workoutId) : null;
       const workout = (data.workouts || []).find(x => String(x.id) === String(workoutId));
