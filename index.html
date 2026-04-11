@@ -5178,13 +5178,45 @@ function drawAnalysisCanvas(){
       };
   
       data.weeks[week].attached[day] = workoutStored.id;
-  
+      
       const idx = data.workouts.findIndex(w => w.id === workoutStored.id);
       if (idx >= 0) data.workouts[idx] = workoutStored;
       else data.workouts.push(workoutStored);
-  
+      
       saveData();
-  
+      par :
+      const previousAttachedId = data.weeks[week].attached[day] || null;
+      const slotKey = `${week}_${day}`;
+      
+      workoutStored.slotKey = slotKey;
+      
+      // 1) si une séance était déjà attachée à ce slot, on la remplace en priorité
+      let idx = -1;
+      
+      if (previousAttachedId){
+        idx = data.workouts.findIndex(w => w.id === previousAttachedId);
+      }
+      
+      // 2) fallback : on cherche aussi par slotKey
+      if (idx < 0){
+        idx = data.workouts.findIndex(w => w.slotKey === slotKey);
+      }
+      
+      // 3) si on remplace une ancienne séance, on garde son id de rattachement
+      if (idx >= 0){
+        const oldId = data.workouts[idx].id;
+        workoutStored.id = oldId;
+        data.workouts[idx] = workoutStored;
+      } else {
+        data.workouts.push(workoutStored);
+      }
+      
+      // 4) le plan pointe vers cette séance
+      data.weeks[week].attached[day] = workoutStored.id;
+      
+      saveData();
+      renderPlan();
+
       openModal({
         workoutId: workoutStored.id,
         week,
