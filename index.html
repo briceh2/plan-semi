@@ -5176,54 +5176,37 @@ function drawAnalysisCanvas(){
           driftAlert: driftAlert || null
         }
       };
-
-      /*
+/*
       data.weeks[week].attached[day] = workoutStored.id;
-      
       const idx = data.workouts.findIndex(w => w.id === workoutStored.id);
       if (idx >= 0) data.workouts[idx] = workoutStored;
       else data.workouts.push(workoutStored);
-      
-      saveData();
-      par :
+    */
+
       const previousAttachedId = data.weeks[week].attached[day] || null;
-      const slotKey = `${week}_${day}`;
       
-      workoutStored.slotKey = slotKey;
-      
-      // 1) si une séance était déjà attachée à ce slot, on la remplace en priorité
-      let idx = -1;
-      
-      if (previousAttachedId){
-        idx = data.workouts.findIndex(w => w.id === previousAttachedId);
+      // 1) si une ancienne séance était attachée à ce slot, on la retire
+      if (previousAttachedId && previousAttachedId !== workoutStored.id){
+        const previousIdx = data.workouts.findIndex(w => w.id === previousAttachedId);
+        if (previousIdx >= 0){
+          data.workouts.splice(previousIdx, 1);
+        }
       }
       
-      // 2) fallback : on cherche aussi par slotKey
-      if (idx < 0){
-        idx = data.workouts.findIndex(w => w.slotKey === slotKey);
-      }
-      
-      // 3) si on remplace une ancienne séance, on garde son id de rattachement
-      if (idx >= 0){
-        const oldId = data.workouts[idx].id;
-        workoutStored.id = oldId;
-        data.workouts[idx] = workoutStored;
+      // 2) on met à jour la nouvelle séance si elle existe déjà, sinon on l'ajoute
+      const currentIdx = data.workouts.findIndex(w => w.id === workoutStored.id);
+      if (currentIdx >= 0){
+        data.workouts[currentIdx] = workoutStored;
       } else {
         data.workouts.push(workoutStored);
       }
       
-      // 4) le plan pointe vers cette séance
+      // 3) le slot pointe vers la nouvelle séance
       data.weeks[week].attached[day] = workoutStored.id;
       
-      saveData();
-      renderPlan();
-      */
-      data.weeks[week].attached[day] = workoutStored.id;
-
-      const idx = data.workouts.findIndex(w => w.id === workoutStored.id);
-      if (idx >= 0) data.workouts[idx] = workoutStored;
-      else data.workouts.push(workoutStored);
-      
+      // 4) on coche la séance comme faite
+      data.weeks[week].done[day] = true;
+  
       saveData();
 
       openModal({
