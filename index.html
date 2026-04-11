@@ -4154,7 +4154,14 @@ function renderPlan(){
 
     sessions.forEach(([key, dayName, rawText]) => {
       const workoutId = state.attached[key];
-      const workout = workoutId ? data.workouts.find(x => x.id === workoutId) : null;
+
+      console.log("slot attached id = ", workoutId);
+      console.log("all workout ids = ", (data.workouts || []).map(w => w.id));
+
+      //const workout = workoutId ? data.workouts.find(x => x.id === workoutId) : null;
+      const workout = (data.workouts || []).find(w => Sring(w.id) === String(workoutId));
+        
+      console.log("resolved workout = ", workout);
 
       const distTxt = (workout && Number.isFinite(workout.distKm))
         ? `${workout.distKm.toFixed(2)} km`
