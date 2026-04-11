@@ -4542,6 +4542,7 @@ function renderPlan(){
     try {
       const text = await file.text();
 
+      console.log("après chargement gpx");
       console.log("containes cad :", text.includes("<cad"));
       console.log("containes cadence :", text.includes("cadence"));
       console.log("containes gpxtpx :", text.includes("gpxtpx:cad"));
