@@ -5176,7 +5176,8 @@ function drawAnalysisCanvas(){
           driftAlert: driftAlert || null
         }
       };
-  
+
+      /*
       data.weeks[week].attached[day] = workoutStored.id;
       
       const idx = data.workouts.findIndex(w => w.id === workoutStored.id);
@@ -5216,6 +5217,14 @@ function drawAnalysisCanvas(){
       
       saveData();
       renderPlan();
+      */
+      data.weeks[week].attached[day] = workoutStored.id;
+
+      const idx = data.workouts.findIndex(w => w.id === workoutStored.id);
+      if (idx >= 0) data.workouts[idx] = workoutStored;
+      else data.workouts.push(workoutStored);
+      
+      saveData();
 
       openModal({
         workoutId: workoutStored.id,
