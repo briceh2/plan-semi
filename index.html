@@ -472,7 +472,7 @@
   };
   
   // version
-  const APP_VERSION = "v26-04-08_1.1";
+  const APP_VERSION = "v26-04-08_1.2";
   // ===== Dates =====
   const START = new Date("2026-02-02T00:00:00");
   const RACE  = new Date("2026-05-10T00:00:00");
@@ -4161,7 +4161,7 @@ function renderPlan(){
       const workout = workoutId ? data.workouts.find(x => x.id === workoutId) : null;
       //const workout = (data.workouts || []).find(x => Sring(x.id) === String(workoutId));
         
-      //console.log("resolved workout = ", workout);
+      console.log("resolved workout = ", workout);
 
       const distTxt = (workout && Number.isFinite(workout.distKm))
         ? `${workout.distKm.toFixed(2)} km`
