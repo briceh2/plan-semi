@@ -472,7 +472,7 @@
   };
   
   // version
-  const APP_VERSION = "v26-04-08_1.0";
+  const APP_VERSION = "v26-04-08_1.1";
   // ===== Dates =====
   const START = new Date("2026-02-02T00:00:00");
   const RACE  = new Date("2026-05-10T00:00:00");
@@ -4540,19 +4540,16 @@ function renderPlan(){
     if (!file) return;
   
     try {
-      const text = await file.text();
+      const text = await file.text();   
+      const parsed = parseGPX(text);
+      parsed._gpxText = text;
+      lastParsedWorkout = parsed;
 
       console.log("après chargement gpx");
       console.log("containes cad :", text.includes("<cad"));
       console.log("containes cadence :", text.includes("cadence"));
       console.log("containes gpxtpx :", text.includes("gpxtpx:cad"));
       console.log("containes ns3:cad:", text.includes(":cad"));
-      
-      const parsed = parseGPX(text);
-  
-      parsed._gpxText = text;
-      lastParsedWorkout = parsed;
-
       console.log("Premier sample : ", lastParsedWorkout?._samples?.[0]);
       console.log("Clés du premier sample : ", Object.keys(lastParsedWorkout?._samples?.[0] || {}));
       const samplePreview = (lastParsedWorkout?._samples ||  []).slice(0,20).map(s => ({
