@@ -4096,7 +4096,7 @@ function renderPlan(){
   for (let w=1; w<=WEEKS; w++){
     ensureWeek(w);
 
-    console.log("In render attached : ", w, JSON.stringify(state.attached));
+    //console.log("In render attached : ", w, JSON.stringify(state.attached));
       
     const weekStart = addDays(START, (w-1)*7);
     const weekEnd   = addDays(weekStart, 6);
