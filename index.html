@@ -4541,6 +4541,12 @@ function renderPlan(){
   
     try {
       const text = await file.text();
+
+      console.log("containes cad :", text.includes("<cad"));
+      console.log("containes cadence :", text.includes("cadence"));
+      console.log("containes gpxtpx :", text.includes("gpxtpx:cad"));
+      console.log("containes ns3:cad:", text.includes(":cad"));
+      
       const parsed = parseGPX(text);
   
       parsed._gpxText = text;
