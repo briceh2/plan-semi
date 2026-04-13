@@ -1645,50 +1645,251 @@ function findBestEasyBlock(samples, tStart, tEnd, spec){
       note
     };
   }
-  
-  function renderHeartRateBox(hr){
-    if (!hr) return "";
-  
-    const corrTxt = (hr.corr == null) ? "n.d." : hr.corr.toFixed(2);
-    const driftTxt = (hr.driftBpm == null) ? "n.d." : `${hr.driftBpm > 0 ? "+" : ""}${hr.driftBpm} bpm`;
-    const thresholdTxt = Number.isFinite(hr.thresholdHr) ? `${hr.thresholdHr}` : "n.d.";
-  
-    return `
-      <div class="hrBox">
-        <div><b>Analyse fréquence cardiaque</b></div>
-  
-        <div class="hrGrid">
-          <div class="hrKpi">
-            <div class="label">FC moyenne</div>
-            <div class="value">${hr.avgHr ?? "n.d."}</div>
-          </div>
-          <div class="hrKpi">
-            <div class="label">FC max</div>
-            <div class="value">${hr.maxHr ?? "n.d."}</div>
-          </div>
-          <div class="hrKpi">
-            <div class="label">Dérive cardio</div>
-            <div class="value">${driftTxt}</div>
-          </div>
-          <div class="hrKpi">
-            <div class="label">Seuil estimé</div>
-            <div class="value">${thresholdTxt}</div>
-          </div>
-          <div class="hrKpi">
-            <div class="label">Corrélation FC / vitesse</div>
-            <div class="value">${corrTxt}</div>
-          </div>
-          <div class="hrKpi">
-            <div class="label">Score cardio</div>
-            <div class="value">${hr.hrScore}/100</div>
-          </div>
-        </div>
-  
-        <div class="hrNote"><b>Verdict :</b> ${hr.verdict}</div>
-        ${hr.note ? `<div class="hrNote">${hr.note}</div>` : ``}
-      </div>
-    `;
+
+  function hrArrayBetween(samples, t0, t1){
+  return (samples || [])
+    .filter(p => p.tMs >= t0 && p.tMs <= t1 && Number.isFinite(p.hr))
+    .map(p => p.hr);
+}
+
+function hrStatsFromArray(arr){
+  if (!arr || !arr.length) return null;
+
+  const avg = arr.reduce((a,b)=>a+b,0) / arr.length;
+  const max = Math.max(...arr);
+
+  const mid = Math.floor(arr.length / 2);
+  const first = arr.slice(0, mid);
+  const second = arr.slice(mid);
+
+  let drift = null;
+  if (first.length && second.length){
+    const avg1 = first.reduce((a,b)=>a+b,0) / first.length;
+    const avg2 = second.reduce((a,b)=>a+b,0) / second.length;
+    drift = Math.round(avg2 - avg1);
   }
+
+  return {
+    avg: Math.round(avg),
+    max,
+    drift
+  };
+}
+
+function paceArrayBetween(samples, t0, t1){
+  return (samples || [])
+    .filter(p => p.tMs >= t0 && p.tMs <= t1 && Number.isFinite(p.pace))
+    .map(p => p.pace);
+}
+
+function avgOf(arr){
+  if (!arr || !arr.length) return null;
+  return arr.reduce((a,b)=>a+b,0) / arr.length;
+}
+
+function analyzeHeartRateStructured(samples, structuredBlocks, spec){
+  if (!samples || !structuredBlocks) return null;
+
+  const before = structuredBlocks.before || null;
+  const tempo  = structuredBlocks.tempo || null;
+  const after  = structuredBlocks.after || null;
+
+  const beforeHrArr = before ? hrArrayBetween(samples, before.t0, before.t1) : [];
+  const tempoHrArr  = tempo  ? hrArrayBetween(samples, tempo.t0, tempo.t1)   : [];
+  const afterHrArr  = after  ? hrArrayBetween(samples, after.t0, after.t1)   : [];
+
+  const beforeHr = hrStatsFromArray(beforeHrArr);
+  const tempoHr  = hrStatsFromArray(tempoHrArr);
+  const afterHr  = hrStatsFromArray(afterHrArr);
+
+  const beforePace = before ? avgOf(paceArrayBetween(samples, before.t0, before.t1)) : null;
+  const tempoPace  = tempo  ? avgOf(paceArrayBetween(samples, tempo.t0, tempo.t1))   : null;
+  const afterPace  = after  ? avgOf(paceArrayBetween(samples, after.t0, after.t1))   : null;
+
+  let score = 85;
+  const notes = [];
+  const reasons = [];
+
+  // 1) bloc central : on veut une FC plus haute que l'endurance
+  if (beforeHr && tempoHr){
+    const deltaTempo = tempoHr.avg - beforeHr.avg;
+    if (deltaTempo >= 12){
+      score += 6;
+      reasons.push(`FC cohérente sur le bloc central (+${deltaTempo} bpm vs endurance avant)`);
+    } else if (deltaTempo >= 6){
+      score += 2;
+      reasons.push(`FC du bloc central supérieure à l’endurance avant (+${deltaTempo} bpm)`);
+    } else {
+      score -= 12;
+      notes.push(`Bloc central peu marqué cardio (+${deltaTempo} bpm seulement)`);
+    }
+  }
+
+  // 2) stabilité de l’endurance avant
+  if (beforeHr && Number.isFinite(beforeHr.drift)){
+    if (beforeHr.drift <= 4){
+      score += 5;
+      reasons.push(`Endurance avant stable (dérive ${beforeHr.drift >= 0 ? "+" : ""}${beforeHr.drift} bpm)`);
+    } else if (beforeHr.drift <= 8){
+      score += 1;
+    } else {
+      score -= 8;
+      notes.push(`Endurance avant un peu haute en dérive (${beforeHr.drift >= 0 ? "+" : ""}${beforeHr.drift} bpm)`);
+    }
+  }
+
+  // 3) stabilité du bloc central
+  if (tempoHr && Number.isFinite(tempoHr.drift)){
+    if (tempoHr.drift <= 6){
+      score += 5;
+      reasons.push(`Bloc central stable cardio (${tempoHr.drift >= 0 ? "+" : ""}${tempoHr.drift} bpm)`);
+    } else if (tempoHr.drift <= 10){
+      score += 1;
+    } else {
+      score -= 6;
+      notes.push(`Bloc central avec dérive marquée (${tempoHr.drift >= 0 ? "+" : ""}${tempoHr.drift} bpm)`);
+    }
+  }
+
+  // 4) retour en endurance après : on ne pénalise pas trop, mais on regarde l'excès
+  if (afterHr && beforeHr){
+    const deltaAfter = afterHr.avg - beforeHr.avg;
+    if (deltaAfter <= 8){
+      score += 4;
+      reasons.push(`Retour endurance après cohérent (+${deltaAfter} bpm vs avant)`);
+    } else if (deltaAfter <= 15){
+      score += 0;
+    } else {
+      score -= 8;
+      notes.push(`FC reste élevée après le bloc central (+${deltaAfter} bpm vs avant)`);
+    }
+  }
+
+  // 5) cohérence allure ↔ FC entre endurance et central
+  if (beforePace && tempoPace && beforeHr && tempoHr){
+    const paceGain = beforePace - tempoPace; // positif si le bloc central est plus rapide
+    const hrGain = tempoHr.avg - beforeHr.avg;
+
+    if (paceGain > 15 && hrGain > 8){
+      score += 5;
+      reasons.push("Bonne cohérence allure/FC entre endurance et bloc central");
+    } else if (paceGain > 10 && hrGain < 5){
+      score -= 8;
+      notes.push("Bloc central plus rapide mais réponse cardio assez faible");
+    }
+  }
+
+  // 6) bonus léger si les 3 segments existent
+  if (before && tempo && after){
+    score += 3;
+  }
+
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  const verdict =
+    score >= 85 ? "Très bonne cohérence cardio" :
+    score >= 70 ? "Cohérence cardio correcte" :
+    score >= 55 ? "Cohérence cardio moyenne" :
+    "Cohérence cardio fragile";
+
+  return {
+    avgHr: hrStatsFromArray(
+      (samples || []).filter(p => Number.isFinite(p.hr)).map(p => p.hr)
+    )?.avg ?? null,
+    maxHr: hrStatsFromArray(
+      (samples || []).filter(p => Number.isFinite(p.hr)).map(p => p.hr)
+    )?.max ?? null,
+    driftBpm: null, // pas pertinent globalement pour cette séance structurée
+    corr: null,
+    thresholdHr: tempoHr ? tempoHr.avg : null,
+    hrScore: score,
+    verdict,
+    note: notes.join(" "),
+    structured: {
+      before: beforeHr ? { ...beforeHr, pace: beforePace ? Math.round(beforePace) : null } : null,
+      tempo: tempoHr ? { ...tempoHr, pace: tempoPace ? Math.round(tempoPace) : null } : null,
+      after: afterHr ? { ...afterHr, pace: afterPace ? Math.round(afterPace) : null } : null
+    },
+    reasons,
+    notes
+  };
+}
+  
+function renderHeartRateBox(hr){
+  if (!hr) return "";
+
+  const corrTxt = (hr.corr == null) ? "n.d." : hr.corr.toFixed(2);
+  const driftTxt = (hr.driftBpm == null) ? "n.d." : `${hr.driftBpm > 0 ? "+" : ""}${hr.driftBpm} bpm`;
+  const thresholdTxt = Number.isFinite(hr.thresholdHr) ? `${hr.thresholdHr}` : "n.d.";
+
+  const structuredHTML = hr.structured
+    ? `
+      <div class="hrNote" style="margin-top:8px;"><b>Détail cardio structuré</b></div>
+      <div class="hrGrid">
+        <div class="hrKpi">
+          <div class="label">Endurance avant</div>
+          <div class="value">${hr.structured.before?.avg ?? "n.d."}</div>
+        </div>
+        <div class="hrKpi">
+          <div class="label">Bloc central</div>
+          <div class="value">${hr.structured.tempo?.avg ?? "n.d."}</div>
+        </div>
+        <div class="hrKpi">
+          <div class="label">Endurance après</div>
+          <div class="value">${hr.structured.after?.avg ?? "n.d."}</div>
+        </div>
+        <div class="hrKpi">
+          <div class="label">Score cardio</div>
+          <div class="value">${hr.hrScore}/100</div>
+        </div>
+      </div>
+      ${(hr.reasons && hr.reasons.length)
+        ? `<div class="hrNote" style="margin-top:8px;"><b>Lecture :</b> ${hr.reasons.join(" • ")}</div>`
+        : ``}
+      ${(hr.notes && hr.notes.length)
+        ? `<div class="hrNote" style="margin-top:6px;">${hr.notes.join(" • ")}</div>`
+        : ``}
+    `
+    : "";
+
+  return `
+    <div class="hrBox">
+      <div><b>Analyse fréquence cardiaque</b></div>
+
+      <div class="hrGrid">
+        <div class="hrKpi">
+          <div class="label">FC moyenne</div>
+          <div class="value">${hr.avgHr ?? "n.d."}</div>
+        </div>
+        <div class="hrKpi">
+          <div class="label">FC max</div>
+          <div class="value">${hr.maxHr ?? "n.d."}</div>
+        </div>
+        <div class="hrKpi">
+          <div class="label">Dérive cardio</div>
+          <div class="value">${driftTxt}</div>
+        </div>
+        <div class="hrKpi">
+          <div class="label">Seuil estimé</div>
+          <div class="value">${thresholdTxt}</div>
+        </div>
+        <div class="hrKpi">
+          <div class="label">Corrélation FC / vitesse</div>
+          <div class="value">${corrTxt}</div>
+        </div>
+        <div class="hrKpi">
+          <div class="label">Score cardio</div>
+          <div class="value">${hr.hrScore}/100</div>
+        </div>
+      </div>
+
+      <div class="hrNote"><b>Verdict :</b> ${hr.verdict}</div>
+      ${hr.note ? `<div class="hrNote">${hr.note}</div>` : ``}
+      ${structuredHTML}
+    </div>
+  `;
+}
+  
   function renderHeartRateMissingBox(){
     return `
       <div class="hrBox">
@@ -1717,7 +1918,9 @@ function findBestEasyBlock(samples, tStart, tEnd, spec){
     if (Number.isFinite(evalRes.score)) score += (evalRes.score - 50) * 0.35;
   
     // dérive cardio
-    if (Number.isFinite(hrStats.driftBpm)){
+    if (spec?.kind === "long_with_tempo" && Number.isFinite(hrStats.hrScore)){
+      score += (hrStats.hrScore - 70) * 0.25;
+    } else if (Number.isFinite(hrStats.driftBpm)){
       if (hrStats.driftBpm <= 2) score += 18;
       else if (hrStats.driftBpm <= 5) score += 10;
       else if (hrStats.driftBpm <= 8) score += 2;
@@ -5447,11 +5650,19 @@ function drawAnalysisCanvas(){
       const badgeClass = verdictBadgeClass(evalRes.verdictClass);
   
       const hrSamples = enrichSamplesWithPace(mergedSamples);
-      const hrStats = analyzeHeartRateSamples(hrSamples);
-  
+      
+      let hrStats;
+      if (spec.kind === "long_with_tempo" && evalRes.structuredBlocks){
+        hrStats = analyzeHeartRateStructured(hrSamples, evalRes.structuredBlocks, spec);
+      } else {
+        hrStats = analyzeHeartRateSamples(hrSamples);
+      }
+      
       const readiness = hrStats ? estimateTroyesRaceReadiness(spec, hrStats, evalRes) : null;
       const targetHr = hrStats ? estimateTroyesTargetHr(hrStats) : null;
-      const driftAlert = hrStats ? longRunDriftAlert(spec, hrStats) : null;
+      const driftAlert = (spec.kind === "long_with_tempo")
+        ? null
+        : (hrStats ? longRunDriftAlert(spec, hrStats) : null);
   
       const workoutStored = {
         id: lastParsedWorkout.id,
