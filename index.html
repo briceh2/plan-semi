@@ -472,7 +472,7 @@
   };
   
   // version
-  const APP_VERSION = "v26-04-11_1.1";
+  const APP_VERSION = "v26-04-13_1.0";
   // ===== Dates =====
   const START = new Date("2026-02-02T00:00:00");
   const RACE  = new Date("2026-05-10T00:00:00");
@@ -3076,7 +3076,7 @@ function score400m(samples, spec){
     return { score: clamp(score,0,100), reasons, notes, intervals:[] };
   }
 
-      function scoreLongWithTempo(samples, spec){
+  function scoreLongWithTempo(samples, spec){
       const pts = buildPaceSeries(samples).filter(p => Number.isFinite(p.pace));
       if (!pts.length){
         return {
