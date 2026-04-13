@@ -1237,7 +1237,119 @@ async function getHeartRatesForGpxWithCache(gpxText, samples){
     source: "xml"
   };
 }
+  function fmtDurationSec(sec){
+  const s = Math.round(sec || 0);
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  if (m >= 60){
+    const h = Math.floor(m / 60);
+    const mm = m % 60;
+    return `${h}h${String(mm).padStart(2,"0")}`;
+  }
+  return `${m}min${r ? ` ${r}s` : ""}`;
+}
+
+function buildWindowCandidates(pts, targetDurSec, stepSec){
+  if (!pts || pts.length < 2) return [];
+
+  const out = [];
+  const stepMs = (stepSec || 30) * 1000;
+  const minT = pts[0].tMs;
+  const maxT = pts[pts.length - 1].tMs;
+
+  for (let t0 = minT; t0 < maxT; t0 += stepMs){
+    const t1 = t0 + targetDurSec * 1000;
+    if (t1 > maxT) break;
+
+    const seg = pts.filter(p => p.tMs >= t0 && p.tMs <= t1 && Number.isFinite(p.pace));
+    if (seg.length < 5) continue;
+
+    const pace = seg.reduce((a,b)=>a+b.pace,0) / seg.length;
+    const paceVar = seg.reduce((a,b)=>a + Math.abs(b.pace - pace), 0) / seg.length;
+
+    out.push({
+      t0,
+      t1,
+      durSec: targetDurSec,
+      pace,
+      stability: paceVar / Math.max(1, pace)
+    });
+  }
+
+  return out;
+}
+
+function buildWindowCandidatesFlexible(pts, minDurSec, maxDurSec, stepSec){
+  if (!pts || pts.length < 2) return [];
+
+  const out = [];
+  const stepMs = (stepSec || 60) * 1000;
+  const minT = pts[0].tMs;
+  const maxT = pts[pts.length - 1].tMs;
+
+  for (let t0 = minT; t0 < maxT; t0 += stepMs){
+    for (let durSec = minDurSec; durSec <= maxDurSec; durSec += stepSec){
+      const t1 = t0 + durSec * 1000;
+      if (t1 > maxT) break;
+
+      const seg = pts.filter(p => p.tMs >= t0 && p.tMs <= t1 && Number.isFinite(p.pace));
+      if (seg.length < 5) continue;
+
+      const pace = seg.reduce((a,b)=>a+b.pace,0) / seg.length;
+      const paceVar = seg.reduce((a,b)=>a + Math.abs(b.pace - pace), 0) / seg.length;
+
+      out.push({
+        t0,
+        t1,
+        durSec,
+        pace,
+        stability: paceVar / Math.max(1, pace)
+      });
+    }
+  }
+
+  return out;
+}
+
+function findBestEasyBlock(samples, tStart, tEnd, spec){
+  const pts = buildPaceSeries(samples).filter(p => p.tMs >= tStart && p.tMs <= tEnd && Number.isFinite(p.pace));
+  if (!pts.length) return null;
+
+  const minEasyDurSec =
+    spec.tempoMin >= 25 ? 12 * 60 :
+    spec.tempoMin >= 20 ? 10 * 60 :
+    8 * 60;
   
+  const maxEasyDurSec =
+    spec.totalMin >= 80 ? 45 * 60 : 40 * 60;
+  
+  const candidates = buildWindowCandidatesFlexible(pts, minEasyDurSec, maxEasyDurSec, 60);
+  
+  let best = null;
+
+  for (const c of candidates){
+    const inRange =
+      c.pace >= (spec.easyPaceMin || 355) &&
+      c.pace <= (spec.easyPaceMax || 390);
+
+    if (!inRange) continue;
+
+    const rangeMid = ((spec.easyPaceMin || 355) + (spec.easyPaceMax || 390)) / 2;
+    const pacePenalty = Math.abs(c.pace - rangeMid) / 25;
+    const stabilityPenalty = c.stability || 0;
+
+    const score = 100 - 50 * pacePenalty - 20 * stabilityPenalty;
+
+    if (!best || score > best.score){
+      best = {
+        ...c,
+        score
+      };
+    }
+  }
+
+  return best;
+}
   // ========================
   // ===== Helpers fin ======
   // ========================
@@ -2206,10 +2318,16 @@ function stripTime(d){
         label:"Endurance 45 min"
       };
       if (day === "sun") return {
-        kind:"long",
-        minMin:70,
         paceRange:"5'55-6'25/km",
-        label:"Sortie Longue 1h10 dont 10 min à 5'10"
+        kind: "long_with_tempo",
+        totalMin: 70,
+        tempoMin: 10,
+        tempoPaceTarget: 310,   // 5'10/km
+        tempoPaceTol: 20,
+        easyTotalMin: 60,
+        easyPaceMin: 355,       // 5'55/km
+        easyPaceMax: 390,       // 6'30/km
+        label: "1h10 dont 10 min à 5'10"
       };
     }
 
@@ -2240,10 +2358,16 @@ function stripTime(d){
         label:"Endurance 45 min"
       };
       if (day === "sun") return {
-        kind:"long",
-        minMin:80,
         paceRange:"5'55-6'20/km",
-        label:"Sortie Longue 1h20 dont 20 min à 5'05"
+        kind: "long_with_tempo",
+        totalMin: 80,
+        tempoMin: 20,
+        tempoPaceTarget: 300,   // 5'00/km
+        tempoPaceTol: 18,
+        easyTotalMin: 60,
+        easyPaceMin: 355,       // 5'55/km
+        easyPaceMax: 390,       // 6'30/km
+        label: "1h20 dont 20 min au seuil 5'05"
       };
     }
 
@@ -2274,10 +2398,16 @@ function stripTime(d){
         label:"Endurance 45 min"
       };
       if (day === "sun") return {
-        kind:"long",
-        minMin:80,
         paceRange:"5'50-6'20/km",
-        label:"Sortie Longue 1h20 dont 25 min à 5'00"
+        kind: "long_with_tempo",
+        totalMin: 75,
+        tempoMin: 25,
+        tempoPaceTarget: 300,   // 5'00/km
+        tempoPaceTol: 18,
+        easyTotalMin: 60,
+        easyPaceMin: 350, // 5'50/km
+        easyPaceMax: 380, // 6'20/km
+        label: "1h15 dont 25 min à 5'00"
       };
     }
 
@@ -2308,10 +2438,16 @@ function stripTime(d){
         label:"Endurance 40 min"
       };
       if (day === "sun") return {
-        kind:"long",
-        minMin:75,
         paceRange:"5'50-6'15/km",
-        label:"Sortie Longue 1h15 dont 30 min à 5'00"
+        kind: "long_with_tempo",
+        totalMin: 75,
+        tempoMin: 30,
+        tempoPaceTarget: 300,   // 5'00/km
+        tempoPaceTol: 18,
+        easyTotalMin: 60,
+        easyPaceMin: 350, // 5'50/km
+        easyPaceMax: 375, // 6'15/km
+        label: "1h15 dont 30 min à 5'00"
       };
     }
 
@@ -2342,10 +2478,16 @@ function stripTime(d){
         label:"Endurance 35 min"
       };
       if (day === "sun") return {
-        kind:"long",
-        minMin:60,
         paceRange:"5'55-6'25/km",
-        label:"Sortie Longue 1h00 dont 15 min à 5'00"
+        kind: "long_with_tempo",
+        totalMin: 75,
+        tempoMin: 15,
+        tempoPaceTarget: 300,   // 5'00/km
+        tempoPaceTol: 18,
+        easyTotalMin: 60,
+        easyPaceMin: 355,
+        easyPaceMax: 390,
+        label: "1h15 dont 15 min à 5'00"
       };
     }
 
@@ -2521,6 +2663,133 @@ function verdictFromScore(score){
         "Astuce : ralentir davantage en récup (au moins +20 à +40s/km) aide énormément la détection."
         ],
         intervals:[]
+      };
+    }
+    function scoreLongWithTempo(samples, spec){
+      const pts = buildPaceSeries(samples).filter(p => Number.isFinite(p.pace));
+      if (!pts.length){
+        return {
+          score: 0,
+          verdict: "Insuffisant",
+          verdictClass: "bad",
+          reasons: ["Aucune donnée exploitable"],
+          notes: [],
+          intervals: [],
+          structuredBlocks: null,
+          specLabel: spec.label || "SL avec bloc tempo"
+        };
+      }
+    
+      const tempoCandidates = buildWindowCandidates(
+        pts,
+        spec.tempoMin * 60,
+        Math.max(60, Math.round((spec.tempoMin * 60) / 8))
+      ).map(c => {
+        const durPenalty = Math.abs(c.durSec - spec.tempoMin * 60) / (spec.tempoMin * 60);
+        const pacePenalty = Math.abs(c.pace - spec.tempoPaceTarget) / Math.max(1, (spec.tempoPaceTol || 20));
+        const stabilityPenalty = c.stability || 0;
+    
+      const tempoWeight =
+        spec.tempoMin >= 25 ? 1.15 :
+        spec.tempoMin >= 20 ? 1.00 :
+        spec.tempoMin >= 15 ? 0.90 :
+        0.80;
+      
+      const score =
+        100
+        - (25 * tempoWeight) * durPenalty
+        - (45 * tempoWeight) * pacePenalty
+        - 20 * stabilityPenalty;
+    
+        return { ...c, score };
+      })
+      .filter(c => c.score > 0)
+      .sort((a,b) => b.score - a.score)
+      .slice(0, 12);
+    
+      if (!tempoCandidates.length){
+        return {
+          score: 20,
+          verdict: "À revoir",
+          verdictClass: "mid",
+          reasons: ["Bloc seuil non détecté"],
+          notes: [],
+          intervals: [],
+          structuredBlocks: null,
+          specLabel: spec.label || "SL avec bloc tempo"
+        };
+      }
+    
+      let best = null;
+    
+      for (const tempo of tempoCandidates){
+        const before = findBestEasyBlock(samples, 0, tempo.t0, spec);
+        const after  = findBestEasyBlock(samples, tempo.t1, Infinity, spec);
+    
+        const easyDurSec = (before?.durSec || 0) + (after?.durSec || 0);
+        const easyTargetSec = (spec.easyTotalMin || 60) * 60;
+    
+        const easyDurPenalty = Math.abs(easyDurSec - easyTargetSec) / easyTargetSec;
+    
+        const easyScoreBefore = before ? before.score : 0;
+        const easyScoreAfter = after ? after.score : 0;
+    
+        const tempoShare =
+          spec.tempoMin >= 25 ? 0.58 :
+          spec.tempoMin >= 20 ? 0.50 :
+          spec.tempoMin >= 15 ? 0.45 :
+          0.40;
+        
+        const easyShare = (1 - tempoShare) / 2;
+        
+        const globalScore =
+          tempoShare * tempo.score +
+          easyShare * easyScoreBefore +
+          easyShare * easyScoreAfter +
+          10 * Math.max(0, 1 - easyDurPenalty);
+    
+        const candidate = {
+          tempo,
+          before,
+          after,
+          globalScore
+        };
+    
+        if (!best || candidate.globalScore > best.globalScore){
+          best = candidate;
+        }
+      }
+    
+      const finalScore = Math.round(Math.max(0, Math.min(100, best.globalScore)));
+    
+      const reasons = [];
+      if (best.before){
+        reasons.push(`Endurance avant détectée : ${fmtDurationSec(best.before.durSec)} à ${paceStr(Math.round(best.before.pace))}/km`);
+      }
+      if (best.tempo){
+        reasons.push(`Bloc seuil détecté : ${fmtDurationSec(best.tempo.durSec)} à ${paceStr(Math.round(best.tempo.pace))}/km`);
+      }
+      if (best.after){
+        reasons.push(`Endurance après détectée : ${fmtDurationSec(best.after.durSec)} à ${paceStr(Math.round(best.after.pace))}/km`);
+      }
+    
+      const notes = [];
+      const totalEasyMin = Math.round(((best.before?.durSec || 0) + (best.after?.durSec || 0)) / 60);
+      notes.push(`Durée endurance cumulée détectée : ${totalEasyMin} min`);
+    
+      return {
+        score: finalScore,
+        verdict: finalScore >= 80 ? "Très bien" : finalScore >= 60 ? "Correct" : "À revoir",
+        verdictClass: finalScore >= 80 ? "good" : finalScore >= 60 ? "mid" : "bad",
+        reasons,
+        notes,
+        intervals: [best.tempo].filter(Boolean),
+        structuredBlocks: {
+          before: best.before || null,
+          tempo: best.tempo || null,
+          after: best.after || null
+        },
+        specLabel: spec.label || "SL avec bloc tempo"
       };
     }
     
@@ -3336,6 +3605,7 @@ function evaluateCompliance(samples, spec){
   else if (spec && spec.kind === "endurance") res = scoreEndurance(samples, spec);
   else if (spec && spec.kind === "long") res = scoreLong(samples, spec);
   else if (spec && spec.kind === "race") res = scoreRace(samples, spec);
+  else if (spec && spec.kind === "long_with_tempo") res = scoreLongWithTempo(samples, spec);
   else {
     res = { score: 40, reasons:["Type de séance non reconnu."], notes:[], intervals:[] };
   }
@@ -4232,7 +4502,14 @@ function renderPlan(){
       const driftMini = workout?.compliance?.driftAlert
         ? `<div class="mini">${workout.compliance.driftAlert}</div>`
         : "";
-      
+
+      const structuredMini = workout?.compliance?.structuredBlocks
+        ? `<div class="mini">🧩 ${workout.compliance.specLabel || "Structure"} : ` +
+          `${workout.compliance.structuredBlocks.before ? Math.round(workout.compliance.structuredBlocks.before.durSec/60) : 0} min endurance + ` +
+          `${workout.compliance.structuredBlocks.tempo ? Math.round(workout.compliance.structuredBlocks.tempo.durSec/60) : 0} min bloc central + ` +
+          `${workout.compliance.structuredBlocks.after ? Math.round(workout.compliance.structuredBlocks.after.durSec/60) : 0} min endurance</div>`
+        : "";
+            
       sec.innerHTML = `
         <div class="s-title">${dayName} ${badge1} ${badge2}</div>
         <label class="cb">
@@ -4245,6 +4522,7 @@ function renderPlan(){
           ${hrMini}
           ${readinessMini}
           ${driftMini}
+          ${structuredMini}
           ${workout.compliance?.manualAdjusted ? `<div class="mini">✍️ Blocs ajustés manuellement (score recalculé)</div>` : ``}
           ${reasonsCompact}`
           : `<div class="mini"></div>`
@@ -4930,10 +5208,22 @@ const blockHrHTML = blockHrSummary
       ? renderReadinessBox(readiness, targetHr, driftAlert)
       : "";
 
+  const sb = modalState.structuredBlocks || null;
+
+  const structuredHTML = sb
+    ? `<div class="mini" style="margin-top:8px;">
+        <b>Structure détectée (${modalState.specLabel || "séance structurée"}) :</b><br>
+        ${sb.before ? `Endurance avant : ${fmtDurationSec(sb.before.durSec)} • ${paceStr(Math.round(sb.before.pace))}/km` : `Endurance avant : n.d.`}<br>
+        ${sb.tempo ? `Bloc central : ${fmtDurationSec(sb.tempo.durSec)} • ${paceStr(Math.round(sb.tempo.pace))}/km` : `Bloc central : n.d.`}<br>
+        ${sb.after ? `Endurance après : ${fmtDurationSec(sb.after.durSec)} • ${paceStr(Math.round(sb.after.pace))}/km` : `Endurance après : n.d.`}
+      </div>`
+    : "";
+
   summaryEl.innerHTML = `
     ${verdictBadge}
     <div class="mini" style="margin-top:8px;"><b>Raisons :</b></div>
     <ul class="reasonsInline">${reasons.slice(0, 12).map(r => `<li>${r}</li>`).join("")}</ul>
+    ${structuredHTML}
     ${blocksHTML}
     ${blockHrHTML}
     ${hrHTML}
@@ -5178,6 +5468,7 @@ function drawAnalysisCanvas(){
           reasons: evalRes.reasons || [],
           notes: evalRes.notes || [],
           intervals: evalRes.intervals || [],
+          structuredBlocks: evalRes.structuredBlocks || null,
           specLabel: evalRes.specLabel || spec?.label || "Séance",
           manualAdjusted: false,
           slopeMin: slopeInfo?.min ?? null,
@@ -5236,6 +5527,7 @@ function drawAnalysisCanvas(){
         reasons: evalRes.reasons || [],
         notes: evalRes.notes || [],
         intervals: evalRes.intervals || [],
+        structuredBlocks: evalRes.structuredBlocks || null,
         dateStr: workoutStored.dateStr,
         distKm: workoutStored.distKm,
         durationStr: workoutStored.durationStr,
