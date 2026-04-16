@@ -1350,6 +1350,22 @@ function findBestEasyBlock(samples, tStart, tEnd, spec){
 
   return best;
 }
+function thinSamplesForStorage(samples, step = 5){
+  if (!samples || !samples.length) return [];
+
+  return samples
+    .filter((_, i) => i % step === 0)
+    .map(s => ({
+      tMs: s.tMs ?? null,
+      distM: Number.isFinite(s.distM) ? Math.round(s.distM) : null,
+      eleM: Number.isFinite(s.eleM) ? Math.round(s.eleM * 10) / 10 : null,
+      hr: Number.isFinite(s.hr) ? Math.round(s.hr) : null,
+      pace: Number.isFinite(s.pace) ? Math.round(s.pace) : null,
+      ppm: Number.isFinite(s.ppm) ? Math.round(s.ppm) : null,
+      spm: Number.isFinite(s.spm) ? Math.round(s.spm) : null,
+      cadence: Number.isFinite(s.cadence) ? Math.round(s.cadence) : null
+    }));
+}
   // ========================
   // ===== Helpers fin ======
   // ========================
@@ -5743,7 +5759,7 @@ function drawAnalysisCanvas(){
         distKm: workoutStored.distKm,
         durationStr: workoutStored.durationStr,
         avgPaceStr: workoutStored.avgPaceStr,
-        samples: mergedSamples,
+        samples: thinSamplesForStorage(mergedSamples, 5),
         heartRate: hrStats || null,
         readiness: readiness || null,
         targetHr: targetHr || null,
