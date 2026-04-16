@@ -4755,6 +4755,10 @@ function renderPlan(){
           `${workout.compliance.structuredBlocks.tempo ? Math.round(workout.compliance.structuredBlocks.tempo.durSec/60) : 0} min bloc central + ` +
           `${workout.compliance.structuredBlocks.after ? Math.round(workout.compliance.structuredBlocks.after.durSec/60) : 0} min endurance</div>`
         : "";
+
+      const viewGraphBtn = workout
+        ? `<button class="ghostBtn" data-open-workout="${workout.id}">Voir analyse</button>`
+        : "";
             
       sec.innerHTML = `
         <div class="s-title">${dayName} ${badge1} ${badge2}</div>
@@ -4769,6 +4773,7 @@ function renderPlan(){
           ${readinessMini}
           ${driftMini}
           ${structuredMini}
+          ${viewGraphBtn}<div style="margin-top:8px;">${viewGraphBtn}</div>
           ${workout.compliance?.manualAdjusted ? `<div class="mini">✍️ Blocs ajustés manuellement (score recalculé)</div>` : ``}
           ${reasonsCompact}`
           : `<div class="mini"></div>`
@@ -4861,6 +4866,14 @@ function renderPlan(){
       ensureWeek(w);
       data.weeks[w][f] = e.target.value; // stocke "5","6","7","8" ou "1".."5"
       saveData(); // persiste dans localStorage
+    });
+  });
+  
+  weeksEl.querySelectorAll("[data-open-workout]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-open-workout");
+      const workout = (data.workouts || []).find(w => String(w.id) === String(id));
+      openWorkoutFromPlan(workout);
     });
   });
 
