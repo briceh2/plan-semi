@@ -1366,33 +1366,33 @@ function thinSamplesForStorage(samples, step = 5){
       cadence: Number.isFinite(s.cadence) ? Math.round(s.cadence) : null
     }));
 }
-function openWorkoutFromPlan(workout){
-  if (!workout) return;
-
-  const comp = workout.compliance || {};
-
-  openModal({
-    workoutId: workout.id,
-    spec: comp.spec || null,
-    specLabel: comp.specLabel || "Séance",
-    score: comp.score,
-    verdict: comp.verdict,
-    badgeClass: comp.badgeClass || "",
-    reasons: comp.reasons || [],
-    notes: comp.notes || [],
-    intervals: comp.intervals || [],
-    structuredBlocks: comp.structuredBlocks || null,
-    dateStr: workout.dateStr || "",
-    distKm: workout.distKm,
-    durationStr: workout.durationStr || "",
-    avgPaceStr: workout.avgPaceStr || "",
-    samples: workout._samples || [],
-    heartRate: comp.heartRate || null,
-    readiness: comp.readiness || null,
-    targetHr: comp.targetHr || null,
-    driftAlert: comp.driftAlert || null
-  });
-}
+  function openWorkoutFromPlan(workout){
+    if (!workout) return;
+  
+    const comp = workout.compliance || {};
+  
+    openModal({
+      workoutId: workout.id,
+      spec: comp.spec || null,
+      specLabel: comp.specLabel || "Séance",
+      score: comp.score,
+      verdict: comp.verdict,
+      badgeClass: comp.badgeClass || "",
+      reasons: comp.reasons || [],
+      notes: comp.notes || [],
+      intervals: comp.intervals || [],
+      structuredBlocks: comp.structuredBlocks || null,
+      dateStr: workout.dateStr || "",
+      distKm: workout.distKm,
+      durationStr: workout.durationStr || "",
+      avgPaceStr: workout.avgPaceStr || "",
+      samples: workout.samples || workout._samples || [],
+      heartRate: comp.heartRate || null,
+      readiness: comp.readiness || null,
+      targetHr: comp.targetHr || null,
+      driftAlert: comp.driftAlert || null
+    });
+  }
   // ========================
   // ===== Helpers fin ======
   // ========================
@@ -4773,7 +4773,7 @@ function renderPlan(){
           ${readinessMini}
           ${driftMini}
           ${structuredMini}
-          ${viewGraphBtn}<div style="margin-top:8px;">${viewGraphBtn}</div>
+          <div style="margin-top:8px;">${viewGraphBtn}</div>
           ${workout.compliance?.manualAdjusted ? `<div class="mini">✍️ Blocs ajustés manuellement (score recalculé)</div>` : ``}
           ${reasonsCompact}`
           : `<div class="mini"></div>`
@@ -5727,7 +5727,7 @@ function drawAnalysisCanvas(){
         durationStr: lastParsedWorkout.durationStr,
         avgPaceStr: lastParsedWorkout.avgPaceStr,
         dateStr: lastParsedWorkout.dateStr,
-        _samples: thinSamplesForStorage(mergedSamples, 5),
+        samples: thinSamplesForStorage(mergedSamples, 5),
         //_samples: mergedSamples,
         compliance: {
           score: evalRes.score,
