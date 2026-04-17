@@ -2460,7 +2460,12 @@ function attachHeartRateToSamples(samples, heartRates){
 
     const splits = computeKmSplits(norm);
 
+    const sourceName = (doc.getElementsByTagName("name")[0]?.textContent || "GPX").trim();
+    const gpxId = `gpx_${points[0].tMs}_${Math.round(distM)}`;
+    
     return {
+      id: gpxId,
+      sourceName,
       distKm,
       durationSec: durSec,
       durationStr: durationStr(durSec),
@@ -6020,12 +6025,6 @@ function drawAnalysisCanvas(){
           driftAlert: driftAlert || null
         }
       };
-/*
-      data.weeks[week].attached[day] = workoutStored.id;
-      const idx = data.workouts.findIndex(w => w.id === workoutStored.id);
-      if (idx >= 0) data.workouts[idx] = workoutStored;
-      else data.workouts.push(workoutStored);
-    */
 
       const previousAttachedId = data.weeks[week].attached[day] || null;
       
