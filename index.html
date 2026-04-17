@@ -1687,9 +1687,247 @@ function thinSamplesForStorage(samples, step = 5){
       verdict,
       note
     };
+}
+function hrArrayBetween(samples, t0, t1){
+  return (samples || [])
+    .filter(p => p.tMs >= t0 && p.tMs <= t1 && Number.isFinite(p.hr))
+    .map(p => p.hr);
+}
+
+function hrStatsFromArray(arr){
+  if (!arr || !arr.length) return null;
+
+  const avg = arr.reduce((a,b)=>a+b,0) / arr.length;
+  const max = Math.max(...arr);
+
+  const mid = Math.floor(arr.length / 2);
+  const first = arr.slice(0, mid);
+  const second = arr.slice(mid);
+
+  let drift = null;
+  if (first.length && second.length){
+    const avg1 = first.reduce((a,b)=>a+b,0) / first.length;
+    const avg2 = second.reduce((a,b)=>a+b,0) / second.length;
+    drift = Math.round(avg2 - avg1);
   }
 
-  function hrArrayBetween(samples, t0, t1){
+  return {
+    avg: Math.round(avg),
+    max,
+    drift
+  };
+}
+function analyzeHeartRateIntervals(samples, intervals, spec){
+  if (!samples || !intervals || !intervals.length) return null;
+
+  const blocks = intervals.map((iv, idx) => {
+    const hrArr = hrArrayBetween(samples, iv.t0, iv.t1);
+    const hr = hrStatsFromArray(hrArr);
+    const pace = avgOf(paceArrayBetween(samples, iv.t0, iv.t1));
+
+    return {
+      index: idx + 1,
+      t0: iv.t0,
+      t1: iv.t1,
+      avgHr: hr?.avg ?? null,
+      maxHr: hr?.max ?? null,
+      driftBpm: hr?.drift ?? null,
+      pace: Number.isFinite(pace) ? Math.round(pace) : null
+    };
+  });
+
+  const validBlocks = blocks.filter(b => Number.isFinite(b.avgHr));
+  if (!validBlocks.length) return null;
+
+  let score = 78;
+  const reasons = [];
+  const notes = [];
+
+  // 1) cohérence entre blocs : on accepte une montée progressive, pas un emballement
+  if (validBlocks.length >= 2){
+    const first = validBlocks[0].avgHr;
+    const last = validBlocks[validBlocks.length - 1].avgHr;
+    const delta = last - first;
+
+    if (delta <= 10){
+      score += 8;
+      reasons.push(`Progression FC maîtrisée entre 1er et dernier bloc (+${delta} bpm)`);
+    } else if (delta <= 18){
+      score += 2;
+      reasons.push(`Progression FC présente mais encore acceptable (+${delta} bpm)`);
+    } else {
+      score -= 12;
+      notes.push(`Montée FC importante entre 1er et dernier bloc (+${delta} bpm)`);
+    }
+  }
+
+  // 2) dérive interne moyenne des blocs
+  const driftVals = validBlocks.map(b => b.driftBpm).filter(Number.isFinite);
+  if (driftVals.length){
+    const avgDrift = Math.round(driftVals.reduce((a,b)=>a+b,0) / driftVals.length);
+
+    if (avgDrift <= 5){
+      score += 8;
+      reasons.push(`Dérive intra-bloc maîtrisée (${avgDrift >= 0 ? "+" : ""}${avgDrift} bpm)`);
+    } else if (avgDrift <= 9){
+      score += 2;
+    } else {
+      score -= 10;
+      notes.push(`Dérive intra-bloc élevée (${avgDrift >= 0 ? "+" : ""}${avgDrift} bpm)`);
+    }
+  }
+
+  // 3) homogénéité allure/FC entre blocs
+  const paceVals = validBlocks.map(b => b.pace).filter(Number.isFinite);
+  if (paceVals.length >= 2){
+    const bestPace = Math.min(...paceVals);
+    const worstPace = Math.max(...paceVals);
+    const spread = worstPace - bestPace; // sec/km
+
+    if (spread <= 8){
+      score += 6;
+      reasons.push(`Allure homogène entre blocs (${spread}s/km d’écart)`);
+    } else if (spread <= 15){
+      score += 1;
+    } else {
+      score -= 8;
+      notes.push(`Allure assez irrégulière entre blocs (${spread}s/km d’écart)`);
+    }
+  }
+
+  // 4) garde-fou selon type
+  if (spec?.kind === "tempo_time"){
+    score += 4; // on valorise un peu la tenue cardio sur blocs longs
+  }
+  if (spec?.kind === "interval_time" || spec?.kind === "interval_dist"){
+    score += 2; // fractionné : la FC est naturellement plus contrastée
+  }
+
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  const summary = summarizeHrBlocks(validBlocks);
+
+  return {
+    avgHr: summary?.avgHr ?? null,
+    maxHr: summary?.maxHr ?? null,
+    driftBpm: driftVals.length ? Math.round(driftVals.reduce((a,b)=>a+b,0) / driftVals.length) : null,
+    corr: null,
+    thresholdHr: validBlocks.length ? Math.max(...validBlocks.map(b => b.avgHr).filter(Number.isFinite)) : null,
+    hrScore: score,
+    verdict:
+      score >= 85 ? "Très bonne cohérence cardio" :
+      score >= 70 ? "Cohérence cardio correcte" :
+      score >= 55 ? "Cohérence cardio moyenne" :
+      "Cohérence cardio fragile",
+    note: notes.join(" "),
+    blocks,
+    reasons,
+    notes
+  };
+}
+function analyzeHeartRateRace(samples, spec){
+  const pts = (samples || []).filter(p => Number.isFinite(p.hr) && Number.isFinite(p.pace));
+  if (!pts.length) return null;
+
+  const hrs = pts.map(p => p.hr);
+  const avgHr = Math.round(hrs.reduce((a,b)=>a+b,0) / hrs.length);
+  const maxHr = Math.max(...hrs);
+
+  const thirds = [
+    pts.slice(0, Math.floor(pts.length / 3)),
+    pts.slice(Math.floor(pts.length / 3), Math.floor(2 * pts.length / 3)),
+    pts.slice(Math.floor(2 * pts.length / 3))
+  ];
+
+  const avgThirds = thirds.map(seg =>
+    seg.length ? Math.round(seg.reduce((a,b)=>a+b.hr,0) / seg.length) : null
+  );
+
+  let score = 75;
+  const reasons = [];
+  const notes = [];
+
+  if (avgThirds.every(Number.isFinite)){
+    const drift13 = avgThirds[2] - avgThirds[0];
+
+    if (drift13 <= 12){
+      score += 10;
+      reasons.push(`Progression cardio course maîtrisée (+${drift13} bpm du début à la fin)`);
+    } else if (drift13 <= 20){
+      score += 2;
+    } else {
+      score -= 12;
+      notes.push(`Dérive cardio course marquée (+${drift13} bpm)`);
+    }
+  }
+
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  return {
+    avgHr,
+    maxHr,
+    driftBpm: (avgThirds.every(Number.isFinite) ? avgThirds[2] - avgThirds[0] : null),
+    corr: null,
+    thresholdHr: avgHr,
+    hrScore: score,
+    verdict:
+      score >= 85 ? "Très bonne tenue cardio en course" :
+      score >= 70 ? "Tenue cardio correcte en course" :
+      score >= 55 ? "Tenue cardio moyenne en course" :
+      "Tenue cardio fragile en course",
+    note: notes.join(" "),
+    raceSplitsHr: avgThirds,
+    reasons,
+    notes
+  };
+}
+function analyzeHeartRateAdaptive(samples, evalRes, spec){
+  if (!samples || !spec) return null;
+
+  // 1) séance structurée endurance + bloc central
+  if (spec.kind === "long_with_tempo" && evalRes?.structuredBlocks){
+    return analyzeHeartRateStructured(samples, evalRes.structuredBlocks, spec);
+  }
+
+  // 2) séances à blocs détectés
+  if (
+    (spec.kind === "tempo_time" || spec.kind === "interval_time" || spec.kind === "interval_dist")
+    && evalRes?.intervals?.length
+  ){
+    return analyzeHeartRateIntervals(samples, evalRes.intervals, spec);
+  }
+
+  // 3) course
+  if (spec.kind === "race"){
+    return analyzeHeartRateRace(samples, spec);
+  }
+
+  // 4) fallback homogène : endurance / footing / SL classique
+  return analyzeHeartRateSamples(samples);
+}
+function paceArrayBetween(samples, t0, t1){
+  return (samples || [])
+    .filter(p => p.tMs >= t0 && p.tMs <= t1 && Number.isFinite(p.pace))
+    .map(p => p.pace);
+}
+
+function avgOf(arr){
+  if (!arr || !arr.length) return null;
+  return arr.reduce((a,b)=>a+b,0) / arr.length;
+}
+
+function summarizeHrBlocks(blocks){
+  if (!blocks || !blocks.length) return null;
+
+  const avgVals = blocks.map(b => b.avgHr).filter(Number.isFinite);
+  const maxVals = blocks.map(b => b.maxHr).filter(Number.isFinite);
+
+  return {
+    avgHr: avgVals.length ? Math.round(avgVals.reduce((a,b)=>a+b,0) / avgVals.length) : null,
+    maxHr: maxVals.length ? Math.max(...maxVals) : null
+  };
+}
+function hrArrayBetween(samples, t0, t1){
   return (samples || [])
     .filter(p => p.tMs >= t0 && p.tMs <= t1 && Number.isFinite(p.hr))
     .map(p => p.hr);
@@ -1895,6 +2133,42 @@ function renderHeartRateBox(hr){
     `
     : "";
 
+  const intervalsHTML = (hr.blocks && hr.blocks.length)
+    ? `
+      <div class="hrNote" style="margin-top:8px;"><b>Détail cardio par bloc</b></div>
+      <div class="hrNote">
+        ${hr.blocks.map(b =>
+          `Bloc ${b.index}: ${b.avgHr ?? "n.d."} bpm` +
+          (Number.isFinite(b.driftBpm) ? ` • dérive ${b.driftBpm >= 0 ? "+" : ""}${b.driftBpm} bpm` : ``) +
+          (Number.isFinite(b.pace) ? ` • ${paceStr(b.pace)}/km` : ``)
+        ).join("<br>")}
+      </div>
+      ${(hr.reasons && hr.reasons.length)
+        ? `<div class="hrNote" style="margin-top:8px;"><b>Lecture :</b> ${hr.reasons.join(" • ")}</div>`
+        : ``}
+      ${(hr.notes && hr.notes.length)
+        ? `<div class="hrNote" style="margin-top:6px;">${hr.notes.join(" • ")}</div>`
+        : ``}
+    `
+    : "";
+
+  const raceHTML = (hr.raceSplitsHr && hr.raceSplitsHr.length)
+    ? `
+      <div class="hrNote" style="margin-top:8px;"><b>Cardio par tiers de course</b></div>
+      <div class="hrNote">
+        T1 : ${hr.raceSplitsHr[0] ?? "n.d."} bpm •
+        T2 : ${hr.raceSplitsHr[1] ?? "n.d."} bpm •
+        T3 : ${hr.raceSplitsHr[2] ?? "n.d."} bpm
+      </div>
+      ${(hr.reasons && hr.reasons.length)
+        ? `<div class="hrNote" style="margin-top:8px;"><b>Lecture :</b> ${hr.reasons.join(" • ")}</div>`
+        : ``}
+      ${(hr.notes && hr.notes.length)
+        ? `<div class="hrNote" style="margin-top:6px;">${hr.notes.join(" • ")}</div>`
+        : ``}
+    `
+    : "";
+
   return `
     <div class="hrBox">
       <div><b>Analyse fréquence cardiaque</b></div>
@@ -1929,9 +2203,12 @@ function renderHeartRateBox(hr){
       <div class="hrNote"><b>Verdict :</b> ${hr.verdict}</div>
       ${hr.note ? `<div class="hrNote">${hr.note}</div>` : ``}
       ${structuredHTML}
+      ${intervalsHTML}
+      ${raceHTML}
     </div>
   `;
 }
+
   
   function renderHeartRateMissingBox(){
     return `
@@ -1961,7 +2238,7 @@ function renderHeartRateBox(hr){
     if (Number.isFinite(evalRes.score)) score += (evalRes.score - 50) * 0.35;
   
     // dérive cardio
-    if (spec?.kind === "long_with_tempo" && Number.isFinite(hrStats.hrScore)){
+    if ((spec?.kind === "tempo_time" || spec?.kind === "interval_time" || spec?.kind === "interval_dist" || spec?.kind === "long_with_tempo") && Number.isFinite(hrStats.hrScore)){
       score += (hrStats.hrScore - 70) * 0.25;
     } else if (Number.isFinite(hrStats.driftBpm)){
       if (hrStats.driftBpm <= 2) score += 18;
@@ -1969,6 +2246,7 @@ function renderHeartRateBox(hr){
       else if (hrStats.driftBpm <= 8) score += 2;
       else score -= 10;
     }
+
   
     // corrélation FC / vitesse
     if (Number.isFinite(hrStats.corr)){
@@ -5706,13 +5984,7 @@ function drawAnalysisCanvas(){
       const badgeClass = verdictBadgeClass(evalRes.verdictClass);
   
       const hrSamples = enrichSamplesWithPace(mergedSamples);
-      
-      let hrStats;
-      if (spec.kind === "long_with_tempo" && evalRes.structuredBlocks){
-        hrStats = analyzeHeartRateStructured(hrSamples, evalRes.structuredBlocks, spec);
-      } else {
-        hrStats = analyzeHeartRateSamples(hrSamples);
-      }
+      const hrStats = analyzeHeartRateAdaptive(hrSamples, evalRes, spec);
       
       const readiness = hrStats ? estimateTroyesRaceReadiness(spec, hrStats, evalRes) : null;
       const targetHr = hrStats ? estimateTroyesTargetHr(hrStats) : null;
