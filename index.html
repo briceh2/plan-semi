@@ -1262,17 +1262,28 @@ function buildWindowCandidates(pts, targetDurSec, stepSec){
     if (t1 > maxT) break;
 
     const seg = pts.filter(p => p.tMs >= t0 && p.tMs <= t1 && Number.isFinite(p.pace));
-    if (seg.length < 5) continue;
+    if (seg.length < 8) continue;
 
-    const pace = seg.reduce((a,b)=>a+b.pace,0) / seg.length;
-    const paceVar = seg.reduce((a,b)=>a + Math.abs(b.pace - pace), 0) / seg.length;
+    const paces = seg.map(p => p.pace);
+    const pace = paces.reduce((a,b)=>a+b,0) / paces.length;
+
+    // stabilité : écart absolu moyen à la moyenne
+    const meanAbsDev = paces.reduce((a,b)=>a + Math.abs(b - pace), 0) / paces.length;
+
+    // continuité : on pénalise les gros écarts internes
+    let jumpPenalty = 0;
+    for (let i = 1; i < paces.length; i++){
+      const d = Math.abs(paces[i] - paces[i - 1]);
+      if (d > 12) jumpPenalty += (d - 12);
+    }
 
     out.push({
       t0,
       t1,
       durSec: targetDurSec,
       pace,
-      stability: paceVar / Math.max(1, pace)
+      stability: meanAbsDev,     // sec/km
+      jumpPenalty                // sec/km cumulés
     });
   }
 
@@ -3604,7 +3615,33 @@ function score400m(samples, spec){
     reasons.push(`Durée : ${durationStr(durSec)}.`);
     return { score: clamp(score,0,100), reasons, notes, intervals:[] };
   }
-
+  
+  function buildTempoCandidatesNearTarget(pts, targetMin){
+    const out = [];
+    const durationsMin = [targetMin - 3, targetMin - 2, targetMin - 1, targetMin, targetMin + 1, targetMin + 2];
+  
+    for (const d of durationsMin){
+      if (d < 8) continue;
+      out.push(...buildWindowCandidates(pts, d * 60, Math.max(30, Math.round(d * 6))));
+    }
+  
+    return out;
+  }
+  
+  function dedupeCandidates(cands, minGapSec = 90){
+    const out = [];
+  
+    for (const c of cands){
+      const tooClose = out.some(x =>
+        Math.abs(x.t0 - c.t0) < minGapSec * 1000 &&
+        Math.abs(x.t1 - c.t1) < minGapSec * 1000
+      );
+      if (!tooClose) out.push(c);
+    }
+  
+    return out;
+  }
+  
   function scoreLongWithTempo(samples, spec){
       const pts = buildPaceSeries(samples).filter(p => Number.isFinite(p.pace));
       if (!pts.length){
@@ -3620,33 +3657,55 @@ function score400m(samples, spec){
         };
       }
     
-      const tempoCandidates = buildWindowCandidates(
-        pts,
-        spec.tempoMin * 60,
-        Math.max(60, Math.round((spec.tempoMin * 60) / 8))
-      ).map(c => {
-        const durPenalty = Math.abs(c.durSec - spec.tempoMin * 60) / (spec.tempoMin * 60);
-        const pacePenalty = Math.abs(c.pace - spec.tempoPaceTarget) / Math.max(1, (spec.tempoPaceTol || 20));
-        const stabilityPenalty = c.stability || 0;
-    
-      const tempoWeight =
-        spec.tempoMin >= 25 ? 1.15 :
-        spec.tempoMin >= 20 ? 1.00 :
-        spec.tempoMin >= 15 ? 0.90 :
-        0.80;
-      
-      const score =
-        100
-        - (25 * tempoWeight) * durPenalty
-        - (45 * tempoWeight) * pacePenalty
-        - 20 * stabilityPenalty;
-    
+      const tempoCandidates = buildTempoCandidatesNearTarget(pts, spec.tempoMin)
+        .map(c => {
+        
+          const targetTempoSec = spec.tempoMin * 60;
+          const durPenalty = Math.abs(c.durSec - targetTempoSec) / targetTempoSec;
+          
+          // allure : pénalité plus progressive
+          const paceDiff = Math.abs(c.pace - spec.tempoPaceTarget);
+          const pacePenalty = paceDiff / Math.max(1, (spec.tempoPaceTol || 20));
+          
+          // stabilité en sec/km
+          const stabilityPenalty = (c.stability || 0) / 10;
+          
+          // continuité : pénaliser un faux bloc “haché”
+          const continuityPenalty = Math.min(1.5, (c.jumpPenalty || 0) / 40);
+          
+          // bonus si l’allure est vraiment proche de la cible
+          const paceBonus =
+            paceDiff <= 4 ? 8 :
+            paceDiff <= 7 ? 5 :
+            paceDiff <= 10 ? 2 : 0;
+          
+          // bonus si le bloc est suffisamment long et propre
+          const cleanBonus =
+            (c.stability || 0) <= 6 && (c.jumpPenalty || 0) <= 20 ? 4 : 0;
+          
+          // pour un bloc de 25 min, on veut valoriser encore plus la tenue d’allure
+          const tempoWeight =
+            spec.tempoMin >= 25 ? 1.10 :
+            spec.tempoMin >= 20 ? 1.00 :
+            spec.tempoMin >= 15 ? 0.90 :
+            0.80;
+          
+          const score =
+            100
+            - (20 * tempoWeight) * durPenalty
+            - (40 * tempoWeight) * pacePenalty
+            - 18 * stabilityPenalty
+            - 15 * continuityPenalty
+            + paceBonus
+            + cleanBonus;
         return { ...c, score };
       })
       .filter(c => c.score > 0)
       .sort((a,b) => b.score - a.score)
       .slice(0, 12);
-    
+
+      tempoCandidates = dedupeCandidates(tempoCandidates, 90).slice(0, 12);
+  
       if (!tempoCandidates.length){
         return {
           score: 20,
@@ -3665,7 +3724,15 @@ function score400m(samples, spec){
       for (const tempo of tempoCandidates){
         const before = findBestEasyBlock(samples, 0, tempo.t0, spec);
         const after  = findBestEasyBlock(samples, tempo.t1, Infinity, spec);
-    
+
+        // bonus de structure 
+        let structureBonus = 0;
+        if (before && after){
+          structureBonus += 6;
+        } else if (before || after){
+          structureBonus += 2;
+        }
+          
         const easyDurSec = (before?.durSec || 0) + (after?.durSec || 0);
         const easyTargetSec = (spec.easyTotalMin || 60) * 60;
     
@@ -3681,12 +3748,13 @@ function score400m(samples, spec){
           0.40;
         
         const easyShare = (1 - tempoShare) / 2;
-        
+
         const globalScore =
           tempoShare * tempo.score +
           easyShare * easyScoreBefore +
           easyShare * easyScoreAfter +
-          10 * Math.max(0, 1 - easyDurPenalty);
+          10 * Math.max(0, 1 - easyDurPenalty) +
+          structureBonus;
     
         const candidate = {
           tempo,
