@@ -3657,7 +3657,7 @@ function score400m(samples, spec){
         };
       }
     
-      const tempoCandidates = buildTempoCandidatesNearTarget(pts, spec.tempoMin)
+      let tempoCandidates = buildTempoCandidatesNearTarget(pts, spec.tempoMin)
         .map(c => {
         
           const targetTempoSec = spec.tempoMin * 60;
