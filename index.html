@@ -4033,11 +4033,19 @@ function scoreLongWithTempo(samples, spec){
   }
 
   const finalScore = Math.round(Math.max(0, Math.min(100, best.globalScore)));
-  
+
+  const bestEasyScoreBefore = best.before
+      ? Math.max(0, 100 - 1.6 * Math.abs(best.before.pace - easyMid))
+      : 0;
+    
+  const bestEasyScoreAfter = best.after
+      ? Math.max(0, 100 - 1.6 * Math.abs(best.after.pace - easyMid))
+      : 0;
+
   console.log("scoreLongWithTempo best candidate :");
-  console.log("  tempo : ", best.tempo);
-  console.log("  before : ", best.before);
-  console.log("  after : ", best.after);
+  console.log("  tempo : " + best.tempo + " = " + tempoShare + " x " + best.tempo.score);
+  console.log("  before : " + best.before + " = " + easyShare + " x " + bestEasyScoreBefore);
+  console.log("  after : " + best.after + " = " + easyShare + " x " + bestEasyScoreAfter);
   console.log("  globalScore : ", best.globalScore);
 
   const reasons = [];
