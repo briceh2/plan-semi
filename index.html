@@ -1109,9 +1109,6 @@ async function extractHeartRatesFromXmlFileByWindow(file, startMs, endMs){
     const combined = leftover + text;
     const parts = combined.split("<Record ");
 
-    console.log("XML chunk size =", text.length);
-    console.log("combined contains HKQuantityTypeIdentifierHeartRate =", combined.includes("HKQuantityTypeIdentifierHeartRate"));
-
     leftover = parts.pop() || "";
 
     for (let i = 1; i < parts.length; i++){
@@ -1128,8 +1125,6 @@ async function extractHeartRatesFromXmlFileByWindow(file, startMs, endMs){
       if (!rec) continue;
 
       if (rec.endMs < startPad || rec.startMs > endPad) continue;
-
-      console.log("heart rate records extracted =", out.length);
       
       out.push(rec);
     }
@@ -1216,8 +1211,6 @@ async function getHeartRatesForGpxWithCache(gpxText, samples){
       source: "none"
     };
   }
-
-  console.log("GPX window", new Date(win.startMs).toISOString(), new Date(win.endMs).toISOString());
   
   const heartRates = await extractHeartRatesFromXmlFileByWindow(
     lastHealthXmlFile,
@@ -1559,8 +1552,6 @@ function thinSamplesForStorage(samples, step = 5){
       "ns3:hr",
       "ns2:hr"
     ];
-
-    console.log("extractHeartRateFromTrkpt\n");
     
     for (const tag of tagNames){
       const nodes = pt.getElementsByTagName(tag);
@@ -2452,8 +2443,6 @@ function attachHeartRateToSamples(samples, heartRates){
         });
       }
     }
-    alert("Nombre de points avec HR = " + foundHr);
-    console.log("Nombre de points avec HR = " + foundHr);
     
     if (points.length < 2) throw new Error("Timestamps manquants : impossible d'analyser.");
 
@@ -5239,8 +5228,6 @@ function renderPlan(){
   
   for (let w=1; w<=WEEKS; w++){
     ensureWeek(w);
-
-    //console.log("In render attached : ", w, JSON.stringify(state.attached));
       
     const weekStart = addDays(START, (w-1)*7);
     const weekEnd   = addDays(weekStart, 6);
@@ -5301,18 +5288,18 @@ function renderPlan(){
     sessions.forEach(([key, dayName, rawText]) => {
       const workoutId = state.attached[key];
 
+      /*
       console.log("slot attached id = ", workoutId);
       console.log("all workout ids = ", (data.workouts || []).map(x => x.id));
       console.log("week = ", w);
       console.log("state.attached = ", state.attached);
       console.log("keys attached = ", Object.keys(state.attached || {}));
       console.log("current key used = ", key);
+      */
 
       //const workout = workoutId ? data.workouts.find(x => x.id === workoutId) : null;
       const workout = (data.workouts || []).find(x => String(x.id) === String(workoutId));
         
-      console.log("resolved workout = ", workout);
-
       const distTxt = (workout && Number.isFinite(workout.distKm))
         ? `${workout.distKm.toFixed(2)} km`
         : `distance n.d.`;
@@ -5730,12 +5717,14 @@ function renderPlan(){
       console.log("containes ns3:cad:", text.includes(":cad"));
       console.log("Premier sample : ", lastParsedWorkout?._samples?.[0]);
       console.log("Clés du premier sample : ", Object.keys(lastParsedWorkout?._samples?.[0] || {}));
+      
       const samplePreview = (lastParsedWorkout?._samples ||  []).slice(0,20).map(s => ({
         tMs: s.tMs,
         ppm: s.ppm,
         spm: s.spm,
         cadence: s.cadence
       }));
+      
       console.log("Cadence preview : ", samplePreview);
   
       renderParsedWorkout(lastParsedWorkout);
@@ -6203,8 +6192,8 @@ function drawAnalysisCanvas(){
   ctx.textAlign = "right";
   ctx.textBaseline = "middle";
   
-  console.log("pMin : " + pMin);
-  console.log("pMax : " + pMax);
+  console.log("drawAnalysisCanvas pMin : " + pMin);
+  console.log("drawAnalysisCanvas pMax : " + pMax);
   
   for (let i = 0; i <= gridCount; i++){
     //const pace = pMax + ((pMax - pMin) * i / gridCount);
@@ -6212,7 +6201,7 @@ function drawAnalysisCanvas(){
     const y = padT + (H * i / gridCount);
     ctx.fillText(`${paceStr(Math.round(pace))}/km`, padL - 6, y);
 
-    console.log("pace(" + i + ") : " + pace + " " + paceStr(Math.round(pace)));
+    console.log("drawAnalysisCanvas pace(" + i + ") : " + pace + " " + paceStr(Math.round(pace)));
   }
 
   // grille temps en bas
