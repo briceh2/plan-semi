@@ -3615,191 +3615,341 @@ function score400m(samples, spec){
     reasons.push(`Durée : ${durationStr(durSec)}.`);
     return { score: clamp(score,0,100), reasons, notes, intervals:[] };
   }
-  
-  function buildTempoCandidatesNearTarget(pts, targetMin){
-    const out = [];
-    const durationsMin = [targetMin - 3, targetMin - 2, targetMin - 1, targetMin, targetMin + 1, targetMin + 2];
-  
-    for (const d of durationsMin){
-      if (d < 8) continue;
-      out.push(...buildWindowCandidates(pts, d * 60, Math.max(30, Math.round(d * 6))));
-    }
-  
-    return out;
+   
+function fmtDurationSec(sec){
+  const s = Math.round(sec || 0);
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+
+  if (m >= 60){
+    const h = Math.floor(m / 60);
+    const mm = m % 60;
+    return `${h}h${String(mm).padStart(2,"0")}`;
   }
-  
-  function dedupeCandidates(cands, minGapSec = 90){
-    const out = [];
-  
-    for (const c of cands){
-      const tooClose = out.some(x =>
-        Math.abs(x.t0 - c.t0) < minGapSec * 1000 &&
-        Math.abs(x.t1 - c.t1) < minGapSec * 1000
-      );
-      if (!tooClose) out.push(c);
+
+  return `${m}min${r ? ` ${r}s` : ""}`;
+}
+
+function buildWindowCandidates(pts, targetDurSec, stepSec){
+  if (!pts || pts.length < 2) return [];
+
+  const out = [];
+  const stepMs = (stepSec || 30) * 1000;
+  const minT = pts[0].tMs;
+  const maxT = pts[pts.length - 1].tMs;
+
+  for (let t0 = minT; t0 < maxT; t0 += stepMs){
+    const t1 = t0 + targetDurSec * 1000;
+    if (t1 > maxT) break;
+
+    const seg = pts.filter(p => p.tMs >= t0 && p.tMs <= t1 && Number.isFinite(p.pace));
+    if (seg.length < 8) continue;
+
+    const paces = seg.map(p => p.pace);
+    const pace = paces.reduce((a,b)=>a+b,0) / paces.length;
+
+    const meanAbsDev = paces.reduce((a,b)=>a + Math.abs(b - pace), 0) / paces.length;
+
+    let jumpPenalty = 0;
+    for (let i = 1; i < paces.length; i++){
+      const d = Math.abs(paces[i] - paces[i - 1]);
+      if (d > 12) jumpPenalty += (d - 12);
     }
-  
-    return out;
+
+    out.push({
+      t0,
+      t1,
+      durSec: targetDurSec,
+      pace,
+      stability: meanAbsDev,   // sec/km
+      jumpPenalty              // sec/km cumulés
+    });
   }
-  
-  function scoreLongWithTempo(samples, spec){
-      const pts = buildPaceSeries(samples).filter(p => Number.isFinite(p.pace));
-      if (!pts.length){
-        return {
-          score: 0,
-          verdict: "Insuffisant",
-          verdictClass: "bad",
-          reasons: ["Aucune donnée exploitable"],
-          notes: [],
-          intervals: [],
-          structuredBlocks: null,
-          specLabel: spec.label || "SL avec bloc tempo"
-        };
-      }
-    
-      let tempoCandidates = buildTempoCandidatesNearTarget(pts, spec.tempoMin)
-        .map(c => {
-        
-          const targetTempoSec = spec.tempoMin * 60;
-          const durPenalty = Math.abs(c.durSec - targetTempoSec) / targetTempoSec;
-          
-          // allure : pénalité plus progressive
-          const paceDiff = Math.abs(c.pace - spec.tempoPaceTarget);
-          const pacePenalty = paceDiff / Math.max(1, (spec.tempoPaceTol || 20));
-          
-          // stabilité en sec/km
-          const stabilityPenalty = (c.stability || 0) / 10;
-          
-          // continuité : pénaliser un faux bloc “haché”
-          const continuityPenalty = Math.min(1.5, (c.jumpPenalty || 0) / 40);
-          
-          // bonus si l’allure est vraiment proche de la cible
-          const paceBonus =
-            paceDiff <= 4 ? 8 :
-            paceDiff <= 7 ? 5 :
-            paceDiff <= 10 ? 2 : 0;
-          
-          // bonus si le bloc est suffisamment long et propre
-          const cleanBonus =
-            (c.stability || 0) <= 6 && (c.jumpPenalty || 0) <= 20 ? 4 : 0;
-          
-          // pour un bloc de 25 min, on veut valoriser encore plus la tenue d’allure
-          const tempoWeight =
-            spec.tempoMin >= 25 ? 1.10 :
-            spec.tempoMin >= 20 ? 1.00 :
-            spec.tempoMin >= 15 ? 0.90 :
-            0.80;
-          
-          const score =
-            100
-            - (20 * tempoWeight) * durPenalty
-            - (40 * tempoWeight) * pacePenalty
-            - 18 * stabilityPenalty
-            - 15 * continuityPenalty
-            + paceBonus
-            + cleanBonus;
-        return { ...c, score };
-      })
-      .filter(c => c.score > 0)
-      .sort((a,b) => b.score - a.score)
-      .slice(0, 12);
 
-      tempoCandidates = dedupeCandidates(tempoCandidates, 90).slice(0, 12);
-  
-      if (!tempoCandidates.length){
-        return {
-          score: 20,
-          verdict: "À revoir",
-          verdictClass: "mid",
-          reasons: ["Bloc seuil non détecté"],
-          notes: [],
-          intervals: [],
-          structuredBlocks: null,
-          specLabel: spec.label || "SL avec bloc tempo"
-        };
-      }
-    
-      let best = null;
-    
-      for (const tempo of tempoCandidates){
-        const before = findBestEasyBlock(samples, 0, tempo.t0, spec);
-        const after  = findBestEasyBlock(samples, tempo.t1, Infinity, spec);
+  return out;
+}
 
-        // bonus de structure 
-        let structureBonus = 0;
-        if (before && after){
-          structureBonus += 6;
-        } else if (before || after){
-          structureBonus += 2;
-        }
-          
-        const easyDurSec = (before?.durSec || 0) + (after?.durSec || 0);
-        const easyTargetSec = (spec.easyTotalMin || 60) * 60;
-    
-        const easyDurPenalty = Math.abs(easyDurSec - easyTargetSec) / easyTargetSec;
-    
-        const easyScoreBefore = before ? before.score : 0;
-        const easyScoreAfter = after ? after.score : 0;
-    
-        const tempoShare =
-          spec.tempoMin >= 25 ? 0.58 :
-          spec.tempoMin >= 20 ? 0.50 :
-          spec.tempoMin >= 15 ? 0.45 :
-          0.40;
-        
-        const easyShare = (1 - tempoShare) / 2;
+function buildTempoCandidatesNearTarget(pts, targetMin){
+  const out = [];
+  const durationsMin = [targetMin - 3, targetMin - 2, targetMin - 1, targetMin, targetMin + 1, targetMin + 2];
 
-        const globalScore =
-          tempoShare * tempo.score +
-          easyShare * easyScoreBefore +
-          easyShare * easyScoreAfter +
-          10 * Math.max(0, 1 - easyDurPenalty) +
-          structureBonus;
-    
-        const candidate = {
-          tempo,
-          before,
-          after,
-          globalScore
-        };
-    
-        if (!best || candidate.globalScore > best.globalScore){
-          best = candidate;
-        }
+  for (const d of durationsMin){
+    if (d < 8) continue;
+    out.push(...buildWindowCandidates(pts, d * 60, Math.max(30, Math.round(d * 6))));
+  }
+
+  return out;
+}
+
+function dedupeCandidates(cands, minGapSec = 90){
+  const out = [];
+
+  for (const c of cands){
+    const tooClose = out.some(x =>
+      Math.abs(x.t0 - c.t0) < minGapSec * 1000 &&
+      Math.abs(x.t1 - c.t1) < minGapSec * 1000
+    );
+    if (!tooClose) out.push(c);
+  }
+
+  return out;
+}
+
+function buildContinuousBlock(arr){
+  const t0 = arr[0].tMs;
+  const t1 = arr[arr.length - 1].tMs;
+  const durSec = Math.round((t1 - t0) / 1000);
+  const pace = arr.reduce((s,p)=>s+p.pace,0) / arr.length;
+
+  return { t0, t1, durSec, pace };
+}
+
+function findContinuousEasyAround(samples, tStart, tEnd, spec){
+  const pts = buildPaceSeries(samples).filter(p => Number.isFinite(p.pace));
+  if (!pts.length) return null;
+
+  const easyMin = spec.easyPaceMin || 355;
+  const easyMax = spec.easyPaceMax || 390;
+
+  const seg = pts.filter(p => p.tMs >= tStart && p.tMs <= tEnd);
+  if (!seg.length) return null;
+
+  let best = null;
+  let current = [];
+
+  for (const p of seg){
+    if (p.pace >= easyMin && p.pace <= easyMax){
+      current.push(p);
+    } else {
+      if (current.length >= 3){
+        const cand = buildContinuousBlock(current);
+        if (!best || cand.durSec > best.durSec) best = cand;
       }
-    
-      const finalScore = Math.round(Math.max(0, Math.min(100, best.globalScore)));
-    
-      const reasons = [];
-      if (best.before){
-        reasons.push(`Endurance avant détectée : ${fmtDurationSec(best.before.durSec)} à ${paceStr(Math.round(best.before.pace))}/km`);
-      }
-      if (best.tempo){
-        reasons.push(`Bloc seuil détecté : ${fmtDurationSec(best.tempo.durSec)} à ${paceStr(Math.round(best.tempo.pace))}/km`);
-      }
-      if (best.after){
-        reasons.push(`Endurance après détectée : ${fmtDurationSec(best.after.durSec)} à ${paceStr(Math.round(best.after.pace))}/km`);
-      }
-    
-      const notes = [];
-      const totalEasyMin = Math.round(((best.before?.durSec || 0) + (best.after?.durSec || 0)) / 60);
-      notes.push(`Durée endurance cumulée détectée : ${totalEasyMin} min`);
-    
-      return {
-        score: finalScore,
-        verdict: finalScore >= 80 ? "Très bien" : finalScore >= 60 ? "Correct" : "À revoir",
-        verdictClass: finalScore >= 80 ? "good" : finalScore >= 60 ? "mid" : "bad",
-        reasons,
-        notes,
-        intervals: [best.tempo].filter(Boolean),
-        structuredBlocks: {
-          before: best.before || null,
-          tempo: best.tempo || null,
-          after: best.after || null
-        },
-        specLabel: spec.label || "SL avec bloc tempo"
-      };
+      current = [];
     }
+  }
+
+  if (current.length >= 3){
+    const cand = buildContinuousBlock(current);
+    if (!best || cand.durSec > best.durSec) best = cand;
+  }
+
+  return best;
+}
+
+function expandTempoBlock(samples, block, spec){
+  if (!samples || !samples.length || !block) return block;
+
+  const pts = buildPaceSeries(samples).filter(p => Number.isFinite(p.pace));
+  if (!pts.length) return block;
+
+  const target = spec.tempoPaceTarget;
+  const tol = Math.max(spec.tempoPaceTol || 18, 22);
+
+  let t0 = block.t0;
+  let t1 = block.t1;
+
+  const stepMs = 30 * 1000;
+
+  function windowAvgPace(a, b){
+    const seg = pts.filter(p => p.tMs >= a && p.tMs <= b);
+    if (!seg.length) return null;
+    return seg.reduce((s,p)=>s+p.pace,0) / seg.length;
+  }
+
+  while (true){
+    const nextT0 = t0 - stepMs;
+    const avg = windowAvgPace(nextT0, t0);
+    if (!Number.isFinite(avg)) break;
+
+    if (Math.abs(avg - target) <= tol){
+      t0 = nextT0;
+    } else {
+      break;
+    }
+  }
+
+  while (true){
+    const nextT1 = t1 + stepMs;
+    const avg = windowAvgPace(t1, nextT1);
+    if (!Number.isFinite(avg)) break;
+
+    if (Math.abs(avg - target) <= tol){
+      t1 = nextT1;
+    } else {
+      break;
+    }
+  }
+
+  const fullSeg = pts.filter(p => p.tMs >= t0 && p.tMs <= t1);
+  const fullPace = fullSeg.length
+    ? fullSeg.reduce((s,p)=>s+p.pace,0) / fullSeg.length
+    : block.pace;
+
+  return {
+    ...block,
+    t0,
+    t1,
+    durSec: Math.round((t1 - t0) / 1000),
+    pace: fullPace
+  };
+}
+function scoreLongWithTempo(samples, spec){
+  const pts = buildPaceSeries(samples).filter(p => Number.isFinite(p.pace));
+  if (!pts.length){
+    return {
+      score: 0,
+      verdict: "Insuffisant",
+      verdictClass: "bad",
+      reasons: ["Aucune donnée exploitable"],
+      notes: [],
+      intervals: [],
+      structuredBlocks: null,
+      specLabel: spec.label || "SL avec bloc tempo"
+    };
+  }
+
+  let tempoCandidates = buildTempoCandidatesNearTarget(pts, spec.tempoMin)
+    .map(c => {
+      const targetTempoSec = spec.tempoMin * 60;
+      const durPenalty = Math.abs(c.durSec - targetTempoSec) / targetTempoSec;
+
+      const paceDiff = Math.abs(c.pace - spec.tempoPaceTarget);
+      const pacePenalty = paceDiff / Math.max(1, (spec.tempoPaceTol || 20));
+
+      const stabilityPenalty = (c.stability || 0) / 10;
+      const continuityPenalty = Math.min(1.5, (c.jumpPenalty || 0) / 40);
+
+      const paceBonus =
+        paceDiff <= 4 ? 8 :
+        paceDiff <= 7 ? 5 :
+        paceDiff <= 10 ? 2 : 0;
+
+      const cleanBonus =
+        (c.stability || 0) <= 6 && (c.jumpPenalty || 0) <= 20 ? 4 : 0;
+
+      const tempoWeight =
+        spec.tempoMin >= 25 ? 1.10 :
+        spec.tempoMin >= 20 ? 1.00 :
+        spec.tempoMin >= 15 ? 0.90 :
+        0.80;
+
+      const score =
+        100
+        - (20 * tempoWeight) * durPenalty
+        - (40 * tempoWeight) * pacePenalty
+        - 18 * stabilityPenalty
+        - 15 * continuityPenalty
+        + paceBonus
+        + cleanBonus;
+
+      return { ...c, score };
+    })
+    .filter(c => c.score > 0)
+    .sort((a,b) => b.score - a.score);
+
+  tempoCandidates = dedupeCandidates(tempoCandidates, 90).slice(0, 12);
+
+  if (!tempoCandidates.length){
+    return {
+      score: 20,
+      verdict: "À revoir",
+      verdictClass: "mid",
+      reasons: ["Bloc seuil non détecté"],
+      notes: [],
+      intervals: [],
+      structuredBlocks: null,
+      specLabel: spec.label || "SL avec bloc tempo"
+    };
+  }
+
+  let best = null;
+
+  for (const tempoCandidate of tempoCandidates){
+    const tempo = expandTempoBlock(samples, tempoCandidate, spec);
+
+    const before = findContinuousEasyAround(samples, 0, tempo.t0, spec);
+    const after  = findContinuousEasyAround(samples, tempo.t1, Infinity, spec);
+
+    const easyDurSec = (before?.durSec || 0) + (after?.durSec || 0);
+    const easyTargetSec = (spec.easyTotalMin || 60) * 60;
+    const easyDurPenalty = Math.abs(easyDurSec - easyTargetSec) / easyTargetSec;
+
+    const easyMid = ((spec.easyPaceMin || 355) + (spec.easyPaceMax || 390)) / 2;
+
+    const easyScoreBefore = before
+      ? Math.max(0, 100 - 2.2 * Math.abs(before.pace - easyMid))
+      : 0;
+
+    const easyScoreAfter = after
+      ? Math.max(0, 100 - 2.2 * Math.abs(after.pace - easyMid))
+      : 0;
+
+    let structureBonus = 0;
+    if (before && before.durSec >= 25 * 60) structureBonus += 4;
+    if (after && after.durSec >= 8 * 60) structureBonus += 2;
+    if (before && after) structureBonus += 4;
+
+    const tempoShare =
+      spec.tempoMin >= 25 ? 0.58 :
+      spec.tempoMin >= 20 ? 0.50 :
+      spec.tempoMin >= 15 ? 0.45 :
+      0.40;
+
+    const easyShare = (1 - tempoShare) / 2;
+
+    const globalScore =
+      tempoShare * tempo.score +
+      easyShare * easyScoreBefore +
+      easyShare * easyScoreAfter +
+      10 * Math.max(0, 1 - easyDurPenalty) +
+      structureBonus;
+
+    const candidate = {
+      tempo,
+      before,
+      after,
+      globalScore
+    };
+
+    if (!best || candidate.globalScore > best.globalScore){
+      best = candidate;
+    }
+  }
+
+  const finalScore = Math.round(Math.max(0, Math.min(100, best.globalScore)));
+
+  const reasons = [];
+  if (best.before){
+    reasons.push(`Endurance avant détectée : ${fmtDurationSec(best.before.durSec)} à ${paceStr(Math.round(best.before.pace))}/km`);
+  }
+  if (best.tempo){
+    reasons.push(`Bloc seuil détecté : ${fmtDurationSec(best.tempo.durSec)} à ${paceStr(Math.round(best.tempo.pace))}/km`);
+  }
+  if (best.after){
+    reasons.push(`Endurance après détectée : ${fmtDurationSec(best.after.durSec)} à ${paceStr(Math.round(best.after.pace))}/km`);
+  }
+
+  const notes = [];
+  const totalEasyMin = Math.round(((best.before?.durSec || 0) + (best.after?.durSec || 0)) / 60);
+  notes.push(`Durée endurance cumulée détectée : ${totalEasyMin} min`);
+
+  return {
+    score: finalScore,
+    verdict: finalScore >= 80 ? "Très bien" : finalScore >= 60 ? "Correct" : "À revoir",
+    verdictClass: finalScore >= 80 ? "good" : finalScore >= 60 ? "mid" : "bad",
+    reasons,
+    notes,
+    intervals: [best.tempo].filter(Boolean),
+    structuredBlocks: {
+      before: best.before || null,
+      tempo: best.tempo || null,
+      after: best.after || null
+    },
+    specLabel: spec.label || "SL avec bloc tempo"
+  };
+}
+
 
 function normalizeSpecKind(spec){
   // Rend la spec "scorable" même si spec.kind est manquant
