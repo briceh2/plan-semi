@@ -3794,6 +3794,131 @@ function expandTempoBlock(samples, block, spec){
     pace: fullPace
   };
 }
+  // lissage simple
+  function smoothPaceForEasyDetection(samples, winSec = 60){
+  const pts = buildPaceSeries(samples).filter(p => Number.isFinite(p.pace));
+  if (!pts.length) return [];
+
+  const out = [];
+  const halfWinMs = (winSec * 1000) / 2;
+
+  for (const p of pts){
+    const seg = pts.filter(x => Math.abs(x.tMs - p.tMs) <= halfWinMs);
+    if (!seg.length) continue;
+
+    const avgPace = seg.reduce((s,x)=>s+x.pace,0) / seg.length;
+    out.push({
+      tMs: p.tMs,
+      pace: avgPace
+    });
+  }
+
+  return out;
+}
+  // étendre bloc d'endurance
+  function expandEasyBlockFromBoundary(samples, anchorT, direction, spec, maxTotalSec){
+  const pts = smoothPaceForEasyDetection(samples, 60);
+  if (!pts.length) return null;
+
+  const easyMin = spec.easyPaceMin || 355;
+  const easyMax = spec.easyPaceMax || 390;
+
+  // on tolère un peu de marge pour ne pas casser sur un point isolé
+  const softMin = easyMin - 10;
+  const softMax = easyMax + 10;
+
+  const stepMs = 30 * 1000;
+  const maxDurMs = (maxTotalSec || 45 * 60) * 1000;
+
+  let t0 = anchorT;
+  let t1 = anchorT;
+
+  let badStreak = 0;
+  const maxBadStreak = 3; // tolère 3 fenêtres "mauvaises" de suite
+
+  function windowAvg(a, b){
+    const seg = pts.filter(p => p.tMs >= a && p.tMs <= b);
+    if (!seg.length) return null;
+    return seg.reduce((s,p)=>s+p.pace,0) / seg.length;
+  }
+
+  while (true){
+    if ((t1 - t0) >= maxDurMs) break;
+
+    if (direction === "backward"){
+      const nextT0 = t0 - stepMs;
+      const avg = windowAvg(nextT0, t0);
+      if (!Number.isFinite(avg)) break;
+
+      if (avg >= softMin && avg <= softMax){
+        t0 = nextT0;
+        if (avg >= easyMin && avg <= easyMax) badStreak = 0;
+        else badStreak += 1;
+      } else {
+        badStreak += 1;
+        if (badStreak > maxBadStreak) break;
+        t0 = nextT0;
+      }
+    } else {
+      const nextT1 = t1 + stepMs;
+      const avg = windowAvg(t1, nextT1);
+      if (!Number.isFinite(avg)) break;
+
+      if (avg >= softMin && avg <= softMax){
+        t1 = nextT1;
+        if (avg >= easyMin && avg <= easyMax) badStreak = 0;
+        else badStreak += 1;
+      } else {
+        badStreak += 1;
+        if (badStreak > maxBadStreak) break;
+        t1 = nextT1;
+      }
+    }
+  }
+
+  if ((t1 - t0) < 3 * 60 * 1000) return null;
+
+  const seg = pts.filter(p => p.tMs >= t0 && p.tMs <= t1);
+  if (!seg.length) return null;
+
+  const avgPace = seg.reduce((s,p)=>s+p.pace,0) / seg.length;
+
+  return {
+    t0,
+    t1,
+    durSec: Math.round((t1 - t0) / 1000),
+    pace: avgPace
+  };
+}
+  // blocs autour du bloc seuil
+  function findEasyBlocksAroundTempo(samples, tempoBlock, spec){
+  if (!samples || !tempoBlock) return { before: null, after: null };
+
+  const totalEasyTargetSec = (spec.easyTotalMin || 60) * 60;
+
+  // on répartit grossièrement avant/après selon la séance observée
+  const maxBeforeSec = Math.min(totalEasyTargetSec, 50 * 60);
+  const maxAfterSec  = Math.min(totalEasyTargetSec, 25 * 60);
+
+  const before = expandEasyBlockFromBoundary(
+    samples,
+    tempoBlock.t0,
+    "backward",
+    spec,
+    maxBeforeSec
+  );
+
+  const after = expandEasyBlockFromBoundary(
+    samples,
+    tempoBlock.t1,
+    "forward",
+    spec,
+    maxAfterSec
+  );
+
+  return { before, after };
+}
+  
 function scoreLongWithTempo(samples, spec){
   const pts = buildPaceSeries(samples).filter(p => Number.isFinite(p.pace));
   if (!pts.length){
@@ -3868,21 +3993,22 @@ function scoreLongWithTempo(samples, spec){
   for (const tempoCandidate of tempoCandidates){
     const tempo = expandTempoBlock(samples, tempoCandidate, spec);
 
-    const before = findContinuousEasyAround(samples, 0, tempo.t0, spec);
-    const after  = findContinuousEasyAround(samples, tempo.t1, Infinity, spec);
+    const easyBlocks = findEasyBlocksAroundTempo(samples, tempo, spec);
+    const before = easyBlocks.before;
+    const after  = easyBlocks.after;
 
     const easyDurSec = (before?.durSec || 0) + (after?.durSec || 0);
     const easyTargetSec = (spec.easyTotalMin || 60) * 60;
     const easyDurPenalty = Math.abs(easyDurSec - easyTargetSec) / easyTargetSec;
 
     const easyMid = ((spec.easyPaceMin || 355) + (spec.easyPaceMax || 390)) / 2;
-
+    
     const easyScoreBefore = before
-      ? Math.max(0, 100 - 2.2 * Math.abs(before.pace - easyMid))
+      ? Math.max(0, 100 - 1.6 * Math.abs(before.pace - easyMid))
       : 0;
-
+    
     const easyScoreAfter = after
-      ? Math.max(0, 100 - 2.2 * Math.abs(after.pace - easyMid))
+      ? Math.max(0, 100 - 1.6 * Math.abs(after.pace - easyMid))
       : 0;
 
     let structureBonus = 0;
