@@ -472,7 +472,7 @@
   };
   
   // version
-  const APP_VERSION = "v26-04-21_1.1";
+  const APP_VERSION = "v26-04-21_1.2";
   // ===== Dates =====
   const START = new Date("2026-02-02T00:00:00");
   const RACE  = new Date("2026-05-10T00:00:00");
@@ -5973,8 +5973,8 @@ function renderPlan(){
       notes: state.notes || [],
       intervals: state.intervals || [],
       manualIntervals: state.manualIntervals || [],
-      structuredBlocks: payload.structuredBlocks || null,
-      scoreBreakdown: payload.scoreBreakdown || null,
+      structuredBlocks: state.structuredBlocks || null,
+      scoreBreakdown: state.scoreBreakdown || null,
       dateStr: state.dateStr || "",
       distKm: state.distKm,
       durationStr: state.durationStr || "",
