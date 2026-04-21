@@ -764,6 +764,16 @@ function sessionsForWeek(w){
   // ===================
   // ===== Helpers =====
   // ===================
+  function median(arr){
+    if (!arr || !arr.length) return null;
+    const a = [...arr].sort((x, y) => x - y);
+    const mid = Math.floor(a.length / 2);
+    return a.length % 2 ? a[mid] : (a[mid - 1] + a[mid]) / 2;
+  }
+  function mean(arr){
+    if (!arr || !arr.length) return null;
+    return arr.reduce((a, b) => a + b, 0) / arr.length;
+  }
   function persistDataOnly(){
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }
@@ -1780,20 +1790,25 @@ function analyzeHeartRateIntervals(samples, intervals, spec){
   }
 
   // 3) homogénéité allure/FC entre blocs
-  const paceVals = validBlocks.map(b => b.pace).filter(Number.isFinite);
-  if (paceVals.length >= 2){
-    const bestPace = Math.min(...paceVals);
-    const worstPace = Math.max(...paceVals);
-    const spread = worstPace - bestPace; // sec/km
-
-    if (spread <= 8){
-      score += 6;
-      reasons.push(`Allure homogène entre blocs (${spread}s/km d’écart)`);
-    } else if (spread <= 15){
-      score += 1;
+  const paceConsistency = scoreIntervalPaceConsistency(validBlocks);
+  
+  if (paceConsistency){
+    score += (paceConsistency.score - 75) * 0.35;
+  
+    if (paceConsistency.label === "Très régulière" || paceConsistency.label === "Régulière"){
+      reasons.push(
+        `Allure ${paceConsistency.label.toLowerCase()} ` +
+        `(médiane ${paceStr(paceConsistency.medianPace)}/km, ` +
+        `écart moyen ${paceConsistency.meanAbsDev}s/km, ` +
+        `${paceConsistency.outlierCount} bloc aberrant)`
+      );
     } else {
-      score -= 8;
-      notes.push(`Allure assez irrégulière entre blocs (${spread}s/km d’écart)`);
+      notes.push(
+        `Allure ${paceConsistency.label.toLowerCase()} ` +
+        `(écart moyen ${paceConsistency.meanAbsDev}s/km, ` +
+        `${paceConsistency.outlierCount} bloc aberrant, ` +
+        `spread ${paceConsistency.spread}s/km)`
+      );
     }
   }
 
@@ -1824,7 +1839,8 @@ function analyzeHeartRateIntervals(samples, intervals, spec){
     note: notes.join(" "),
     blocks,
     reasons,
-    notes
+    notes,
+    paceConsistency: paceConsistency || null
   };
 }
 function analyzeHeartRateRace(samples, spec){
@@ -2171,6 +2187,18 @@ function renderHeartRateBox(hr){
     `
     : "";
 
+  const paceConsistencyHTML = hr.paceConsistency
+    ? `
+      <div class="hrNote" style="margin-top:8px;">
+        <b>Régularité allure :</b>
+        ${hr.paceConsistency.label} •
+        médiane ${paceStr(hr.paceConsistency.medianPace)}/km •
+        écart moyen ${hr.paceConsistency.meanAbsDev}s/km •
+        ${hr.paceConsistency.outlierCount} bloc aberrant
+      </div>
+    `
+    : "";
+
   return `
     <div class="hrBox">
       <div><b>Analyse fréquence cardiaque</b></div>
@@ -2207,6 +2235,7 @@ function renderHeartRateBox(hr){
       ${structuredHTML}
       ${intervalsHTML}
       ${raceHTML}
+      ${paceConsistencyHTML}
     </div>
   `;
 }
@@ -3907,6 +3936,110 @@ function expandTempoBlock(samples, block, spec){
 
   return { before, after };
 }
+function scoreEasyPace(pace, spec){
+  if (!Number.isFinite(pace)) return 0;
+
+  const min = spec.easyPaceMin || 355;
+  const max = spec.easyPaceMax || 390;
+
+  // zone idéale (plateau)
+  if (pace >= min && pace <= max){
+    // petite variation interne autorisée
+    const mid = (min + max) / 2;
+    const dist = Math.abs(pace - mid);
+
+    // on garde un score élevé même si on n'est pas pile au milieu
+    return Math.round(92 - Math.min(12, dist * 0.6));
+  }
+
+  // hors zone → pénalité progressive
+  if (pace < min){
+    const diff = min - pace;
+    return Math.max(40, 90 - diff * 1.5);
+  }
+
+  if (pace > max){
+    const diff = pace - max;
+    return Math.max(40, 90 - diff * 1.2);
+  }
+
+  return 60;
+}
+function fmtScorePart(x){
+  if (!Number.isFinite(x)) return "n.d.";
+  const v = Math.round(x * 10) / 10;
+  return `${v >= 0 ? "+" : ""}${v}`;
+}
+  function scoreIntervalPaceConsistency(blocks){
+  const paceVals = (blocks || [])
+    .map(b => b.pace)
+    .filter(Number.isFinite);
+
+  if (paceVals.length < 2){
+    return {
+      score: 60,
+      label: "n.d.",
+      medianPace: null,
+      meanAbsDev: null,
+      outlierCount: 0,
+      spread: null
+    };
+  }
+
+  const med = median(paceVals);
+  const absDevs = paceVals.map(p => Math.abs(p - med));
+  const madMean = mean(absDevs); // écart absolu moyen à la médiane
+  const spread = Math.max(...paceVals) - Math.min(...paceVals);
+
+  // outlier = bloc à plus de 8 s/km de la médiane
+  const outlierCount = absDevs.filter(d => d > 8).length;
+
+  let score = 90;
+
+  // régularité centrale
+  if (madMean <= 3){
+    score += 6;
+  } else if (madMean <= 5){
+    score += 2;
+  } else if (madMean <= 8){
+    score -= 5;
+  } else {
+    score -= 12;
+  }
+
+  // tolérance à 1 bloc aberrant
+  if (outlierCount === 0){
+    score += 4;
+  } else if (outlierCount === 1){
+    score -= 2;
+  } else if (outlierCount === 2){
+    score -= 8;
+  } else {
+    score -= 15;
+  }
+
+  // spread brut : juste un garde-fou léger
+  if (spread > 20) score -= 5;
+  if (spread > 30) score -= 8;
+
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  const label =
+    score >= 88 ? "Très régulière" :
+    score >= 75 ? "Régulière" :
+    score >= 60 ? "Assez régulière" :
+    "Irrégulière";
+
+  return {
+    score,
+    label,
+    medianPace: Math.round(med),
+    meanAbsDev: Math.round(madMean * 10) / 10,
+    outlierCount,
+    spread
+  };
+}
+
   
 function scoreLongWithTempo(samples, spec){
   const pts = buildPaceSeries(samples).filter(p => Number.isFinite(p.pace));
@@ -3957,7 +4090,18 @@ function scoreLongWithTempo(samples, spec){
         + paceBonus
         + cleanBonus;
 
-      return { ...c, score };
+      return {
+        ...c,
+        score,
+        scoreBreakdown: {
+          durPenaltyPoints: - (20 * tempoWeight) * durPenalty,
+          pacePenaltyPoints: - (40 * tempoWeight) * pacePenalty,
+          stabilityPenaltyPoints: - 18 * stabilityPenalty,
+          continuityPenaltyPoints: - 15 * continuityPenalty,
+          paceBonusPoints: paceBonus,
+          cleanBonusPoints: cleanBonus
+        }
+      };
     })
     .filter(c => c.score > 0)
     .sort((a,b) => b.score - a.score);
@@ -3990,16 +4134,14 @@ function scoreLongWithTempo(samples, spec){
     const easyTargetSec = (spec.easyTotalMin || 60) * 60;
     const easyDurPenalty = Math.abs(easyDurSec - easyTargetSec) / easyTargetSec;
 
-    const easyMid = ((spec.easyPaceMin || 355) + (spec.easyPaceMax || 390)) / 2;
-    
     const easyScoreBefore = before
-      ? Math.max(0, 100 - 1.6 * Math.abs(before.pace - easyMid))
+      ? scoreEasyPace(before.pace, spec)
       : 0;
     
     const easyScoreAfter = after
-      ? Math.max(0, 100 - 1.6 * Math.abs(after.pace - easyMid))
+      ? scoreEasyPace(after.pace, spec)
       : 0;
-
+    
     let structureBonus = 0;
     if (before && before.durSec >= 25 * 60) structureBonus += 4;
     if (after && after.durSec >= 8 * 60) structureBonus += 2;
@@ -4020,12 +4162,32 @@ function scoreLongWithTempo(samples, spec){
       10 * Math.max(0, 1 - easyDurPenalty) +
       structureBonus;
 
-    const candidate = {
-      tempo,
-      before,
-      after,
-      globalScore
-    };
+      const easyDurationBonus = 10 * Math.max(0, 1 - easyDurPenalty);
+      
+      const candidate = {
+        tempo,
+        before,
+        after,
+        globalScore,
+        scoreBreakdown: {
+          tempoRawScore: tempo.score,
+          tempoWeightedScore: tempoShare * tempo.score,
+      
+          easyBeforeRawScore: easyScoreBefore,
+          easyBeforeWeightedScore: easyShare * easyScoreBefore,
+      
+          easyAfterRawScore: easyScoreAfter,
+          easyAfterWeightedScore: easyShare * easyScoreAfter,
+      
+          easyDurationBonus,
+          structureBonus,
+      
+          totalEasyDetectedMin: Math.round(easyDurSec / 60),
+          targetEasyMin: Math.round(easyTargetSec / 60),
+      
+          tempoDetails: tempo.scoreBreakdown || null
+        }
+      };
 
     if (!best || candidate.globalScore > best.globalScore){
       best = candidate;
@@ -4075,6 +4237,7 @@ function scoreLongWithTempo(samples, spec){
       tempo: best.tempo || null,
       after: best.after || null
     },
+    scoreBreakdown: best.scoreBreakdown || null,
     specLabel: spec.label || "SL avec bloc tempo"
   };
 }
@@ -5824,6 +5987,8 @@ function renderPlan(){
       notes: state.notes || [],
       intervals: state.intervals || [],
       manualIntervals: state.manualIntervals || [],
+      structuredBlocks: payload.structuredBlocks || null,
+      scoreBreakdown: payload.scoreBreakdown || null,
       dateStr: state.dateStr || "",
       distKm: state.distKm,
       durationStr: state.durationStr || "",
@@ -6108,11 +6273,38 @@ const blockHrHTML = blockHrSummary
       </div>`
     : "";
 
+    const sbd = modalState.scoreBreakdown || null;
+  
+    const scoreBreakdownHTML = sbd
+      ? `<div class="mini" style="margin-top:8px;">
+          <b>Décomposition du score :</b><br>
+          Seuil : ${Math.round(sbd.tempoRawScore ?? 0)}/100 → contribution ${fmtScorePart(sbd.tempoWeightedScore)}<br>
+          Endurance avant : ${Math.round(sbd.easyBeforeRawScore ?? 0)}/100 → contribution ${fmtScorePart(sbd.easyBeforeWeightedScore)}<br>
+          Endurance après : ${Math.round(sbd.easyAfterRawScore ?? 0)}/100 → contribution ${fmtScorePart(sbd.easyAfterWeightedScore)}<br>
+          Bonus durée endurance : ${fmtScorePart(sbd.easyDurationBonus)}<br>
+          Bonus structure : ${fmtScorePart(sbd.structureBonus)}
+        </div>`
+      : "";
+
+    const tempoScoreHTML = tempoBreak
+      ? `<div class="mini" style="margin-top:8px;">
+          <b>Composition du score seuil :</b><br>
+          Durée : ${fmtScorePart(tempoBreak.durPenaltyPoints)}<br>
+          Allure : ${fmtScorePart(tempoBreak.pacePenaltyPoints)}<br>
+          Stabilité : ${fmtScorePart(tempoBreak.stabilityPenaltyPoints)}<br>
+          Continuité : ${fmtScorePart(tempoBreak.continuityPenaltyPoints)}<br>
+          Bonus allure cible : ${fmtScorePart(tempoBreak.paceBonusPoints)}<br>
+          Bonus bloc propre : ${fmtScorePart(tempoBreak.cleanBonusPoints)}
+        </div>`
+      : "";
+
   summaryEl.innerHTML = `
     ${verdictBadge}
     <div class="mini" style="margin-top:8px;"><b>Raisons :</b></div>
     <ul class="reasonsInline">${reasons.slice(0, 12).map(r => `<li>${r}</li>`).join("")}</ul>
     ${structuredHTML}
+    ${scoreBreakdownHTML}
+    ${tempoScoreHTML}
     ${blocksHTML}
     ${blockHrHTML}
     ${hrHTML}
@@ -6361,6 +6553,7 @@ function drawAnalysisCanvas(){
           notes: evalRes.notes || [],
           intervals: evalRes.intervals || [],
           structuredBlocks: evalRes.structuredBlocks || null,
+          scoreBreakdown: evalRes.scoreBreakdown || null,
           specLabel: evalRes.specLabel || spec?.label || "Séance",
           manualAdjusted: false,
           slopeMin: slopeInfo?.min ?? null,
@@ -6414,6 +6607,7 @@ function drawAnalysisCanvas(){
         notes: evalRes.notes || [],
         intervals: evalRes.intervals || [],
         structuredBlocks: evalRes.structuredBlocks || null,
+        scoreBreakdown: evalRes.scoreBreakdown || null,
         dateStr: workoutStored.dateStr,
         distKm: workoutStored.distKm,
         durationStr: workoutStored.durationStr,
