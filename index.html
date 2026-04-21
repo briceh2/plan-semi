@@ -4194,6 +4194,8 @@ function scoreLongWithTempo(samples, spec){
     }
   }
 
+  const finalScore = Math.round(Math.max(0, Math.min(100, best.globalScore)));
+
   const reasons = [];
   if (best.before){
     reasons.push(`Endurance avant détectée : ${fmtDurationSec(best.before.durSec)} à ${paceStr(Math.round(best.before.pace))}/km`);
