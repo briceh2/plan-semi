@@ -6266,6 +6266,9 @@ const blockHrHTML = blockHrSummary
       paceConsistency: modalState.paceConsistency || null
     }
   );
+
+  console.log("renderModal", hrHTML);
+
   // Readiness
   const readiness = modalState.readiness || null;
   const targetHr = modalState.targetHr || null;
@@ -6276,6 +6279,8 @@ const blockHrHTML = blockHrSummary
       ? renderReadinessBox(readiness, targetHr, driftAlert)
       : "";
 
+  console.log("renderModal", readinessHTML);
+  
   const sb = modalState.structuredBlocks || null;
 
   const structuredHTML = sb
