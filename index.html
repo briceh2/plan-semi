@@ -3993,7 +3993,8 @@ function fmtScorePart(x){
   const v = Math.round(x * 10) / 10;
   return `${v >= 0 ? "+" : ""}${v}`;
 }
-  function scoreIntervalPaceConsistency(blocks){
+  
+function scoreIntervalPaceConsistency(blocks){
   const paceVals = (blocks || [])
     .map(b => b.pace)
     .filter(Number.isFinite);
@@ -5970,7 +5971,7 @@ function renderPlan(){
   function openModal(state){
 
     // debug
-    alert(
+    console.log(
         "DEBUG openModal\n" + 
         "state.spec.kind = " + (state?.spec?.kind ?? "undefined") + "\n" +
         "state.spec.label = " + (state?.spec?.label ?? "undefined") + "\n" +
@@ -6198,6 +6199,8 @@ function renderModal(){
     if (overlay) overlay.style.display = "none";
     return;
   }
+
+  console.log("renderModal");
 
   if (overlay) overlay.style.display = "flex";
 
