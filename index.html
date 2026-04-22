@@ -2114,14 +2114,18 @@ function analyzeHeartRateStructured(samples, structuredBlocks, spec){
   };
 }
   
-function renderHeartRateBox(hr){
-  if (!hr) return "";
+function renderHeartRateBox(hr, extra = {}){
 
-  const corrTxt = (hr.corr == null) ? "n.d." : hr.corr.toFixed(2);
-  const driftTxt = (hr.driftBpm == null) ? "n.d." : `${hr.driftBpm > 0 ? "+" : ""}${hr.driftBpm} bpm`;
+  const corrTxt = (hr && hr.corr != null) ? hr.corr.toFixed(2) : "n.d.";
+  const driftTxt = (hr && hr.driftBpm != null)
+    ? `${hr.driftBpm > 0 ? "+" : ""}${hr.driftBpm} bpm`
+    : "n.d.";
+  const thresholdTxt = (hr && Number.isFinite(hr.thresholdHr))
+    ? `${hr.thresholdHr}`
+    : "n.d.";
   const thresholdTxt = Number.isFinite(hr.thresholdHr) ? `${hr.thresholdHr}` : "n.d.";
 
-  const structuredHTML = hr.structured
+  const structuredHTML = (hr && hr.structured)
     ? `
       <div class="hrNote" style="margin-top:8px;"><b>Détail cardio structuré</b></div>
       <div class="hrGrid">
@@ -2187,54 +2191,59 @@ function renderHeartRateBox(hr){
     `
     : "";
 
-  const paceConsistencyHTML = hr.paceConsistency
-    ? `
-      <div class="hrNote" style="margin-top:8px;">
-        <b>Régularité allure :</b>
-        ${hr.paceConsistency.label} •
-        médiane ${paceStr(hr.paceConsistency.medianPace)}/km •
-        écart moyen ${hr.paceConsistency.meanAbsDev}s/km •
-        ${hr.paceConsistency.outlierCount} bloc aberrant
-      </div>
-    `
-    : "";
+    const paceConsistency = extra.paceConsistency || hr?.paceConsistency || null;
+    
+    const paceConsistencyHTML = paceConsistency
+      ? `
+        <div class="hrNote" style="margin-top:8px;">
+          <b>Régularité allure :</b>
+          ${paceConsistency.label} •
+          médiane ${paceStr(paceConsistency.medianPace)}/km •
+          écart moyen ${paceConsistency.meanAbsDev}s/km •
+          ${paceConsistency.outlierCount} bloc aberrant
+        </div>
+      `
+      : "";
 
   return `
     <div class="hrBox">
       <div><b>Analyse fréquence cardiaque</b></div>
-
-      <div class="hrGrid">
-        <div class="hrKpi">
-          <div class="label">FC moyenne</div>
-          <div class="value">${hr.avgHr ?? "n.d."}</div>
+  
+      ${hr ? `
+        <div class="hrGrid">
+          <div class="hrKpi">
+            <div class="label">FC moyenne</div>
+            <div class="value">${hr.avgHr ?? "n.d."}</div>
+          </div>
+          <div class="hrKpi">
+            <div class="label">FC max</div>
+            <div class="value">${hr.maxHr ?? "n.d."}</div>
+          </div>
+          <div class="hrKpi">
+            <div class="label">Dérive cardio</div>
+            <div class="value">${driftTxt}</div>
+          </div>
+          <div class="hrKpi">
+            <div class="label">Seuil estimé</div>
+            <div class="value">${thresholdTxt}</div>
+          </div>
+          <div class="hrKpi">
+            <div class="label">Corrélation FC / vitesse</div>
+            <div class="value">${corrTxt}</div>
+          </div>
+          <div class="hrKpi">
+            <div class="label">Score cardio</div>
+            <div class="value">${hr.hrScore}/100</div>
+          </div>
         </div>
-        <div class="hrKpi">
-          <div class="label">FC max</div>
-          <div class="value">${hr.maxHr ?? "n.d."}</div>
-        </div>
-        <div class="hrKpi">
-          <div class="label">Dérive cardio</div>
-          <div class="value">${driftTxt}</div>
-        </div>
-        <div class="hrKpi">
-          <div class="label">Seuil estimé</div>
-          <div class="value">${thresholdTxt}</div>
-        </div>
-        <div class="hrKpi">
-          <div class="label">Corrélation FC / vitesse</div>
-          <div class="value">${corrTxt}</div>
-        </div>
-        <div class="hrKpi">
-          <div class="label">Score cardio</div>
-          <div class="value">${hr.hrScore}/100</div>
-        </div>
-      </div>
-
-      <div class="hrNote"><b>Verdict :</b> ${hr.verdict}</div>
-      ${hr.note ? `<div class="hrNote">${hr.note}</div>` : ``}
+  
+        <div class="hrNote"><b>Verdict :</b> ${hr.verdict}</div>
+        ${hr.note ? `<div class="hrNote">${hr.note}</div>` : ``}
+      ` : `
+        <div class="hrNote">Aucune donnée fréquence cardiaque</div>
+      `}
+  
       ${structuredHTML}
-      ${intervalsHTML}
-      ${raceHTML}
       ${paceConsistencyHTML}
     </div>
   `;
@@ -5983,7 +5992,8 @@ function renderPlan(){
       heartRate: state.heartRate || null,
       readiness: state.readiness || null,
       targetHr: state.targetHr || null,
-      driftAlert: state.driftAlert || null
+      driftAlert: state.driftAlert || null,
+      paceConsistency: state.paceConsistency || null
     };   
     
     renderModal();
@@ -6233,11 +6243,12 @@ const blockHrHTML = blockHrSummary
   : "";
   
   // FC
-  const hr = modalState.heartRate || null;
-  const hrHTML = hr
-    ? renderHeartRateBox(hr)
-    : (typeof renderHeartRateMissingBox === "function" ? renderHeartRateMissingBox() : "");
-
+  const hrHTML = renderHeartRateBox(
+    modalState.heartRate,
+    {
+      paceConsistency: modalState.paceConsistency || null
+    }
+  );
   // Readiness
   const readiness = modalState.readiness || null;
   const targetHr = modalState.targetHr || null;
@@ -6604,7 +6615,8 @@ function drawAnalysisCanvas(){
         heartRate: hrStats || null,
         readiness: readiness || null,
         targetHr: targetHr || null,
-        driftAlert: driftAlert || null
+        driftAlert: driftAlert || null,
+        paceConsistency: evalRes.paceConsistency || null,
       });
   
       attachBtn.disabled = true;
