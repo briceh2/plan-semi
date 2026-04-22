@@ -6249,6 +6249,8 @@ const blocksHTML = blockLines.length
     </div>`
   : `<div class="mini" style="margin-top:6px">Aucun bloc détecté.</div>`;
 
+  console.log("renderModal : blocksHTML");
+
   const blockHrSummary = summarizeBlockHeartRate(blockLines);
 
 const blockHrHTML = blockHrSummary
@@ -6258,6 +6260,8 @@ const blockHrHTML = blockHrSummary
       ${blockHrSummary.maxHr != null ? ` • FC max blocs ${blockHrSummary.maxHr} bpm` : ``}
     </div>`
   : "";
+  
+  console.log("renderModal : blockHrHTML");
   
   // FC
   const hrHTML = renderHeartRateBox(
