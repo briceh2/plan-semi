@@ -2265,7 +2265,9 @@ function renderHeartRateBox(hr, extra = {}){
 
   function estimateTroyesRaceReadiness(spec, hrStats, evalRes){
     if (!hrStats || !evalRes) return null;
-  
+
+    console.log("estimateTroyesRaceReadiness");
+    
     const isLong = spec?.kind === "long";
     const isTempo = spec?.kind === "tempo_time";
     const isRace = spec?.kind === "race";
@@ -2331,6 +2333,8 @@ function renderHeartRateBox(hr, extra = {}){
   
   function estimateTroyesTargetHr(hrStats){
     if (!hrStats) return null;
+
+    console.log("estimateTroyesTargetHr");
   
     // approximation pratique :
     // on utilise le seuil estimé s'il existe, sinon la FC moyenne
@@ -2339,6 +2343,8 @@ function renderHeartRateBox(hr, extra = {}){
       : hrStats.avgHr;
   
     if (!Number.isFinite(ref)) return null;
+
+    console.log("ref : ", ref);
   
     // semi plat : départ un peu sous contrôle puis stabilisation
     return {
