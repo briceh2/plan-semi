@@ -2154,7 +2154,7 @@ function renderHeartRateBox(hr, extra = {}){
     `
     : "";
 
-  const intervalsHTML = (hr.blocks && hr.blocks.length)
+  const intervalsHTML = (hr && hr.blocks && hr.blocks.length)
     ? `
       <div class="hrNote" style="margin-top:8px;"><b>Détail cardio par bloc</b></div>
       <div class="hrNote">
@@ -2173,7 +2173,7 @@ function renderHeartRateBox(hr, extra = {}){
     `
     : "";
 
-  const raceHTML = (hr.raceSplitsHr && hr.raceSplitsHr.length)
+  const raceHTML = (hr && hr.raceSplitsHr && hr.raceSplitsHr.length)
     ? `
       <div class="hrNote" style="margin-top:8px;"><b>Cardio par tiers de course</b></div>
       <div class="hrNote">
