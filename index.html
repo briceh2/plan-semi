@@ -4063,6 +4063,11 @@ function scoreIntervalPaceConsistency(blocks){
     spread
   };
 }
+function renderPaceConsistencyMini(pc){
+  if (!pc) return "";
+
+  return `🏃 Régularité allure : ${pc.score}/100 • ${pc.label}`;
+}
 
   
 function scoreLongWithTempo(samples, spec){
@@ -5557,6 +5562,10 @@ function renderPlan(){
           `${workout.compliance.structuredBlocks.after ? Math.round(workout.compliance.structuredBlocks.after.durSec/60) : 0} min endurance</div>`
         : "";
 
+      const paceConsistencyMini = workout?.compliance?.paceConsistency
+        ? `<div class="mini">${renderPaceConsistencyMini(workout.compliance.paceConsistency)}</div>`
+        : "";
+
       const viewGraphBtn = workout
         ? `<button class="ghostBtn" data-open-workout="${workout.id}">Voir analyse</button>`
         : "";
@@ -5574,6 +5583,7 @@ function renderPlan(){
           ${readinessMini}
           ${driftMini}
           ${structuredMini}
+          ${paceConsistencyMini}
           <div style="margin-top:8px;">${viewGraphBtn}</div>
           ${workout.compliance?.manualAdjusted ? `<div class="mini">✍️ Blocs ajustés manuellement (score recalculé)</div>` : ``}
           ${reasonsCompact}`
@@ -6323,11 +6333,16 @@ const blockHrHTML = blockHrSummary
         </div>`
       : "";
 
+    const paceConsistencyMiniHTML = modalState.paceConsistency
+      ? `<div class="mini" style="margin-top:8px;"><b>${renderPaceConsistencyMini(modalState.paceConsistency)}</b></div>`
+      : "";
+
   summaryEl.innerHTML = `
     ${verdictBadge}
     <div class="mini" style="margin-top:8px;"><b>Raisons :</b></div>
     <ul class="reasonsInline">${reasons.slice(0, 12).map(r => `<li>${r}</li>`).join("")}</ul>
     ${structuredHTML}
+    ${paceConsistencyMiniHTML}
     ${scoreBreakdownHTML}
     ${tempoScoreHTML}
     ${blocksHTML}
@@ -6579,6 +6594,7 @@ function drawAnalysisCanvas(){
           intervals: evalRes.intervals || [],
           structuredBlocks: evalRes.structuredBlocks || null,
           scoreBreakdown: evalRes.scoreBreakdown || null,
+          paceConsistency: evalRes.paceConsistency || null,
           specLabel: evalRes.specLabel || spec?.label || "Séance",
           manualAdjusted: false,
           slopeMin: slopeInfo?.min ?? null,
