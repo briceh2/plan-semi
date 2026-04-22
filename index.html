@@ -2123,7 +2123,6 @@ function renderHeartRateBox(hr, extra = {}){
   const thresholdTxt = (hr && Number.isFinite(hr.thresholdHr))
     ? `${hr.thresholdHr}`
     : "n.d.";
-  const thresholdTxt = Number.isFinite(hr.thresholdHr) ? `${hr.thresholdHr}` : "n.d.";
 
   const structuredHTML = (hr && hr.structured)
     ? `
