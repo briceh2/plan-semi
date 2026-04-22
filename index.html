@@ -2274,23 +2274,29 @@ function renderHeartRateBox(hr, extra = {}){
     let score = 50;
   
     // score séance
-    if (Number.isFinite(evalRes.score)) score += (evalRes.score - 50) * 0.35;
+    const scoreSeance = (evalRes.score - 50) * 0.35;
+    if (Number.isFinite(evalRes.score)) score += scoreSeance;
   
     // dérive cardio
+    let scoreCardio = 0;
     if ((spec?.kind === "tempo_time" || spec?.kind === "interval_time" || spec?.kind === "interval_dist" || spec?.kind === "long_with_tempo") && Number.isFinite(hrStats.hrScore)){
-      score += (hrStats.hrScore - 70) * 0.25;
+      scoreCardio = (hrStats.hrScore - 70) * 0.25;
+      score += scoreCardio;
     } else if (Number.isFinite(hrStats.driftBpm)){
-      if (hrStats.driftBpm <= 2) score += 18;
-      else if (hrStats.driftBpm <= 5) score += 10;
-      else if (hrStats.driftBpm <= 8) score += 2;
-      else score -= 10;
+      if (hrStats.driftBpm <= 2) scoreCardio = 18;
+      else if (hrStats.driftBpm <= 5) scoreCardio = 10;
+      else if (hrStats.driftBpm <= 8) scoreCardio = 2;
+      else scoreCardio = -10;
+      score += scoreCardio;
     }
 
   
     // corrélation FC / vitesse
+    let scoreCorrelation = 0;
     if (Number.isFinite(hrStats.corr)){
-      if (hrStats.corr >= 0.45) score += 6;
-      else if (hrStats.corr < 0.10) score -= 4;
+      if (hrStats.corr >= 0.45) scoreCorrelation = 6;
+      else if (hrStats.corr < 0.10) scoreCorrelation = -4;
+      score += scoreCorrelation;
     }
   
     // seuil estimé utile pour séances spécifiques
@@ -2299,9 +2305,11 @@ function renderHeartRateBox(hr, extra = {}){
     }
   
     // bonus type de séance
-    if (isLong) score += 8;
-    if (isTempo) score += 10;
-    if (isRace) score += 12;
+    let scoreBonus = 0;
+    if (isLong) scoreBonus = 8;
+    if (isTempo) scoreBonus = 10;
+    if (isRace) scoreBonus = 12;
+    score += scoreBonus;
   
     score = Math.max(0, Math.min(100, Math.round(score)));
   
@@ -2310,7 +2318,14 @@ function renderHeartRateBox(hr, extra = {}){
     else if (score >= 75) verdict = "Très proche de sub 1h45";
     else if (score >= 65) verdict = "Objectif jouable mais encore fragile";
     else verdict = "Encore du travail spécifique";
-  
+
+    console.log("score : " + score);
+    console.log("scoreSeance : " + scoreSeance);
+    console.log("scoreCardio : " + scoreCardio);
+    console.log("scoreCorrelation : " + scoreCorrelation);
+    console.log("scoreBonus : " + scoreBonus);
+    console.log("verdict : " + verdict);
+    
     return { score, verdict };
   }
   
