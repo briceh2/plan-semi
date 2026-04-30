@@ -3796,7 +3796,7 @@ function expandTempoBlock(samples, block, spec){
   let t0 = block.t0;
   let t1 = block.t1;
 
-  const stepMs = 20 * 1000;
+  const stepMs = 10 * 1000;
 
   function windowAvgPace(a, b){
     const seg = pts.filter(p => p.tMs >= a && p.tMs <= b);
