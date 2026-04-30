@@ -3796,14 +3796,14 @@ function expandTempoBlock(samples, block, spec){
   let t0 = block.t0;
   let t1 = block.t1;
 
-  const stepMs = 30 * 1000;
+  const stepMs = 20 * 1000;
 
   function windowAvgPace(a, b){
     const seg = pts.filter(p => p.tMs >= a && p.tMs <= b);
     if (!seg.length) return null;
     return seg.reduce((s,p)=>s+p.pace,0) / seg.length;
   }
-
+/*
   while (true){
     const nextT0 = t0 - stepMs;
     const avg = windowAvgPace(nextT0, t0);
@@ -3823,6 +3823,60 @@ function expandTempoBlock(samples, block, spec){
 
     if (Math.abs(avg - target) <= tol){
       t1 = nextT1;
+    } else {
+      break;
+    }
+  }
+*/
+
+  // étendre vers l’avant avec détection de rupture nette
+  while (true){
+    const nextT1 = t1 + stepMs;
+  
+    const avgCurrent = windowAvgPace(t1 - stepMs, t1);
+    const avgNext = windowAvgPace(t1, nextT1);
+  
+    if (!Number.isFinite(avgCurrent) || !Number.isFinite(avgNext)) break;
+  
+    const diffTarget = Math.abs(avgNext - target);
+  
+    // rupture nette = l’allure devient beaucoup plus lente que le bloc précédent
+    const slowdown = avgNext - avgCurrent;
+  
+    const clearRecovery =
+      slowdown >= 18 && avgNext > target + 18;
+  
+    if (clearRecovery){
+      break;
+    }
+  
+    if (diffTarget <= tol){
+      t1 = nextT1;
+    } else {
+      break;
+    }
+  }
+  // étendre vers l’arrière avec détection de rupture
+  while (true){
+    const nextT0 = t0 - stepMs;
+  
+    const avgCurrent = windowAvgPace(t0, t0 + stepMs);
+    const avgPrev = windowAvgPace(nextT0, t0);
+  
+    if (!Number.isFinite(avgCurrent) || !Number.isFinite(avgPrev)) break;
+  
+    const diffTarget = Math.abs(avgPrev - target);
+  
+    // avant le bloc, l’endurance est normalement plus lente que le seuil
+    const wasEasyBefore =
+      avgPrev - avgCurrent >= 18 && avgPrev > target + 18;
+  
+    if (wasEasyBefore){
+      break;
+    }
+  
+    if (diffTarget <= tol){
+      t0 = nextT0;
     } else {
       break;
     }
