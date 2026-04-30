@@ -3793,6 +3793,10 @@ function expandTempoBlock(samples, block, spec){
   const target = spec.tempoPaceTarget;
   const tol = Math.max(spec.tempoPaceTol || 18, 22);
 
+  consome.log("expandTempoBlock");
+  consome.log("target  " + target);
+  consome.log("tol    " + spec.tempoPaceTol + " " + tol);
+
   let t0 = block.t0;
   let t1 = block.t1;
 
