@@ -1407,6 +1407,65 @@ function thinSamplesForStorage(samples, step = 5){
       driftAlert: comp.driftAlert || null
     });
   }
+  function avgPaceBetween(samples, t0, t1){
+  const pts = buildPaceSeries(samples).filter(p =>
+    p.tMs >= t0 &&
+    p.tMs <= t1 &&
+    Number.isFinite(p.pace)
+  );
+
+  if (!pts.length) return null;
+
+  return pts.reduce((s,p)=>s+p.pace,0) / pts.length;
+}
+
+function isClearRecoveryAfterTempo(samples, t, targetPaceSec){
+  const before = avgPaceBetween(samples, t - 30_000, t);
+  const after  = avgPaceBetween(samples, t, t + 30_000);
+
+  if (!Number.isFinite(before) || !Number.isFinite(after)) return false;
+
+  const slowdown = after - before;
+
+  return (
+    slowdown >= 15 &&
+    after > targetPaceSec + 15
+  );
+}
+
+function trimTempoBlockEndOnRecovery(samples, block, targetPaceSec){
+  if (!block || !Number.isFinite(block.t0) || !Number.isFinite(block.t1)) return block;
+
+  const stepMs = 10_000;
+
+  // on ne coupe pas dans la première moitié du bloc
+  let t = block.t0 + Math.max(60_000, ((block.t1 - block.t0) * 0.45));
+
+  while (t < block.t1){
+    if (isClearRecoveryAfterTempo(samples, t, targetPaceSec)){
+      const newBlock = {
+        ...block,
+        t1: t,
+        durSec: Math.round((t - block.t0) / 1000)
+      };
+
+      const newPace = avgPaceBetween(samples, newBlock.t0, newBlock.t1);
+      if (Number.isFinite(newPace)) newBlock.pace = newPace;
+
+      return newBlock;
+    }
+
+    t += stepMs;
+  }
+
+  return block;
+}
+
+function trimTempoBlocksEndOnRecovery(samples, blocks, targetPaceSec){
+  return (blocks || []).map(b =>
+    trimTempoBlockEndOnRecovery(samples, b, targetPaceSec)
+  );
+}
   // ========================
   // ===== Helpers fin ======
   // ========================
