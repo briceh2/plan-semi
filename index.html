@@ -3341,7 +3341,7 @@ function verdictFromScore(score){
     // --- sélectionner les N meilleurs, en évitant les chevauchements
     scored.sort((a,b)=>b.score01 - a.score01);
     
-    const picked = [];
+    let picked = [];
     const minGapSec = 20; // plus permissif que 45s pour ne pas rater un 3×8 avec récup active
     for (const c of scored){
       if (picked.length >= expected) break;
@@ -3349,7 +3349,32 @@ function verdictFromScore(score){
       if (!overlap) picked.push(c);
     }
     picked.sort((a,b)=>a.t0 - b.t0);
+
+    // --- Correction fin de bloc : si une vraie récupération commence,
+    // on coupe le bloc au début de la rupture d'allure.
+    // Important : à faire après la sélection des blocs, avant le scoring final.
+    picked = trimTempoBlocksEndOnRecovery(samples, picked, target)
+      .map(b => {
+        const mp = segMeanPace(b.t0, b.t1);
+        const durSec = (b.t1 - b.t0) / 1000;
+        const durErr = Math.abs(durSec - repSec);
+        const paceErr = (mp == null) ? 9999 : Math.abs(mp - target);
     
+        const paceScore = clamp01(1 - (paceErr / Math.max(1, tol)));
+        const durTol = repSec * 0.25;
+        const durScore = clamp01(1 - (durErr / Math.max(1, durTol)));
+        const score01 = 0.7 * paceScore + 0.3 * durScore;
+    
+        return {
+          ...b,
+          durSec,
+          paceMean: mp,
+          paceErr,
+          durErr,
+          score01
+        };
+        
+      });
     // --- scoring final
     const qtyScore = 55 * Math.min(1, picked.length / Math.max(1, expected));
     const within = picked.filter(p => p.paceErr <= tol).length;
