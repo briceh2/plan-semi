@@ -472,11 +472,11 @@
   };
   
   // version
-  const APP_VERSION = "v26-04-22_1.1";
+  const APP_VERSION = "v26-05-10_1.0";
   // ===== Dates =====
-  const START = new Date("2026-02-02T00:00:00");
-  const RACE  = new Date("2026-05-10T00:00:00");
-  const WEEKS = 14;
+  const START = new Date("2026-05-11T00:00:00");
+  const RACE  = new Date("2026-11-15T00:00:00");
+  const WEEKS = 27;
   let semiMode = "bayeux"; // "bayeux" ou "troyes"
   const STORAGE_KEY = "semiPlanData";
 
@@ -484,257 +484,59 @@
   function addDays(d, n){ const x = new Date(d); x.setDate(x.getDate()+n); return x; }
 
   function phaseForWeek(w){
-    if (w <= 5) return "Base & Moteur";
-    if (w <= 12) return "Spécifique Semi";
+    if (w <= 9) return "Base aérobie + économie";
+    if (w <= 12) return "Coupure / entretien";
+    if (w <= 19) return "Reconstruction + seuil long";
+    if (w <= 24) return "Spécifique semi";
     return "Affûtage";
   }
 
-function sessionsForWeek(w){
-
-  const EASY = "Endurance : 5'55–6'30/km";
-  const AS21 = "Allure semi : ~5'00/km";
-  const SEUIL = "Seuil : 4'55-5'05/km";
-  const VMA30 = "30/30 : 4'05–4'25/km";
-  const VMA400 = "400m : 4'10–4'20/km";
-
-  let weekPlan = {};
-
-  // =========================
-  // Semaine course 10 km
-  // =========================
-  if (w === 2){
-    weekPlan = {
-      tue: `2 × (6 × 30/30) — ${VMA30}`,
-      thu: `2 × 8 min seuil — ${SEUIL}`,
-      sat: `Footing très facile — ${EASY}`,
-      sun: `🏁 Course 10 km`,
-      nutrition: `
-      • Hydratation : 1,5–2 L/jour  
-      • Veille course : dîner pâtes + protéines légères  
-      • Matin course : tartines + banane  
-      • Pendant : eau seulement`
-    };
-    return weekPlan;
+  function sessionsForWeek(w){
+    const EASY = "5'55–6'25/km";
+    const AS21 = "4'55–5'00/km";
+    const SEUIL = "4'50–4'55/km";
+    const VMA = "4'25–4'40/km";
+    
+    // Phase 1 — Base aérobie + économie
+    if (w === 1) return { tue:`8×400 m — ${VMA}`, thu:`2×12 min seuil — 4'55–5'00/km`, sat:`45 min endurance — ${EASY}`, sun:`SL 1h15 — ${EASY}`, nutrition:"Base : construire sans fatigue." };
+    if (w === 2) return { tue:`8×500 m — ${VMA}`, thu:`2×12 min seuil — 4'55–5'00/km`, sat:`50 min endurance — ${EASY}`, sun:`SL 1h20 dont 10 min à 5'05/km`, nutrition:"Base : rester facile sur l’endurance." };
+    if (w === 3) return { tue:`6×800 m — ${VMA}`, thu:`3×10 min seuil — 4'55–5'00/km`, sat:`50 min endurance — ${EASY}`, sun:`SL 1h20 dont 15 min à 5'05/km`, nutrition:"Progression douce." };
+    if (w === 4) return { tue:`8×500 m — ${VMA}`, thu:`3×12 min seuil — 4'55–5'00/km`, sat:`45 min endurance — ${EASY}`, sun:`SL 1h25 — ${EASY}`, nutrition:"Semaine de consolidation." };
+    if (w === 5) return { tue:`6×800 m — 4'35–4'45/km`, thu:`3×12 min seuil — 4'55/km`, sat:`55 min endurance — ${EASY}`, sun:`SL 1h30 dont 15 min à 5'05/km`, nutrition:"Début endurance spécifique." };
+    if (w === 6) return { tue:`10×400 m — ${VMA}`, thu:`2×15 min seuil — 4'55/km`, sat:`50 min endurance — ${EASY}`, sun:`SL 1h30 dont 20 min à 5'05/km`, nutrition:"Volume contrôlé." };
+    if (w === 7) return { tue:`8×500 m — 4'30–4'40/km`, thu:`2×20 min seuil — 4'55–5'00/km`, sat:`55 min endurance — ${EASY}`, sun:`SL 1h30 — ${EASY}`, nutrition:"Semaine solide mais sans excès." };
+    if (w === 8) return { tue:`5×1000 m — 4'40/km`, thu:`2×20 min seuil — 4'55/km`, sat:`45 min endurance — ${EASY}`, sun:`SL 1h35 dont 20 min à 5'05/km`, nutrition:"Tenue longue progressive." };
+    if (w === 9) return { tue:`6×800 m souple — 4'40/km`, thu:`3×12 min seuil — 4'55/km`, sat:`45 min endurance facile`, sun:`SL 1h20 facile`, nutrition:"Allègement avant coupure." };
+    
+    // Phase 2 — Coupure 11 juillet → 2 août
+    if (w === 10) return { tue:"Repos / marche / mobilité", thu:"Repos", sat:"Repos", sun:"Repos", nutrition:"Coupure prévue : aucune séance obligatoire." };
+    if (w === 11) return { tue:"Repos", thu:"Repos / mobilité", sat:"Repos", sun:"Repos", nutrition:"Coupure : récupérer physiquement et mentalement." };
+    if (w === 12) return { tue:"Repos / marche", thu:"Repos", sat:"Repos", sun:"Repos", nutrition:"Fin coupure : reprise la semaine suivante." };
+    
+    // Phase 3 — Reconstruction + seuil long
+    if (w === 13) return { tue:`45 min endurance — ${EASY}`, thu:`2×12 min seuil — 4'55/km`, sat:`45 min endurance facile`, sun:`SL 1h15 — ${EASY}`, nutrition:"Reprise progressive après coupure." };
+    if (w === 14) return { tue:`6×800 m — 4'40–4'45/km`, thu:`2×15 min seuil — 4'55/km`, sat:`50 min endurance — ${EASY}`, sun:`SL 1h25 dont 2×10 min à 5'00/km`, nutrition:"Réinstaller le rythme." };
+    if (w === 15) return { tue:`5×1000 m — 4'40/km`, thu:`2×20 min seuil — 4'55/km`, sat:`50 min endurance`, sun:`SL 1h30 dont 2×15 min à 5'00/km`, nutrition:"Première vraie semaine spécifique." };
+    if (w === 16) return { tue:`8×500 m — 4'30–4'35/km`, thu:`3×15 min seuil — 4'50–4'55/km`, sat:`55 min endurance — ${EASY}`, sun:`SL 1h35 dont 20 + 15 min à 5'00/km`, nutrition:"Augmenter le temps utile." };
+    if (w === 17) return { tue:`6×800 m — 4'35–4'40/km`, thu:`2×25 min seuil — 4'50–4'55/km`, sat:`50 min endurance facile`, sun:`SL 1h30 facile`, nutrition:"Grosse séance seuil, SL plus simple." };
+    if (w === 18) return { tue:`5×1000 m — 4'35–4'40/km`, thu:`3×15 min — 4'50/km`, sat:`55 min endurance`, sun:`SL 1h40 dont 2×20 min à 4'55–5'00/km`, nutrition:"Endurance spécifique semi." };
+    if (w === 19) return { tue:`8×500 m — 4'30/km`, thu:`2×20 min — 4'50–4'55/km`, sat:`45 min endurance`, sun:`SL 1h25 dont 20 min à 5'00/km`, nutrition:"Semaine de consolidation." };
+    
+    // Phase 4 — Spécifique semi
+    if (w === 20) return { tue:`6×1000 m — 4'35/km`, thu:`2×25 min — 4'50–4'55/km`, sat:`50 min endurance facile`, sun:`SL 1h35 dont 45 min cumulées à 4'55–5'00/km`, nutrition:"Bloc spécifique important." };
+    if (w === 21) return { tue:`8×500 m — 4'25–4'35/km`, thu:`3×15 min — 4'50/km`, sat:`45 min endurance`, sun:`SL 1h40 dont 2×20 min à 4'55/km`, nutrition:"Tenir vite en fatigue." };
+    if (w === 22) return { tue:`5×1000 m — 4'35/km`, thu:`2×30 min — 4'50–4'55/km`, sat:`50 min très facile`, sun:`SL 1h30 facile`, nutrition:"Très grosse séance seuil, dimanche contrôlé." };
+    if (w === 23) return { tue:`8×500 m — 4'25–4'35/km`, thu:`3×15 min — 4'50/km`, sat:`45 min endurance`, sun:`SL 1h35 dont 3×15 min à 4'55/km`, nutrition:"Spécifique semi maximal." };
+    if (w === 24) return { tue:`6×800 m — 4'35/km`, thu:`2×20 min — 4'50–4'55/km`, sat:`45 min endurance facile`, sun:`SL 1h25 dont 30 min à 5'00/km`, nutrition:"Dernière grosse semaine maîtrisée." };
+    
+    // Phase 5 — Affûtage
+    if (w === 25) return { tue:`6×500 m souple — 4'30–4'40/km`, thu:`2×15 min — 4'55/km`, sat:`45 min très facile`, sun:`SL 1h20 dont 20 min à 5'00/km`, nutrition:"Début affûtage : baisse de charge." };
+    if (w === 26) return { tue:`5×400 m relâché — 4'30/km`, thu:`2×10 min allure semi — 4'55–5'00/km`, sat:`40 min très facile`, sun:`1h05 facile dont 10 min à 5'00/km`, nutrition:"Fraîcheur prioritaire." };
+    if (w === 27) return { tue:"35–40 min facile + 4 lignes droites", thu:"8–10 min allure semi sans forcer", sat:"25–30 min très facile optionnel", sun:"🏁 Semi Boulogne-Billancourt — objectif sub 1h45", nutrition:"Semaine course : sommeil, hydratation, glucides, aucune nouveauté." };
+    
+    return { tue:"", thu:"", sat:"", sun:"", nutrition:"" };
   }
-  // =========================
-  // Bloc vallonné Bayeux
-  // =========================
-  // =========================
-  // Semaine 4
-  // =========================
-  if (w === 4){
-    return {
-      tue: `10 × 45s en côte — effort 8/10`,
-      thu: `Seuil : 3 × 8 min — 5'05–4'55/km`,
-      sat: `Endurance — 40 min — 5'55–6'30/km`,
-      sun: `Sortie longue — 1h15 — 5'55–6'30/km`,
-      nutrition: `
-      • Avant séance qualité : collation légère glucidique
-      • Après : protéines + glucides
-      • Hydratation : 2 L/jour`
-    };
-  }
-  // =========================
-  // Semaine 5
-  // =========================
-  if (w === 5){
-    return {
-      tue: `10 × 400 m — 4'10–4'20/km`,
-      thu: `Seuil : 3 × 8 min — 5'05–4'55/km`,
-      sat: `Endurance — 40 min — 5'55–6'30/km`,
-      sun: `Sortie longue — 1h25 — 5'55–6'30/km`,
-      nutrition: `
-      • Avant séance qualité : collation légère glucidique
-      • Après : protéines + glucides
-      • Sortie longue : 1 gel à 45 min
-      • Hydratation : 2 L/jour`
-    };
-  }
-  // =========================
-  // Semaine 6
-  // =========================
-  if (w === 6){
-    return {
-      tue: `10 × 45s en côte — effort 8/10`,
-      thu: `Seuil : 2 × 15 min — 5'00/km`,
-      sat: `Endurance — 45 min — 5'55–6'30/km`,
-      sun: `Sortie longue — 1h25 — 5'55–6'30/km`,
-      nutrition: `
-      • Avant séance qualité : collation légère glucidique
-      • Après : protéines + glucides
-      • Sortie longue : 1 gel à 45–50 min
-      • Hydratation : 2 L/jour`
-    };
-  }
-  // =========================
-  // Semaine 7
-  // =========================
-  if (w === 7){
-    return {
-      tue: `10 × 400 m — 4'10–4'20/km`,
-      thu: `Seuil : 2 × 15 min — 5'00/km`,
-      sat: `Endurance — 40 min — 5'55–6'30/km`,
-      sun: `Sortie longue — 1h15 — 5'55–6'30/km`,
-      nutrition: `
-      • Avant séance qualité : collation légère glucidique
-      • Après : protéines + glucides
-      • Hydratation : 2 L/jour`
-    };
-  }
-  if (w < 8){
-    weekPlan = {
-      tue: `VMA : 2 × (8 × 30/30) — ${VMA30}`,
-      thu: `Seuil vallonné : 3 × 8 min — ${SEUIL}`,
-      sat: `Endurance facile — ${EASY}`,
-      sun: `Sortie longue vallonnée`,
-      nutrition: `
-      • Avant séances qualité : collation glucides 1h avant  
-        (banane + yaourt ou tartine miel)  
-      • Après séance : 20 g protéines + glucides  
-      • Sortie longue : 1 gel à 45 min  
-      • Hydratation : 2 L/jour`
-    };
-    return weekPlan;
-  }
-  // =========================
-  // Semaine 8 → semi Bayeux (allégée)
-  // =========================
-  if (w === 8){
-    return {
-      tue: "8x400m (allure 4'35)",
-      thu: "2x12min à 5'00/km",
-      sat: "endurance 45min",
-      sun: "🏁 Semi Bayeux"
-    };
-  }
-  // =========================
-  // Semaine 9 → reprise post-Bayeux
-  // =========================
-  if (w === 9){
-    return {
-      tue: "footing 40min très facile",
-      thu: "2x10min à 5'05/km",
-      sat: "endurance 45min",
-      sun: "1h10 dont 10min à 5'10",
-      nutrition: `
-       • Semaine de reprise post-Bayeux : priorité à la récupération
-      • 20–25 g de protéines après les séances qualité
-      • Glucides simples + eau après le footing du jeudi
-      • Hydratation : 2 L/jour
-      • Pas de restriction, mais éviter les excès
-      `
-    };
-  }
-
-  // =========================
-  // Semaine 10 → construction
-  // =========================
-  if (w === 10){
-    return {
-      tue: "10x400m (allure 4'30)",
-      thu: "3x9min à 5'00/km",
-      sat: "endurance 45min",
-      sun: "1h20 dont 20min à 5'05",
-      nutrition: `
-      • Semaine de construction : bien manger la veille du jeudi et du dimanche
-      • Avant 10x400 : collation légère 60–90 min avant (banane, compote, tartine miel)
-      • Après séance : protéines + glucides
-      • Sortie longue : 1 gel possible vers 45–50 min
-      • Hydratation : 2 L/jour minimum
-      `
-   };
-  }
-
-  // =========================
-  // Semaine 11 → semaine clé
-  // =========================
-  if (w === 11){
-    return {
-      tue: "6x800m (allure 4'45)",
-      thu: "2x15min à 5'00/km",
-      sat: "endurance 45min",
-      sun: "1h20 dont 25min à 5'00",
-      nutrition: `
-      • Semaine clé : accent sur les glucides autour du jeudi et du dimanche
-      • Avant 6x800 et 2x15 min : collation légère si séance à distance du repas
-      • Sortie longue 1h20 : tester 1 gel vers 45–50 min
-      • Après séance : protéines + glucides dans l’heure
-      • Bien saler les repas si tu transpires beaucoup
-      `
-    };
-  }
-
-  // =========================
-  // Semaine 12 → spécifique pur
-  // =========================
-  if (w === 12){
-    return {
-      tue: "8x500m (allure 4'35)",
-      thu: "2x20min à 5'00/km",
-      sat: "endurance 40min",
-      sun: "1h15 dont 30min à 5'00",
-      nutrition: `
-      • Semaine spécifique : objectif = tenir l’allure cible avec de bonnes réserves
-      • Avant 8x500 et 2x20 min : arriver bien alimenté, sans lourdeur digestive
-      • Sortie longue avec 30 min à 5'00 : 1 gel conseillé vers 40–45 min
-      • Éviter alcool et repas très gras avant les séances clés
-      • Hydratation régulière chaque jour
-      `
-    };
-  }
-
-  // =========================
-  // Semaine 13 → affûtage
-  // =========================
-  if (w === 13){
-    return {
-      tue: "6x300m (allure 4'20)",
-      thu: "2x10min à 5'00/km",
-      sat: "endurance 35min",
-      sun: "1h00 dont 15min à 5'00",
-      nutrition: `
-      • Début d’affûtage : on garde de la qualité, mais sans fatigue digestive
-      • Manger normalement, légèrement plus riche en glucides autour du jeudi
-      • Dimanche : sortie plus courte, pas besoin de surcharge
-      • Hydratation stable, urine claire = bon repère
-      • Ne rien tester de nouveau
-      `
-    };
-  }
-
-  // =========================
-  // Semaine 14 → semaine course Troyes
-  // =========================
-  if (w === 14){
-    return {
-      tue: "5x200m (allure 4'15)",
-      thu: "30min + 3x2min allure semi",
-      sat: "footing 20min très facile",
-      sun: "🏁 Semi Troyes OBJECTIF <1h45",
-      nutrition: `
-      • Semaine course : objectif fraîcheur physique et mentale
-      • J-3 à J-1 : augmenter légèrement les glucides, réduire les aliments lourds
-      • Petit-déjeuner course : pain + miel/confiture + banane + boisson habituelle
-      • 15 min avant : quelques gorgées d’eau, option 1/2 gel si bien toléré
-      • Pendant la course : gel 1 vers km 6–7, gel 2 vers km 13–14, toujours avec eau
-      • Veille de course : dîner simple, digeste, sans excès
-      `
-    };
-  }
-
-  // =========================
-  // Fallback
-  // =========================
-  return {
-    tue: `Footing + lignes droites`,
-    thu: `8 min allure semi`,
-    sat: `20 min très facile`,
-    sun: `Course / sortie libre`,
-    nutrition: `
-    • Hydratation régulière
-    • Pas tester du neuf`
-  };
-}
+  
   // ===== Storage =====
   const KEY = "planSemiData_v14_manual_recompute";
   const defaultData = { weeks: {}, workouts: [] };
@@ -2734,470 +2536,174 @@ function stripTime(d){
   return x;
 }
 
-// -------------------------------------------------------
-// TA LOGIQUE (celle que je t’ai donnée) MAIS RENOMMÉE ICI
-// -------------------------------------------------------
   function expectedSpecWeekDay(week, day){
-    // ----- Dates repères
-    const TODAY = new Date(); // ✅ dynamique (au lieu d'une date figée)
-    TODAY.setHours(0,0,0,0);
-    
-    const startOfWeek = addDays(START, (week-1)*7);
-    
-    // Calcule la date du jour de séance dans cette semaine
-    const dayOffset = (day==="tue") ? 1 : (day==="thu") ? 3 : (day==="sat") ? 5 : 6; // Mar/Jeu/Sam/Dim
-    const sessionDate = addDays(startOfWeek, dayOffset);
-    
-    const t = +sessionDate;
-    const tToday = +TODAY;
-        
-    // =========================================================
-    // PLAN ADAPTÉ AVANT & APRÈS BAYEUX
-    // =========================================================
-    if (week < 4){
-        if (day === "tue") return { kind:"interval_time", repFastSec:30, repSlowSec:30, sets:2, repsPerSet:8, paceTarget:255, paceTol:20, label:"VMA 30/30 (2×8)" };
-        if (day === "thu") return { kind:"tempo_time", reps:3, repMin:8, recMin:2, paceTarget:305, paceTol:20, label:"Seuil 3×8" };
-        if (day === "sat") return { kind:"endurance", minMin:40, paceRange:"5'50-6'20/km", label:"Endurance facile" };
-        if (day === "sun") return { kind:"long", minMin:75, paceRange:"5'50-6'20/km", label:"Sortie longue" };
+  
+    // Coupure
+    if (week >= 10 && week <= 12){
+      return { kind:"rest", label:"Repos / coupure" };
     }
-    // =========================
-    // Semaine 4
-    // =========================
-    if (week === 4){
-      if (day === "tue") return {
-        kind:"hill_reps",
-        reps:10,
-        repSec:45,
-        contrastMin:12,
-        effortHint:"Effort 8/10 • récup descente très facile",
-        label:"Côtes 10×45s"
-      };
-      if (day === "thu") return {
-        kind:"tempo_time",
-        reps:3,
-        repMin:8,
-        recMin:2,
-        paceTarget:305,
-        paceTol:20,
-        label:"Seuil 3×8"
-      };
-      if (day === "sat") return {
-        kind:"endurance",
-        minMin:40,
-        paceRange:"5'55-6'30/km",
-        label:"Endurance 40 min"
-      };
-      if (day === "sun") return {
-        kind:"long",
-        minMin:75,
-        paceRange:"5'55-6'30/km",
-        label:"Sortie longue 1h15"
-      };
-    }
-    
-    // =========================
-    // Semaine 5
-    // =========================
-    if (week === 5){
-      if (day === "tue") return {
-        kind:"interval_dist",
-        reps:10,
-        repDistM:400,
-        recSec:90,
-        paceTarget:250,
-        paceTol:20,
-        label:"VMA 10×400"
-      };
-      if (day === "thu") return {
-        kind:"tempo_time",
-        reps:3,
-        repMin:8,
-        recMin:2,
-        paceTarget:305,
-        paceTol:20,
-        label:"Seuil 3×8"
-      };
-      if (day === "sat") return {
-        kind:"endurance",
-        minMin:40,
-        paceRange:"5'55-6'30/km",
-        label:"Endurance 40 min"
-      };
-      if (day === "sun") return {
-        kind:"long",
-        minMin:85,
-        paceRange:"5'55-6'30/km",
-        label:"Sortie longue 1h25"
-      };
-    }
-    
-    // =========================
-    // Semaine 6
-    // =========================
-    if (week === 6){
-      if (day === "tue") return {
-        kind:"hill_reps",
-        reps:10,
-        repSec:45,
-        contrastMin:12,
-        effortHint:"Effort 8/10 • récup descente très facile",
-        label:"Côtes 10×45s"
-      };
-      if (day === "thu") return {
-        kind:"tempo_time",
-        reps:2,
-        repMin:15,
-        recMin:3,
-        paceTarget:300,
-        paceTol:20,
-        label:"Seuil 2×15"
-      };
-      if (day === "sat") return {
-        kind:"endurance",
-        minMin:45,
-        paceRange:"5'55-6'30/km",
-        label:"Endurance 45 min"
-      };
-      if (day === "sun") return {
-        kind:"long",
-        minMin:85,
-        paceRange:"5'55-6'30/km",
-        label:"Sortie longue 1h25"
-      };
-    }
-    
-    // =========================
-    // Semaine 7
-    // =========================
-    if (week === 7){
-      if (day === "tue") return {
-        kind:"interval_dist",
-        reps:10,
-        repDistM:400,
-        recSec:90,
-        paceTarget:250,
-        paceTol:20,
-        label:"VMA 10×400"
-      };
-      if (day === "thu") return {
-        kind:"tempo_time",
-        reps:2,
-        repMin:15,
-        recMin:3,
-        paceTarget:300,
-        paceTol:20,
-        label:"Seuil 2×15"
-      };
-      if (day === "sat") return {
-        kind:"endurance",
-        minMin:40,
-        paceRange:"5'55-6'30/km",
-        label:"Endurance 40 min"
-      };
-      if (day === "sun") return {
-        kind:"long",
-        minMin:75,
-        paceRange:"5'55-6'30/km",
-        label:"Sortie longue 1h15"
-      };
-    }
-    
-    // --- Semaine 8 : TAPER pour être frais à Bayeux (Semi vallonné)
-    // Objectif : garder du rythme, baisser volume & fatigue
-    if (week === 8){
-      if (day === "tue") return {
-        kind:"interval_dist",
-        reps:8,
-        repDistM:400,
-        recSec:90,
-        paceTarget:275,
-        paceTol:20,
-        label:"VMA 8x400"
-      };
-      if (day === "thu") return {
-        kind:"tempo_time",
-        reps:2,
-        repMin:12,
-        recMin:3,
-        paceTarget:300,
-        paceTol:20,
-        label:"Seuil 2x12"
-      };
-      if (day === "sat") return {
-        kind:"endurance",
-        minMin:45,
-        paceRange:"5'55-6'30/km",
-        label:"Endurance 45 min"
-      };
-      if (day === "sun") return {
-        kind:"race",
-        minMin:105,
-        distKm:21.1,
-        tolKm:1.5,
-        label:"Semi Bayeux",
-        paceRange:"5'00-5'10/km",
-        paceTarget:298,
-        paceTol:15
-      };
-    }
-    // --- Semaine 9 : reprise post-Bayeux
-    if (week === 9){
-      if (day === "tue") return {
-        kind:"endurance",
-        minMin:40,
-        paceRange:"6'00-6'35/km",
-        label:"Footing 40 min très facile"
-      };
-      if (day === "thu") return {
-        kind:"tempo_time",
-        reps:2,
-        repMin:10,
-        recMin:3,
-        paceTarget:305,   // 5'05/km
-        paceTol:20,
-        label:"Seuil 2x10"
-      };
-      if (day === "sat") return {
-        kind:"endurance",
-        minMin:45,
-        paceRange:"5'55-6'30/km",
-        label:"Endurance 45 min"
-      };
-      if (day === "sun") return {
-        paceRange:"5'55-6'25/km",
-        kind: "long_with_tempo",
-        totalMin: 70,
-        tempoMin: 10,
-        tempoPaceTarget: 310,   // 5'10/km
-        tempoPaceTol: 20,
-        easyTotalMin: 60,
-        easyPaceMin: 355,       // 5'55/km
-        easyPaceMax: 390,       // 6'30/km
-        label: "1h10 dont 10 min à 5'10"
-      };
-    }
-
-    // --- Semaine 10 : construction
-    if (week === 10){
-      if (day === "tue") return {
-        kind:"interval_dist",
-        reps:10,
-        repDistM:400,
-        recSec:90,
-        paceTarget:270,   // 4'30/km
-        paceTol:20,
-        label:"VMA 10x400"
-      };
-      if (day === "thu") return {
-        kind:"tempo_time",
-        reps:3,
-        repMin:9,
-        recMin:2,
-        paceTarget:300,   // 5'00/km
-        paceTol:18,
-        label:"Seuil 3x9"
-      };
-      if (day === "sat") return {
-        kind:"endurance",
-        minMin:45,
-        paceRange:"5'55-6'30/km",
-        label:"Endurance 45 min"
-      };
-      if (day === "sun") return {
-        paceRange:"5'55-6'20/km",
-        kind: "long_with_tempo",
-        totalMin: 80,
-        tempoMin: 20,
-        tempoPaceTarget: 300,   // 5'00/km
-        tempoPaceTol: 18,
-        easyTotalMin: 60,
-        easyPaceMin: 355,       // 5'55/km
-        easyPaceMax: 390,       // 6'30/km
-        label: "1h20 dont 20 min au seuil 5'05"
-      };
-    }
-
-    // --- Semaine 11 : semaine clé
-    if (week === 11){
-      if (day === "tue") return {
-        kind:"interval_dist",
-        reps:6,
-        repDistM:800,
-        recSec:120,
-        paceTarget:285,   // 4'45/km
-        paceTol:20,
-        label:"6x800"
-      };
-      if (day === "thu") return {
-        kind:"tempo_time",
-        reps:2,
-        repMin:15,
-        recMin:3,
-        paceTarget:300,   // 5'00/km
-        paceTol:18,
-        label:"Seuil 2x15"
-      };
-      if (day === "sat") return {
-        kind:"endurance",
-        minMin:45,
-        paceRange:"5'55-6'30/km",
-        label:"Endurance 45 min"
-      };
-      if (day === "sun") return {
-        paceRange:"5'50-6'20/km",
-        kind: "long_with_tempo",
-        totalMin: 75,
-        tempoMin: 25,
-        tempoPaceTarget: 300,   // 5'00/km
-        tempoPaceTol: 18,
-        easyTotalMin: 60,
-        easyPaceMin: 350, // 5'50/km
-        easyPaceMax: 380, // 6'20/km
-        label: "1h15 dont 25 min à 5'00"
-      };
-    }
-
-    // --- Semaine 12 : spécifique pur
-    if (week === 12){
-      if (day === "tue") return {
-        kind:"interval_dist",
-        reps:8,
-        repDistM:500,
-        recSec:90,
-        paceTarget:275,   // 4'35/km
-        paceTol:20,
-        label:"8x500"
-      };
-      if (day === "thu") return {
-        kind:"tempo_time",
-        reps:2,
-        repMin:20,
-        recMin:3,
-        paceTarget:300,   // 5'00/km
-        paceTol:18,
-        label:"Seuil 2x20"
-      };
-      if (day === "sat") return {
-        kind:"endurance",
-        minMin:40,
-        paceRange:"5'55-6'30/km",
-        label:"Endurance 40 min"
-      };
-      if (day === "sun") return {
-        paceRange:"5'50-6'15/km",
-        kind: "long_with_tempo",
-        totalMin: 75,
-        tempoMin: 30,
-        tempoPaceTarget: 300,   // 5'00/km
-        tempoPaceTol: 18,
-        easyTotalMin: 60,
-        easyPaceMin: 350, // 5'50/km
-        easyPaceMax: 375, // 6'15/km
-        label: "1h15 dont 30 min à 5'00"
-      };
-    }
-
-    // --- Semaine 13 : affûtage
-    if (week === 13){
-      if (day === "tue") return {
-        kind:"interval_dist",
-        reps:6,
-        repDistM:300,
-        recSec:75,
-        paceTarget:260,   // 4'20/km
-        paceTol:20,
-        label:"6x300"
-      };
-      if (day === "thu") return {
-        kind:"tempo_time",
-        reps:2,
-        repMin:10,
-        recMin:3,
-        paceTarget:300,   // 5'00/km
-        paceTol:18,
-        label:"Seuil 2x10"
-      };
-      if (day === "sat") return {
-        kind:"endurance",
-        minMin:35,
-        paceRange:"6'00-6'35/km",
-        label:"Endurance 35 min"
-      };
-      if (day === "sun") return {
-        paceRange:"5'55-6'25/km",
-        kind: "long_with_tempo",
-        totalMin: 75,
-        tempoMin: 15,
-        tempoPaceTarget: 300,   // 5'00/km
-        tempoPaceTol: 18,
-        easyTotalMin: 60,
-        easyPaceMin: 355,
-        easyPaceMax: 390,
-        label: "1h15 dont 15 min à 5'00"
-      };
-    }
-
-    // --- Semaine 14 : semaine course Troyes
-    if (week === 14){
-      if (day === "tue") return {
-        kind:"interval_dist",
-        reps:5,
-        repDistM:200,
-        recSec:60,
-        paceTarget:255,   // 4'15/km
-        paceTol:20,
-        label:"Rappel 5x200"
-      };
-      if (day === "thu") return {
-        kind:"tempo_time",
-        reps:3,
-        repMin:2,
-        recMin:2,
-        paceTarget:298,   // ~4'58/km
-        paceTol:15,
-        label:"3x2 min allure semi"
-      };
-      if (day === "sat") return {
-        kind:"endurance",
-        minMin:20,
-        paceRange:"6'05-6'40/km",
-        label:"Footing 20 min très facile"
-      };
-      if (day === "sun") return {
+  
+    // Semaine course
+    if (week === 27 && day === "sun"){
+      return {
         kind:"race",
         distKm:21.1,
-        tolKm:1.5,
-        label:"Semi objectif (Troyes)",
-        paceTarget:298,
-        paceTol:15
+        tolKm:1.0,
+        paceTarget:298, // 4'58/km
+        paceTol:20,
+        label:"Semi Boulogne-Billancourt — objectif sub 1h45"
       };
     }
+  
+    // Mardi — VMA / économie
+    const tueSpecs = {
+      1:{ kind:"interval_dist", reps:8, repDistM:400, paceTarget:270, paceTol:18, label:"8×400 m — 4'30/km" },
+      2:{ kind:"interval_dist", reps:8, repDistM:500, paceTarget:275, paceTol:18, label:"8×500 m — 4'35/km" },
+      3:{ kind:"interval_dist", reps:6, repDistM:800, paceTarget:280, paceTol:20, label:"6×800 m — 4'40/km" },
+      4:{ kind:"interval_dist", reps:8, repDistM:500, paceTarget:275, paceTol:18, label:"8×500 m — 4'35/km" },
+      5:{ kind:"interval_dist", reps:6, repDistM:800, paceTarget:280, paceTol:20, label:"6×800 m — 4'40/km" },
+      6:{ kind:"interval_dist", reps:10, repDistM:400, paceTarget:270, paceTol:18, label:"10×400 m — 4'30/km" },
+      7:{ kind:"interval_dist", reps:8, repDistM:500, paceTarget:270, paceTol:18, label:"8×500 m — 4'30–4'40/km" },
+      8:{ kind:"interval_dist", reps:5, repDistM:1000, paceTarget:280, paceTol:20, label:"5×1000 m — 4'40/km" },
+      9:{ kind:"interval_dist", reps:6, repDistM:800, paceTarget:280, paceTol:22, label:"6×800 m souple — 4'40/km" },
+  
+      13:{ kind:"endurance", minMin:40, label:"45 min endurance reprise" },
+      14:{ kind:"interval_dist", reps:6, repDistM:800, paceTarget:282, paceTol:22, label:"6×800 m — 4'40–4'45/km" },
+      15:{ kind:"interval_dist", reps:5, repDistM:1000, paceTarget:280, paceTol:20, label:"5×1000 m — 4'40/km" },
+      16:{ kind:"interval_dist", reps:8, repDistM:500, paceTarget:270, paceTol:18, label:"8×500 m — 4'30–4'35/km" },
+      17:{ kind:"interval_dist", reps:6, repDistM:800, paceTarget:275, paceTol:18, label:"6×800 m — 4'35–4'40/km" },
+      18:{ kind:"interval_dist", reps:5, repDistM:1000, paceTarget:275, paceTol:18, label:"5×1000 m — 4'35–4'40/km" },
+      19:{ kind:"interval_dist", reps:8, repDistM:500, paceTarget:270, paceTol:18, label:"8×500 m — 4'30/km" },
+  
+      20:{ kind:"interval_dist", reps:6, repDistM:1000, paceTarget:275, paceTol:18, label:"6×1000 m — 4'35/km" },
+      21:{ kind:"interval_dist", reps:8, repDistM:500, paceTarget:268, paceTol:18, label:"8×500 m — 4'25–4'35/km" },
+      22:{ kind:"interval_dist", reps:5, repDistM:1000, paceTarget:275, paceTol:18, label:"5×1000 m — 4'35/km" },
+      23:{ kind:"interval_dist", reps:8, repDistM:500, paceTarget:268, paceTol:18, label:"8×500 m — 4'25–4'35/km" },
+      24:{ kind:"interval_dist", reps:6, repDistM:800, paceTarget:275, paceTol:18, label:"6×800 m — 4'35/km" },
+  
+      25:{ kind:"interval_dist", reps:6, repDistM:500, paceTarget:275, paceTol:22, label:"6×500 m souple — 4'30–4'40/km" },
+      26:{ kind:"interval_dist", reps:5, repDistM:400, paceTarget:270, paceTol:22, label:"5×400 m relâché — 4'30/km" },
+      27:{ kind:"endurance", minMin:30, label:"35–40 min facile + lignes droites" }
+    };
+  
+    // Jeudi — seuil / spécifique semi
+    const thuSpecs = {
+      1:{ kind:"tempo_time", reps:2, repMin:12, paceTarget:298, paceTol:20, label:"2×12 min seuil — 4'55–5'00/km" },
+      2:{ kind:"tempo_time", reps:2, repMin:12, paceTarget:298, paceTol:20, label:"2×12 min seuil — 4'55–5'00/km" },
+      3:{ kind:"tempo_time", reps:3, repMin:10, paceTarget:298, paceTol:20, label:"3×10 min seuil — 4'55–5'00/km" },
+      4:{ kind:"tempo_time", reps:3, repMin:12, paceTarget:295, paceTol:20, label:"3×12 min seuil — 4'55/km" },
+      5:{ kind:"tempo_time", reps:3, repMin:12, paceTarget:295, paceTol:18, label:"3×12 min seuil — 4'55/km" },
+      6:{ kind:"tempo_time", reps:2, repMin:15, paceTarget:295, paceTol:18, label:"2×15 min seuil — 4'55/km" },
+      7:{ kind:"tempo_time", reps:2, repMin:20, paceTarget:298, paceTol:20, label:"2×20 min seuil — 4'55–5'00/km" },
+      8:{ kind:"tempo_time", reps:2, repMin:20, paceTarget:295, paceTol:18, label:"2×20 min seuil — 4'55/km" },
+      9:{ kind:"tempo_time", reps:3, repMin:12, paceTarget:295, paceTol:20, label:"3×12 min seuil — 4'55/km" },
+  
+      13:{ kind:"tempo_time", reps:2, repMin:12, paceTarget:295, paceTol:22, label:"2×12 min seuil reprise — 4'55/km" },
+      14:{ kind:"tempo_time", reps:2, repMin:15, paceTarget:295, paceTol:20, label:"2×15 min seuil — 4'55/km" },
+      15:{ kind:"tempo_time", reps:2, repMin:20, paceTarget:295, paceTol:18, label:"2×20 min seuil — 4'55/km" },
+      16:{ kind:"tempo_time", reps:3, repMin:15, paceTarget:292, paceTol:18, label:"3×15 min seuil — 4'50–4'55/km" },
+      17:{ kind:"tempo_time", reps:2, repMin:25, paceTarget:292, paceTol:18, label:"2×25 min seuil — 4'50–4'55/km" },
+      18:{ kind:"tempo_time", reps:3, repMin:15, paceTarget:290, paceTol:18, label:"3×15 min — 4'50/km" },
+      19:{ kind:"tempo_time", reps:2, repMin:20, paceTarget:292, paceTol:18, label:"2×20 min — 4'50–4'55/km" },
+  
+      20:{ kind:"tempo_time", reps:2, repMin:25, paceTarget:292, paceTol:18, label:"2×25 min — 4'50–4'55/km" },
+      21:{ kind:"tempo_time", reps:3, repMin:15, paceTarget:290, paceTol:16, label:"3×15 min — 4'50/km" },
+      22:{ kind:"tempo_time", reps:2, repMin:30, paceTarget:292, paceTol:18, label:"2×30 min — 4'50–4'55/km" },
+      23:{ kind:"tempo_time", reps:3, repMin:15, paceTarget:290, paceTol:16, label:"3×15 min — 4'50/km" },
+      24:{ kind:"tempo_time", reps:2, repMin:20, paceTarget:292, paceTol:18, label:"2×20 min — 4'50–4'55/km" },
+  
+      25:{ kind:"tempo_time", reps:2, repMin:15, paceTarget:295, paceTol:20, label:"2×15 min — 4'55/km" },
+      26:{ kind:"tempo_time", reps:2, repMin:10, paceTarget:298, paceTol:20, label:"2×10 min allure semi — 4'55–5'00/km" },
+      27:{ kind:"tempo_time", reps:1, repMin:8, paceTarget:298, paceTol:22, label:"8–10 min allure semi sans forcer" }
+    };
+  
+    // Samedi — endurance facile
+    const satSpecs = {
+      1:{ kind:"endurance", minMin:40, label:"45 min endurance" },
+      2:{ kind:"endurance", minMin:45, label:"50 min endurance" },
+      3:{ kind:"endurance", minMin:45, label:"50 min endurance" },
+      4:{ kind:"endurance", minMin:40, label:"45 min endurance" },
+      5:{ kind:"endurance", minMin:50, label:"55 min endurance" },
+      6:{ kind:"endurance", minMin:45, label:"50 min endurance" },
+      7:{ kind:"endurance", minMin:50, label:"55 min endurance" },
+      8:{ kind:"endurance", minMin:40, label:"45 min endurance" },
+      9:{ kind:"endurance", minMin:40, label:"45 min endurance facile" },
+  
+      13:{ kind:"endurance", minMin:40, label:"45 min endurance facile" },
+      14:{ kind:"endurance", minMin:45, label:"50 min endurance" },
+      15:{ kind:"endurance", minMin:45, label:"50 min endurance" },
+      16:{ kind:"endurance", minMin:50, label:"55 min endurance" },
+      17:{ kind:"endurance", minMin:45, label:"50 min endurance facile" },
+      18:{ kind:"endurance", minMin:50, label:"55 min endurance" },
+      19:{ kind:"endurance", minMin:40, label:"45 min endurance" },
+  
+      20:{ kind:"endurance", minMin:45, label:"50 min endurance facile" },
+      21:{ kind:"endurance", minMin:40, label:"45 min endurance" },
+      22:{ kind:"endurance", minMin:45, label:"50 min très facile" },
+      23:{ kind:"endurance", minMin:40, label:"45 min endurance" },
+      24:{ kind:"endurance", minMin:40, label:"45 min endurance facile" },
+  
+      25:{ kind:"endurance", minMin:40, label:"45 min très facile" },
+      26:{ kind:"endurance", minMin:35, label:"40 min très facile" },
+      27:{ kind:"endurance", minMin:20, label:"25–30 min très facile optionnel" }
+    };
+  
+    // Dimanche — sorties longues / course
+    const sunSpecs = {
+      1:{ kind:"long", minMin:70, label:"SL 1h15 endurance" },
+      2:{ kind:"long_with_tempo", totalMin:80, tempoMin:10, tempoPaceTarget:305, tempoPaceTol:22, easyTotalMin:70, easyPaceMin:355, easyPaceMax:390, label:"SL 1h20 dont 10 min à 5'05/km" },
+      3:{ kind:"long_with_tempo", totalMin:80, tempoMin:15, tempoPaceTarget:305, tempoPaceTol:22, easyTotalMin:65, easyPaceMin:355, easyPaceMax:390, label:"SL 1h20 dont 15 min à 5'05/km" },
+      4:{ kind:"long", minMin:80, label:"SL 1h25 endurance" },
+      5:{ kind:"long_with_tempo", totalMin:90, tempoMin:15, tempoPaceTarget:305, tempoPaceTol:22, easyTotalMin:75, easyPaceMin:355, easyPaceMax:390, label:"SL 1h30 dont 15 min à 5'05/km" },
+      6:{ kind:"long_with_tempo", totalMin:90, tempoMin:20, tempoPaceTarget:305, tempoPaceTol:22, easyTotalMin:70, easyPaceMin:355, easyPaceMax:390, label:"SL 1h30 dont 20 min à 5'05/km" },
+      7:{ kind:"long", minMin:85, label:"SL 1h30 endurance" },
+      8:{ kind:"long_with_tempo", totalMin:95, tempoMin:20, tempoPaceTarget:305, tempoPaceTol:22, easyTotalMin:75, easyPaceMin:355, easyPaceMax:390, label:"SL 1h35 dont 20 min à 5'05/km" },
+      9:{ kind:"long", minMin:75, label:"SL 1h20 facile" },
+  
+      13:{ kind:"long", minMin:70, label:"SL 1h15 reprise" },
+      14:{ kind:"tempo_time", reps:2, repMin:10, paceTarget:300, paceTol:22, label:"SL 1h25 dont 2×10 min à 5'00/km" },
+      15:{ kind:"tempo_time", reps:2, repMin:15, paceTarget:300, paceTol:20, label:"SL 1h30 dont 2×15 min à 5'00/km" },
+      16:{ kind:"long_with_tempo", totalMin:95, tempoMin:20, tempoPaceTarget:300, tempoPaceTol:20, easyTotalMin:60, easyPaceMin:355, easyPaceMax:390, label:"SL 1h35 dont 20 + 15 min à 5'00/km" },
+      17:{ kind:"long", minMin:85, label:"SL 1h30 facile" },
+      18:{ kind:"tempo_time", reps:2, repMin:20, paceTarget:298, paceTol:18, label:"SL 1h40 dont 2×20 min à 4'55–5'00/km" },
+      19:{ kind:"long_with_tempo", totalMin:85, tempoMin:20, tempoPaceTarget:300, tempoPaceTol:20, easyTotalMin:65, easyPaceMin:355, easyPaceMax:390, label:"SL 1h25 dont 20 min à 5'00/km" },
+  
+      20:{ kind:"long_with_tempo", totalMin:100, tempoMin:45, tempoPaceTarget:298, tempoPaceTol:18, easyTotalMin:55, easyPaceMin:355, easyPaceMax:390, label:"SL 1h35–1h40 dont 45 min cumulées à 4'55–5'00/km" },
+      21:{ kind:"tempo_time", reps:2, repMin:20, paceTarget:295, paceTol:18, label:"SL 1h40 dont 2×20 min à 4'55/km" },
+      22:{ kind:"long", minMin:85, label:"SL 1h30 facile" },
+      23:{ kind:"tempo_time", reps:3, repMin:15, paceTarget:295, paceTol:18, label:"SL 1h35 dont 3×15 min à 4'55/km" },
+      24:{ kind:"long_with_tempo", totalMin:85, tempoMin:30, tempoPaceTarget:300, tempoPaceTol:20, easyTotalMin:55, easyPaceMin:355, easyPaceMax:390, label:"SL 1h25 dont 30 min à 5'00/km" },
+  
+      25:{ kind:"long_with_tempo", totalMin:80, tempoMin:20, tempoPaceTarget:300, tempoPaceTol:22, easyTotalMin:60, easyPaceMin:355, easyPaceMax:390, label:"SL 1h20 dont 20 min à 5'00/km" },
+      26:{ kind:"long_with_tempo", totalMin:65, tempoMin:10, tempoPaceTarget:300, tempoPaceTol:22, easyTotalMin:55, easyPaceMin:355, easyPaceMax:390, label:"1h05 facile dont 10 min à 5'00/km" }
+    };
+  
+    if (day === "tue") return tueSpecs[week] || { kind:"endurance", minMin:30, label:"Séance mardi" };
+    if (day === "thu") return thuSpecs[week] || { kind:"tempo_time", reps:2, repMin:10, paceTarget:300, paceTol:25, label:"Séance jeudi" };
+    if (day === "sat") return satSpecs[week] || { kind:"endurance", minMin:35, label:"Séance samedi" };
+    if (day === "sun") return sunSpecs[week] || { kind:"long", minMin:70, label:"Sortie longue" };
+  
+    return { kind:"endurance", minMin:30, label:"Séance" };
+  }
 
-    // fallback
-    if (day === "tue") return { kind:"endurance", minMin:35, paceRange:"5'50-6'20/km", label:"Footing" };
-    if (day === "thu") return { kind:"tempo_time", reps:1, repMin:8, recMin:0, paceTarget:300, paceTol:20, label:"Rappel AS21 (8–10min)" };
-    if (day === "sat") return { kind:"endurance", minMin:20, paceRange:"5'50-6'20/km", label:"Footing très facile" };
-    if (day === "sun") return { kind:"race", distKm:21.1, tolKm:2.0, label:"Course", paceTarget:300, paceTol:35 };   
-}
 
 // ===== Verdict helpers (manquants) =====
-// patch ok 19/02
-function verdictFromScore(score){
-  if (!isFinite(score)) score = 0;
-  
-  let text, cls;
-  if (score >= 80) { text = "✅ Très proche"; cls = "ok"; }
-  else if (score >= 55) { text = "🟠 Partiel"; cls = "warn"; }
-  else { text = "🔴 Hors cible"; cls = "bad"; }
-  
-  // ✅ retourne les DEUX formats
-  return {
-    text, cls,
-    verdict: text,
-    badgeClass: cls
-  };
-}
 
+  function verdictFromScore(score){
+    if (!isFinite(score)) score = 0;
+    
+    let text, cls;
+    if (score >= 80) { text = "✅ Très proche"; cls = "ok"; }
+    else if (score >= 55) { text = "🟠 Partiel"; cls = "warn"; }
+    else { text = "🔴 Hors cible"; cls = "bad"; }
+    
+    // ✅ retourne les DEUX formats
+    return {
+      text, cls,
+      verdict: text,
+      badgeClass: cls
+    };
+  }
 
   function verdictBadgeClass(cls){
     if (cls === "ok") return "ok";
