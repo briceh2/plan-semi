@@ -1358,7 +1358,7 @@ function trimTempoBlocksEndOnRecovery(samples, blocks, targetPaceSec){
     renderBayeuxSplits();
   };
 
-  // ===== Export / Import JSON / Reset =====
+  // ===== Export / Import JSON / Reset / Open / Close =====
   document.getElementById("exportBtn").addEventListener("click", () => {
     const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
     const url = URL.createObjectURL(blob);
@@ -1380,6 +1380,22 @@ function trimTempoBlocksEndOnRecovery(samples, blocks, targetPaceSec){
   document.getElementById("resetBtn").addEventListener("click", () => {
     if (!confirm("Réinitialiser toutes les cases, notes et séances importées ?")) return;
     localStorage.removeItem(KEY); location.reload();
+  });
+
+  document.getElementById("openCurrentWeekBtn").addEventListener("click", () => {
+    const currentWeek = getCurrentWeekIndex();
+    for (let i = 1; i <= WEEKS; i++){
+      ensureWeek(i);
+      data.weeks[i].open = (i === currentWeek);
+    }
+    // saveData();
+  });
+  document.getElementById("closeAllWeeksBtn").addEventListener("click", () => {
+    for (let i = 1; i <= WEEKS; i++){
+      ensureWeek(i);
+      data.weeks[i].open = 0;
+    }
+    // saveData();
   });
 
   // ===== GPX parsing =====
