@@ -1390,7 +1390,7 @@ function trimTempoBlocksEndOnRecovery(samples, blocks, targetPaceSec){
       ensureWeek(i);
       data.weeks[i].open = (i === currentWeek);
     }
-    // saveData();
+    renderPlan();
   });
   document.getElementById("closeAllWeeksBtn").addEventListener("click", () => {
     console.log("closeAllWeeksBtn");
@@ -1400,7 +1400,6 @@ function trimTempoBlocksEndOnRecovery(samples, blocks, targetPaceSec){
       data.weeks[i].open = 0;
     }
     renderPlan();
-    // saveData();
   });
 
   // ===== GPX parsing =====
@@ -5088,6 +5087,7 @@ function getCurrentWeekIndex(){
 function renderPlan(){
   weeksEl.innerHTML = "";
 
+  /*
   const toolbar = document.createElement("div");
   toolbar.style.display = "flex";
   toolbar.style.gap = "8px";
@@ -5110,6 +5110,7 @@ function renderPlan(){
   
   toolbar.appendChild(btnOpenCurrent);
   weeksEl.appendChild(toolbar);
+  */
   
   for (let w=1; w<=WEEKS; w++){
     ensureWeek(w);
