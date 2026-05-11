@@ -1383,6 +1383,8 @@ function trimTempoBlocksEndOnRecovery(samples, blocks, targetPaceSec){
   });
 
   document.getElementById("openCurrentWeekBtn").addEventListener("click", () => {
+    console.log("openCurrentWeekBtn");
+    
     const currentWeek = getCurrentWeekIndex();
     for (let i = 1; i <= WEEKS; i++){
       ensureWeek(i);
@@ -1391,6 +1393,8 @@ function trimTempoBlocksEndOnRecovery(samples, blocks, targetPaceSec){
     // saveData();
   });
   document.getElementById("closeAllWeeksBtn").addEventListener("click", () => {
+    console.log("closeAllWeeksBtn");
+
     for (let i = 1; i <= WEEKS; i++){
       ensureWeek(i);
       data.weeks[i].open = 0;
