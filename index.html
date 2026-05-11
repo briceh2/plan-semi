@@ -1399,6 +1399,7 @@ function trimTempoBlocksEndOnRecovery(samples, blocks, targetPaceSec){
       ensureWeek(i);
       data.weeks[i].open = 0;
     }
+    renderPlan();
     // saveData();
   });
 
