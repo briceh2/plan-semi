@@ -247,12 +247,36 @@
       font-size:12px;
       color:#444;
     }
+    #appHeaderRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+    
+    #appHeaderTitle{
+      font-size:22px;
+      font-weight:800;
+    }
+    
+    #appVersion{
+      font-size:12px;
+      color:#666;
+      opacity:0.8;
+      white-space:nowrap;
+    }
   </style>
 </head>
 
 <body>
 <header>
-  <h1>Plan Semi — dimanche 15 novembre 2026</h1>
+  <div id="appHeaderRow">
+    <div id="appHeaderTitle">
+      Plan Semi - dimanche 15 novembre 2026
+    </div>
+  
+    <div id="appVersion"></div>
+  </div>
   <div class="sub">
     Début : <b>lundi 11 mai 2026</b> • Jours : <b>Mar / Jeu / Sam / Dim</b><br>
     Course : <b>Semi Boulogne (dim 15 novembre)</b><br>
@@ -5039,13 +5063,6 @@ function getCurrentWeekIndex(){
 }  
 function renderPlan(){
   weeksEl.innerHTML = "";
-  // affiche le numéro de version
-  const versionDiv = document.createElement("div");
-  versionDiv.style.fontSize = "12px";
-  versionDiv.style.opacity = "0.6";
-  versionDiv.style.marginBottom = "6px";
-  versionDiv.textContent = "Version : " + APP_VERSION;
-  weeksEl.appendChild(versionDiv);
 
   const toolbar = document.createElement("div");
   toolbar.style.display = "flex";
@@ -6331,9 +6348,15 @@ function drawAnalysisCanvas(){
     renderBayeuxNutrition();
     renderBayeuxTrainingLink();
   }
+  
   fillWeekSelect();
   updateAll();
   setInterval(updateCountdown, 60 * 60 * 1000);
+  // === initialise la version
+  const appVersionEl = document.getElementById("appVersion");
+  if (appVersionEl){
+    appVersionEl.textContent = APP_VERSION;
+  }
 </script>
 </body>
 </html>
