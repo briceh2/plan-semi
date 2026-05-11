@@ -299,7 +299,6 @@
   <div class="card">
     <div class="row">
       <span class="pill">💾 Sauvegarde auto</span>
-      <span class="pill phase">🧠 Détection blocs</span>
       <span class="pill" id="fatiguePill">—</span>
     </div>
     <div class="btns">
@@ -756,12 +755,12 @@
     if (count === 4) reasons.push("4 séances cochées : OK si récupération bonne.");
 
     if ((painHigh && count>=3) || (sleepLow && count>=3) || (feelLow && count>=3))
-    return { level:"warn", label:"🔴 Vigilance (allège)", reasons: reasons.length?reasons:["Charge élevée avec signaux faibles."] };
+    return { level:"warn", label:"🔴 Vigilance fatigue", reasons: reasons.length?reasons:["Charge élevée avec signaux faibles."] };
     
     if (painHigh || sleepLow || feelLow)
-    return { level:"warn", label:"🟠 Attention (prudence)", reasons: reasons.length?reasons:["Surveille la récup."] };
+    return { level:"warn", label:"🟠 Attention fatigue", reasons: reasons.length?reasons:["Surveille la récup."] };
     
-    return { level:"ok", label:"🟢 OK (continue)", reasons:["Bon équilibre charge / récupération."] };
+    return { level:"ok", label:"🟢 fatigue OK", reasons:["Bon équilibre charge / récupération."] };
   }
   function mmssFromMinutes(mins){
     const totalSec = Math.round(mins * 60);
