@@ -282,7 +282,7 @@
   <div class="sub">
     Début : <b>lundi 11 mai 2026</b> • Jours : <b>Mar / Jeu / Sam / Dim</b><br>
     Course : <b>Semi Boulogne (dim 15 novembre)</b><br>
-    Objectif final : <b>1h42 (4’52/km)</b> • <span class="pill" id="countdownPill">⏳ —</span>
+    Objectif final : <b>1h42 (4’52/km)</b> • <span class="pill" id="countdownPill"> —</span>
   </div>
 
   <div class="tabs">
@@ -300,7 +300,6 @@
     <div class="row">
       <span class="pill">💾 Sauvegarde auto</span>
       <span class="pill phase">🧠 Détection blocs</span>
-      <span class="pill" id="countdownPill">⏳ —</span>
       <span class="pill" id="fatiguePill">—</span>
     </div>
     <div class="btns">
@@ -656,10 +655,10 @@
     if (daysLeft > 0){
       const weeksLeft = Math.floor(daysLeft / 7);
       const extra = daysLeft % 7;
-      pill.textContent = `⏳ Semi objectif dans ${weeksLeft} sem + ${extra} j (= ${daysLeft} jours)`;
+      pill.textContent = `${weeksLeft} sem + ${extra} j (= ${daysLeft} jours)`;
       pill.className = "pill";
     } else if (daysLeft === 0){
-      pill.textContent = "🏁 C'est aujourd'hui !";
+      pill.textContent = "🏁 aujourd'hui !";
       pill.className = "pill ok";
     } else {
       pill.textContent = "✅ Course passée";
