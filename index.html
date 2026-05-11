@@ -655,7 +655,8 @@
     if (daysLeft > 0){
       const weeksLeft = Math.floor(daysLeft / 7);
       const extra = daysLeft % 7;
-      pill.textContent = `${weeksLeft} sem + ${extra} j (= ${daysLeft} jours)`;
+      //pill.textContent = `${weeksLeft} sem + ${extra} j (= ${daysLeft} jours)`;
+      pill.textContent = `${weeksLeft} sem - ${daysLeft} jours`;
       pill.className = "pill";
     } else if (daysLeft === 0){
       pill.textContent = "🏁 aujourd'hui !";
