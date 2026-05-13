@@ -267,7 +267,7 @@
       font-weight:800;
     }
     
-    #appVersion{
+    #app{
       font-size:12px;
       color:#666;
       opacity:0.8;
@@ -283,8 +283,8 @@
       Plan Semi
     </div>
   
-    <div id="appVersion">
-      APP_VERSION
+    <div id="app">
+      APP_
     </div>
   </div>
   <div class="sub">
@@ -504,8 +504,8 @@
       );  
   };
   
-  // version
-  const APP_VERSION = "v26-05-12_1.0";
+  // 
+  const APP_VERSION = "v26-05-13_1.0";
   // ===== Dates =====
   const START = new Date("2026-05-11T00:00:00");
   const RACE  = new Date("2026-11-15T00:00:00");
@@ -5329,7 +5329,7 @@ function renderPlan(){
           </select>
         </div>
         
-        <div>
+        <div class="noteRow">
           <label class="meta" for="feelSelect">🙂 Sensations
           </label>
           <select id="feelSelect" data-week="${w}" data-field="feel">
@@ -5345,7 +5345,7 @@ function renderPlan(){
           </select>
         </div>
         
-        <div>
+        <div class="noteRow">
           <label class="meta" for="painSelect">🦵 Douleurs
           </label>
           <select id="painSelect" data-week="${w}" data-field="pain">
