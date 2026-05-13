@@ -5330,8 +5330,9 @@ function renderPlan(){
         </div>
         
         <div>
-          <div class="meta">🙂 Sensations</div>
-          <select data-week="${w}" data-field="feel">
+          <label class="meta" for="feelSelect">🙂 Sensations
+          </label>
+          <select id="feelSelect" data-week="${w}" data-field="feel">
             ${[
             [1,"Très mauvaises"],
             [2,"Fatigué"],
@@ -5345,8 +5346,9 @@ function renderPlan(){
         </div>
         
         <div>
-          <div class="meta">🦵 Douleurs</div>
-            <select data-week="${w}" data-field="pain">
+          <label class="meta" for="painSelect">🦵 Douleurs
+          </label>
+          <select id="painSelect" data-week="${w}" data-field="pain">
               ${[
               [1,"Aucune"],
               [2,"Légères"],
@@ -5358,6 +5360,7 @@ function renderPlan(){
               ).join("")}
             </select>
         </div>
+        
       </div>
     `;
     // fin patch ok du 20/02
