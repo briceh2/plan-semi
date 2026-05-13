@@ -509,6 +509,7 @@
   // ===== Dates =====
   const START = new Date("2026-05-11T00:00:00");
   const RACE  = new Date("2026-11-15T00:00:00");
+  const RACE_WEEK = 27;
   const WEEKS = 27;
   let semiMode = "bayeux"; // "bayeux" ou "troyes"
   const STORAGE_KEY = "semiPlanData";
@@ -4855,9 +4856,7 @@ function weekLoad(w){
 
 // Nutrition compact (1 ligne) selon semaine/course
 function nutritionHintForWeek(w){
-  // Bayeux = semaine 8 (dans ton plan), objectif = semaine 14
-  if (w === 8)  return "🍌 Course: petit-déj 3h • gels km 7 & 14 • eau ravitos";
-  if (w === 14) return "🍌 Course: gels km 8 & 15 • eau régulière • pas tester du neuf";
+  if (w === RACE_WEEK) return "🍌 Course: gels km 8 & 15 • eau régulière • pas tester du neuf";
   // semaine avec sortie longue (presque toutes)
   return "🍌 Long: 1 gel à 45–55 min • boire 2–3 gorgées/20 min";
 }
@@ -5307,6 +5306,7 @@ function renderPlan(){
       nut.innerHTML = `
         <b>🍌 Conseils nutrition semaine</b><br>
         ${String(s.nutrition).replace(/\n/g,"<br>")}
+        <b>${nutHint}</b>
       `;
       details.appendChild(nut);
     }
