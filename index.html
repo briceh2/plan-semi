@@ -2628,6 +2628,7 @@ function expectedSpec(a, b){
 
     const dayKey =
       /mar/i.test(dayName) ? "tue" :
+      /mer/i.test(dayName) ? "wed" :
       /jeu/i.test(dayName) ? "thu" :
       /sam/i.test(dayName) ? "sat" :
       /dim/i.test(dayName) ? "sun" : null;
@@ -5284,7 +5285,7 @@ function renderPlan(){
         : `allure n.d.`;
       
       if (workout && !Number.isFinite(workout.distKm)) {
-      alert("DEBUG workout distKm invalide : " + JSON.stringify(workout));
+        alert("DEBUG workout distKm invalide : " + JSON.stringify(workout));
       }
       
       const badge1 = workout
