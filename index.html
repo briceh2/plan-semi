@@ -350,6 +350,7 @@
             <div class="meta">Jour</div>
             <select id="attachDay">
               <option value="tue">Mardi</option>
+              <option value="wed">Mercredi</option>
               <option value="thu">Jeudi</option>
               <option value="sat">Samedi</option>
               <option value="sun">Dimanche</option>
@@ -511,6 +512,14 @@
   const WEEKS = 27;
   let semiMode = "bayeux"; // "bayeux" ou "troyes"
   const STORAGE_KEY = "semiPlanData";
+  const DAYS = ["tue", "wed", "thu", "sat", "sun"];
+  const DAY_LABELS = {
+    tue: "Mardi",
+    wed: "Mercredi",
+    thu: "Jeudi",
+    sat: "Samedi",
+    sun: "Dimanche"
+  };
 
   function fmtDate(d){ return d.toLocaleDateString("fr-FR", { day:"2-digit", month:"short", year:"numeric" }); }
   function addDays(d, n){ const x = new Date(d); x.setDate(x.getDate()+n); return x; }
@@ -537,34 +546,34 @@
     // Phase 1 — Base aérobie + économie
     if (w === 1) return { tue:`8×400 m — ${VMA} • ${REC_SHORT}`, thu:`2×12 min seuil — 4'55–5'00/km • ${REC_TEMPO}`, sat:`45 min endurance — ${EASY}`, sun:`SL 1h15 — ${EASY}`, nutrition:"Base : construire sans fatigue." };
     if (w === 2) return { tue:`8×500 m — ${VMA} • ${REC_SHORT}`, thu:`2×12 min seuil — 4'55–5'00/km • ${REC_TEMPO}`, sat:`50 min endurance — ${EASY}`, sun:`SL 1h20 dont 10 min à 5'05/km`, nutrition:"Base : rester facile sur l’endurance." };
-    if (w === 3) return { tue:`6×800 m — ${VMA} • ${REC_MED}`, thu:`3×10 min seuil — 4'55–5'00/km • ${REC_TEMPO}`, sat:`50 min endurance — ${EASY}`, sun:`SL 1h20 dont 15 min à 5'05/km`, nutrition:"Progression douce." };
+    if (w === 3) return { tue:`6×800 m — ${VMA} • ${REC_MED}`, wed:`5e séance optionnelle : 35–40 min très facile — 6'00–6'30/km`, thu:`3×10 min seuil — 4'55–5'00/km • ${REC_TEMPO}`, sat:`50 min endurance — ${EASY}`, sun:`SL 1h20 dont 15 min à 5'05/km`, nutrition:"Progression douce." };
     if (w === 4) return { tue:`8×500 m — ${VMA} • ${REC_SHORT}`, thu:`3×12 min seuil — 4'55–5'00/km • ${REC_TEMPO}`, sat:`45 min endurance — ${EASY}`, sun:`SL 1h25 — ${EASY}`, nutrition:"Semaine de consolidation." };
-    if (w === 5) return { tue:`6×800 m — 4'35–4'45/km • ${REC_MED}`, thu:`3×12 min seuil — 4'55/km • ${REC_TEMPO}`, sat:`55 min endurance — ${EASY}`, sun:`SL 1h30 dont 15 min à 5'05/km`, nutrition:"Début endurance spécifique." };
+    if (w === 5) return { tue:`6×800 m — 4'35–4'45/km • ${REC_MED}`, wed:`5e séance optionnelle : 35–40 min très facile — 6'00–6'30/km`, thu:`3×12 min seuil — 4'55/km • ${REC_TEMPO}`, sat:`55 min endurance — ${EASY}`, sun:`SL 1h30 dont 15 min à 5'05/km`, nutrition:"Début endurance spécifique." };
     if (w === 6) return { tue:`10×400 m — ${VMA} • ${REC_SHORT}`, thu:`2×15 min seuil — 4'55/km • ${REC_TEMPO}`, sat:`50 min endurance — ${EASY}`, sun:`SL 1h30 dont 20 min à 5'05/km`, nutrition:"Volume contrôlé." };
-    if (w === 7) return { tue:`8×500 m — 4'30–4'40/km • ${REC_SHORT}`, thu:`2×20 min seuil — 4'55–5'00/km • ${REC_LONG}`, sat:`55 min endurance — ${EASY}`, sun:`SL 1h30 — ${EASY}`, nutrition:"Semaine solide mais sans excès." };
-    if (w === 8) return { tue:`5×1000 m — 4'40/km • ${REC_MED}`, thu:`2×20 min seuil — 4'55/km • ${REC_LONG}`, sat:`45 min endurance — ${EASY}`, sun:`SL 1h35 dont 20 min à 5'05/km`, nutrition:"Tenue longue progressive." };
+    if (w === 7) return { tue:`8×500 m — 4'30–4'40/km • ${REC_SHORT}`, wed:`5e séance optionnelle : 35–40 min très facile — 6'00–6'30/km`, thu:`2×20 min seuil — 4'55–5'00/km • ${REC_LONG}`, sat:`55 min endurance — ${EASY}`, sun:`SL 1h30 — ${EASY}`, nutrition:"Semaine solide mais sans excès." };
+    if (w === 8) return { tue:`5×1000 m — 4'40/km • ${REC_MED}`, wed:`5e séance optionnelle : 35–40 min très facile — 6'00–6'30/km`, thu:`2×20 min seuil — 4'55/km • ${REC_LONG}`, sat:`45 min endurance — ${EASY}`, sun:`SL 1h35 dont 20 min à 5'05/km`, nutrition:"Tenue longue progressive." };
     if (w === 9) return { tue:`6×800 m souple — 4'40/km • ${REC_MED}`, thu:`3×12 min seuil — 4'55/km • ${REC_TEMPO}`, sat:`45 min endurance facile`, sun:`SL 1h20 facile`, nutrition:"Allègement avant coupure." };
     
     // Phase 2 — Coupure 11 juillet → 2 août
-    if (w === 10) return { tue:"Repos / marche / mobilité", thu:"Repos", sat:"Repos", sun:"Repos", nutrition:"Coupure prévue : aucune séance obligatoire." };
-    if (w === 11) return { tue:"Repos", thu:"Repos / mobilité", sat:"Repos", sun:"Repos", nutrition:"Coupure : récupérer physiquement et mentalement." };
-    if (w === 12) return { tue:"Repos / marche", thu:"Repos", sat:"Repos", sun:"Repos", nutrition:"Fin coupure : reprise la semaine suivante." };
+    if (w === 10) return { tue:"Repos / marche / mobilité", wed:"Repos", thu:"Repos", sat:"Repos", sun:"Repos", nutrition:"Coupure prévue : aucune séance obligatoire." };
+    if (w === 11) return { tue:"Repos", wed:"Repos", thu:"Repos / mobilité", sat:"Repos", sun:"Repos", nutrition:"Coupure : récupérer physiquement et mentalement." };
+    if (w === 12) return { tue:"Repos / marche", wed:"Repos", thu:"Repos", sat:"Repos", sun:"Repos", nutrition:"Fin coupure : reprise la semaine suivante." };
     
     // Phase 3 — Reconstruction + seuil long
-    if (w === 13) return { tue:`45 min endurance — ${EASY}`, thu:`2×12 min seuil — 4'55/km • ${REC_TEMPO}`, sat:`45 min endurance facile`, sun:`SL 1h15 — ${EASY}`, nutrition:"Reprise progressive après coupure." };
-    if (w === 14) return { tue:`6×800 m — 4'40–4'45/km • ${REC_MED}`, thu:`2×15 min seuil — 4'55/km • ${REC_TEMPO}`, sat:`50 min endurance — ${EASY}`, sun:`SL 1h25 dont 2×10 min à 5'00/km`, nutrition:"Réinstaller le rythme." };
-    if (w === 15) return { tue:`5×1000 m — 4'40/km • ${REC_MED}`, thu:`2×20 min seuil — 4'55/km • ${REC_LONG}`, sat:`50 min endurance`, sun:`SL 1h30 dont 2×15 min à 5'00/km`, nutrition:"Première vraie semaine spécifique." };
-    if (w === 16) return { tue:`8×500 m — 4'30–4'35/km • ${REC_SHORT}`, thu:`3×15 min seuil — 4'50–4'55/km • ${REC_TEMPO}`, sat:`55 min endurance — ${EASY}`, sun:`SL 1h35 dont 20 + 15 min à 5'00/km`, nutrition:"Augmenter le temps utile." };
+    if (w === 13) return { tue:`45 min endurance — ${EASY}`, wed:`5e séance optionnelle : 35 min très facile — 6'00–6'30/km`, thu:`2×12 min seuil — 4'55/km • ${REC_TEMPO}`, sat:`45 min endurance facile`, sun:`SL 1h15 — ${EASY}`, nutrition:"Reprise progressive après coupure." };
+    if (w === 14) return { tue:`6×800 m — 4'40–4'45/km • ${REC_MED}`, wed:`5e séance optionnelle : 35–40 min très facile — 6'00–6'30/km`, thu:`2×15 min seuil — 4'55/km • ${REC_TEMPO}`, sat:`50 min endurance — ${EASY}`, sun:`SL 1h25 dont 2×10 min à 5'00/km`, nutrition:"Réinstaller le rythme." };
+    if (w === 15) return { tue:`5×1000 m — 4'40/km • ${REC_MED}`, wed:`5e séance optionnelle : 35–40 min très facile — 6'00–6'30/km`, thu:`2×20 min seuil — 4'55/km • ${REC_LONG}`, sat:`50 min endurance`, sun:`SL 1h30 dont 2×15 min à 5'00/km`, nutrition:"Première vraie semaine spécifique." };
+    if (w === 16) return { tue:`8×500 m — 4'30–4'35/km • ${REC_SHORT}`, wed:`5e séance optionnelle : 35–40 min très facile — 6'00–6'30/km`, thu:`3×15 min seuil — 4'50–4'55/km • ${REC_TEMPO}`, sat:`55 min endurance — ${EASY}`, sun:`SL 1h35 dont 20 + 15 min à 5'00/km`, nutrition:"Augmenter le temps utile." };
     if (w === 17) return { tue:`6×800 m — 4'35–4'40/km • ${REC_MED}`, thu:`2×25 min seuil — 4'50–4'55/km • ${REC_LONG}`, sat:`50 min endurance facile`, sun:`SL 1h30 facile`, nutrition:"Grosse séance seuil, SL plus simple." };
-    if (w === 18) return { tue:`5×1000 m — 4'35–4'40/km • ${REC_MED}`, thu:`3×15 min — 4'50/km • ${REC_TEMPO}`, sat:`55 min endurance`, sun:`SL 1h40 dont 2×20 min à 4'55–5'00/km`, nutrition:"Endurance spécifique semi." };
-    if (w === 19) return { tue:`8×500 m — 4'30/km • ${REC_SHORT}`, thu:`2×20 min — 4'50–4'55/km • ${REC_LONG}`, sat:`45 min endurance`, sun:`SL 1h25 dont 20 min à 5'00/km`, nutrition:"Semaine de consolidation." };
+    if (w === 18) return { tue:`5×1000 m — 4'35–4'40/km • ${REC_MED}`, wed:`5e séance optionnelle : 35–40 min très facile — 6'00–6'30/km`, thu:`3×15 min — 4'50/km • ${REC_TEMPO}`, sat:`55 min endurance`, sun:`SL 1h40 dont 2×20 min à 4'55–5'00/km`, nutrition:"Endurance spécifique semi." };
+    if (w === 19) return { tue:`8×500 m — 4'30/km • ${REC_SHORT}`, wed:`5e séance optionnelle : 35–40 min très facile — 6'00–6'30/km`, thu:`2×20 min — 4'50–4'55/km • ${REC_LONG}`, sat:`45 min endurance`, sun:`SL 1h25 dont 20 min à 5'00/km`, nutrition:"Semaine de consolidation." };
     
     // Phase 4 — Spécifique semi
-    if (w === 20) return { tue:`6×1000 m — 4'35/km • ${REC_MED}`, thu:`2×25 min — 4'50–4'55/km • ${REC_LONG}`, sat:`50 min endurance facile`, sun:`SL 1h35 dont 45 min cumulées à 4'55–5'00/km`, nutrition:"Bloc spécifique important." };
-    if (w === 21) return { tue:`8×500 m — 4'25–4'35/km • ${REC_SHORT}`, thu:`3×15 min — 4'50/km • ${REC_TEMPO}`, sat:`45 min endurance`, sun:`SL 1h40 dont 2×20 min à 4'55/km`, nutrition:"Tenir vite en fatigue." };
+    if (w === 20) return { tue:`6×1000 m — 4'35/km • ${REC_MED}`, wed:`5e séance optionnelle : 30–35 min très facile — 6'00–6'30/km`, thu:`2×25 min — 4'50–4'55/km • ${REC_LONG}`, sat:`50 min endurance facile`, sun:`SL 1h35 dont 45 min cumulées à 4'55–5'00/km`, nutrition:"Bloc spécifique important." };
+    if (w === 21) return { tue:`8×500 m — 4'25–4'35/km • ${REC_SHORT}`, wed:`5e séance optionnelle : 30–35 min très facile — 6'00–6'30/km`, thu:`3×15 min — 4'50/km • ${REC_TEMPO}`, sat:`45 min endurance`, sun:`SL 1h40 dont 2×20 min à 4'55/km`, nutrition:"Tenir vite en fatigue." };
     if (w === 22) return { tue:`5×1000 m — 4'35/km • ${REC_MED}`, thu:`2×30 min — 4'50–4'55/km • ${REC_LONG}`, sat:`50 min très facile`, sun:`SL 1h30 facile`, nutrition:"Très grosse séance seuil, dimanche contrôlé." };
-    if (w === 23) return { tue:`8×500 m — 4'25–4'35/km • ${REC_SHORT}`, thu:`3×15 min — 4'50/km • ${REC_TEMPO}`, sat:`45 min endurance`, sun:`SL 1h35 dont 3×15 min à 4'55/km`, nutrition:"Spécifique semi maximal." };
-    if (w === 24) return { tue:`6×800 m — 4'35/km • ${REC_MED}`, thu:`2×20 min — 4'50–4'55/km • ${REC_LONG}`, sat:`45 min endurance facile`, sun:`SL 1h25 dont 30 min à 5'00/km`, nutrition:"Dernière grosse semaine maîtrisée." };
+    if (w === 23) return { tue:`8×500 m — 4'25–4'35/km • ${REC_SHORT}`, wed:`5e séance optionnelle : 30–35 min très facile — 6'00–6'30/km`, thu:`3×15 min — 4'50/km • ${REC_TEMPO}`, sat:`45 min endurance`, sun:`SL 1h35 dont 3×15 min à 4'55/km`, nutrition:"Spécifique semi maximal." };
+    if (w === 24) return { tue:`6×800 m — 4'35/km • ${REC_MED}`, wed:`5e séance optionnelle : 30–35 min très facile — 6'00–6'30/km`, thu:`2×20 min — 4'50–4'55/km • ${REC_LONG}`, sat:`45 min endurance facile`, sun:`SL 1h25 dont 30 min à 5'00/km`, nutrition:"Dernière grosse semaine maîtrisée." };
     
     // Phase 5 — Affûtage
     if (w === 25) return { tue:`6×500 m souple — 4'30–4'40/km • ${REC_SHORT}`, thu:`2×15 min — 4'55/km • ${REC_TEMPO}`, sat:`45 min très facile`, sun:`SL 1h20 dont 20 min à 5'00/km`, nutrition:"Début affûtage : baisse de charge." };
@@ -583,7 +592,8 @@
     catch { return defaultData; }
   }
   const data = loadData();
-
+// patch du 18/05
+  /*
   function ensureWeek(w){
     if (!data.weeks[w]) {
       data.weeks[w] = { 
@@ -597,6 +607,26 @@
     } else if (typeof data.weeks[w].open !== "boolean"){
       data.weeks[w].open = false;
     }
+  }
+  */
+  function ensureWeek(w){
+    if (!data.weeks[w]) data.weeks[w] = {};
+  
+    const wk = data.weeks[w];
+  
+    if (!wk.done) wk.done = {};
+    if (!wk.attached) wk.attached = {};
+  
+    for (const d of DAYS){
+      if (typeof wk.done[d] !== "boolean") wk.done[d] = false;
+      if (!(d in wk.attached)) wk.attached[d] = null;
+    }
+  
+    if (typeof wk.sleep !== "string") wk.sleep = "";
+    if (typeof wk.feel !== "string") wk.feel = "";
+    if (typeof wk.pain !== "string") wk.pain = "";
+  
+    return wk;
   }
   function saveData(){ localStorage.setItem(KEY, JSON.stringify(data)); updateAll(); }
 
@@ -1306,6 +1336,26 @@ function trimTempoBlocksEndOnRecovery(samples, blocks, targetPaceSec){
     trimTempoBlockEndOnRecovery(samples, b, targetPaceSec)
   );
 }
+  function hasFifthSessionPlanned(week){
+  const s = sessionsForWeek(week);
+  return !!(s && s.wed && !/repos|coupure|aucune/i.test(s.wed));
+}
+
+function isFifthSessionDone(week){
+  const wk = data.weeks?.[week];
+  return !!(hasFifthSessionPlanned(week) && wk?.done?.wed);
+}
+
+function fifthSessionBonusScore(week){
+  return isFifthSessionDone(week) ? 3 : 0;
+}
+
+function fifthSessionBadge(week){
+  if (!hasFifthSessionPlanned(week)) return "";
+  return isFifthSessionDone(week)
+    ? `<span class="badge good">+5e séance réalisée</span>`
+    : `<span class="badge">5e séance optionnelle</span>`;
+}
   // ========================
   // ===== Helpers fin ======
   // ========================
@@ -1737,6 +1787,14 @@ function analyzeHeartRateIntervals(samples, intervals, spec){
   }
   if (spec?.kind === "interval_time" || spec?.kind === "interval_dist"){
     score += 2; // fractionné : la FC est naturellement plus contrastée
+  }
+
+  // 5) 5eme séance optionnelle
+  const fifthBonus = fifthSessionBonusScore(w);
+  score += fifthBonus;
+  score = Math.min(100, score);
+  if (fifthBonus){
+    reasons.push("Bonus régularité : 5e séance facile réalisée");
   }
 
   score = Math.max(0, Math.min(100, Math.round(score)));
@@ -2651,6 +2709,26 @@ function expectedSpecWeekDay(week, day){
     27:{ kind:"endurance", minMin:30, label:"35–40 min facile + lignes droites" }
   };
 
+  const wedSpecs = {
+    1:{ kind:"endurance", minMin:30, label:"5e séance optionnelle — 35–40 min très facile" },
+    3:{ kind:"endurance", minMin:35, label:"5e séance optionnelle — 40 min très facile" },
+    5:{ kind:"endurance", minMin:35, label:"5e séance optionnelle — 40 min très facile" },
+    7:{ kind:"endurance", minMin:35, label:"5e séance optionnelle — 40 min très facile" },
+    8:{ kind:"endurance", minMin:35, label:"5e séance optionnelle — 40 min très facile" },
+  
+    13:{ kind:"endurance", minMin:30, label:"5e séance reprise — 35–40 min facile" },
+    14:{ kind:"endurance", minMin:35, label:"5e séance optionnelle — 40 min facile" },
+    15:{ kind:"endurance", minMin:35, label:"5e séance optionnelle — 40 min facile" },
+    16:{ kind:"endurance", minMin:35, label:"5e séance optionnelle — 40–45 min facile" },
+    18:{ kind:"endurance", minMin:35, label:"5e séance optionnelle — 40 min facile" },
+    19:{ kind:"endurance", minMin:30, label:"5e séance optionnelle — 35–40 min facile" },
+  
+    20:{ kind:"endurance", minMin:30, label:"5e séance récupération — 35–40 min très facile" },
+    21:{ kind:"endurance", minMin:30, label:"5e séance récupération — 35–40 min très facile" },
+    23:{ kind:"endurance", minMin:30, label:"5e séance récupération — 35–40 min très facile" },
+    24:{ kind:"endurance", minMin:30, label:"5e séance récupération — 35 min très facile" }
+  };
+  
   const thuSpecs = {
     1:{ kind:"tempo_time", reps:2, repMin:12, ...rec.tempo, paceTarget:298, paceTol:20, label:"2×12 min seuil — récup 3'00 trot lent" },
     2:{ kind:"tempo_time", reps:2, repMin:12, ...rec.tempo, paceTarget:298, paceTol:20, label:"2×12 min seuil — récup 3'00 trot lent" },
@@ -2738,6 +2816,7 @@ function expectedSpecWeekDay(week, day){
   };
 
   if (day === "tue") return tueSpecs[week] || { kind:"endurance", minMin:30, label:"Séance mardi" };
+  if (day === "wed") return wedSpecs[week] || { kind:"rest", label:"Pas de 5e séance prévue" };
   if (day === "thu") return thuSpecs[week] || { kind:"tempo_time", reps:2, repMin:10, ...rec.tempo, paceTarget:300, paceTol:25, label:"Séance jeudi" };
   if (day === "sat") return satSpecs[week] || { kind:"endurance", minMin:35, label:"Séance samedi" };
   if (day === "sun") return sunSpecs[week] || { kind:"long", minMin:70, label:"Sortie longue" };
@@ -5162,7 +5241,7 @@ function renderPlan(){
 
     const summary = document.createElement("summary");
     summary.innerHTML = `
-      <span>Semaine ${w} — ${fmtDate(weekStart)} → ${fmtDate(weekEnd)}</span>
+      <span>Semaine ${w} — ${fmtDate(weekStart)} → ${fmtDate(weekEnd)}</span> - ${fifthSessionBadge(w)}
       <span class="pill phase">${phase}</span>
       <span class="pill load">📊 ${load} pts</span>
     `;
