@@ -1356,6 +1356,123 @@ function fifthSessionBadge(week){
     ? `<span class="badge good">+5e séance réalisée</span>`
     : `<span class="badge">5e séance optionnelle</span>`;
 }
+  function secToMin(sec){
+  return (Number(sec) || 0) / 60;
+}
+
+function minToKm(minutes, paceSecPerKm){
+  if (!Number.isFinite(minutes) || !Number.isFinite(paceSecPerKm) || paceSecPerKm <= 0) return 0;
+  return (minutes * 60) / paceSecPerKm;
+}
+
+function specMainMinutes(spec){
+  if (!spec) return 0;
+
+  if (spec.kind === "interval_dist"){
+    const workSec = (spec.reps || 0) * (spec.repDistM || 0) / 1000 * (spec.paceTarget || 0);
+    const recSec = Math.max(0, (spec.reps || 0) - 1) * (spec.recSec || 0);
+    return secToMin(workSec + recSec);
+  }
+
+  if (spec.kind === "tempo_time"){
+    const workMin = (spec.reps || 0) * (spec.repMin || 0);
+    const recMin = Math.max(0, (spec.reps || 0) - 1) * (spec.recMin || 0);
+    return workMin + recMin;
+  }
+
+  if (spec.kind === "long_with_tempo") return spec.totalMin || 0;
+  if (spec.kind === "long") return spec.minMin || 0;
+  if (spec.kind === "endurance") return spec.minMin || 0;
+  if (spec.kind === "race") return ((spec.distKm || 0) * (spec.paceTarget || 0)) / 60;
+
+  return 0;
+}
+
+function specTheoreticalVolume(spec){
+  if (!spec || spec.kind === "rest") return { km:0, min:0 };
+
+  const WARMUP_MIN = 15;
+  const COOLDOWN_MIN = 10;
+  const EASY_PACE = 375; // 6'15/km
+
+  let min = specMainMinutes(spec);
+  let km = 0;
+
+  if (spec.kind === "interval_dist"){
+    const workKm = ((spec.reps || 0) * (spec.repDistM || 0)) / 1000;
+    const recKm = minToKm(secToMin(Math.max(0, (spec.reps || 0) - 1) * (spec.recSec || 0)), EASY_PACE);
+    const wuCdKm = minToKm(WARMUP_MIN + COOLDOWN_MIN, EASY_PACE);
+
+    min += WARMUP_MIN + COOLDOWN_MIN;
+    km = workKm + recKm + wuCdKm;
+  }
+  else if (spec.kind === "tempo_time"){
+    const workKm = minToKm((spec.reps || 0) * (spec.repMin || 0), spec.paceTarget || 300);
+    const recKm = minToKm(Math.max(0, (spec.reps || 0) - 1) * (spec.recMin || 0), EASY_PACE);
+    const wuCdKm = minToKm(WARMUP_MIN + COOLDOWN_MIN, EASY_PACE);
+
+    min += WARMUP_MIN + COOLDOWN_MIN;
+    km = workKm + recKm + wuCdKm;
+  }
+  else if (spec.kind === "long_with_tempo"){
+    km = minToKm(spec.easyTotalMin || 0, 375) + minToKm(spec.tempoMin || 0, spec.tempoPaceTarget || 300);
+  }
+  else if (spec.kind === "long" || spec.kind === "endurance"){
+    km = minToKm(min, 375);
+  }
+  else if (spec.kind === "race"){
+    km = spec.distKm || 0;
+  }
+
+  return { km, min };
+}
+
+function weeklyTheoreticalTotals(w){
+  const days = ["tue","wed","thu","sat","sun"];
+  let km = 0;
+  let min = 0;
+
+  for (const day of days){
+    const spec = expectedSpecWeekDay(w, day);
+    const v = specTheoreticalVolume(spec);
+    km += v.km;
+    min += v.min;
+  }
+
+  return { km, min };
+}
+
+function weeklyImportedTotals(w){
+  const wk = data.weeks?.[w];
+  if (!wk?.attached) return { km:0, min:0, count:0 };
+
+  let km = 0;
+  let sec = 0;
+  let count = 0;
+
+  for (const day of ["tue","wed","thu","sat","sun"]){
+    const id = wk.attached[day];
+    if (!id) continue;
+
+    const workout = (data.workouts || []).find(x => String(x.id) === String(id));
+    if (!workout) continue;
+
+    km += Number(workout.distKm) || 0;
+    sec += Number(workout.durationSec) || 0;
+    count++;
+  }
+
+  return {
+    km,
+    min: sec / 60,
+    count
+  };
+}
+
+function pctTxt(v){
+  if (!Number.isFinite(v)) return "n.d.";
+  return `${v >= 0 ? "+" : ""}${Math.round(v)}%`;
+}
   // ========================
   // ===== Helpers fin ======
   // ========================
