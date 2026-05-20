@@ -1907,14 +1907,6 @@ function analyzeHeartRateIntervals(samples, intervals, spec){
     score += 2; // fractionné : la FC est naturellement plus contrastée
   }
 
-  // 5) 5eme séance optionnelle
-  const fifthBonus = fifthSessionBonusScore(w);
-  score += fifthBonus;
-  score = Math.min(100, score);
-  if (fifthBonus){
-    reasons.push("Bonus régularité : 5e séance facile réalisée");
-  }
-
   score = Math.max(0, Math.min(100, Math.round(score)));
 
   const summary = summarizeHrBlocks(validBlocks);
@@ -5626,8 +5618,9 @@ function renderPlan(){
       
       scores.push(25);
       }
-    
-      const avg = scores.reduce((a,x)=>a+x,0) / scores.length;
+
+      const fifthBonus = fifthSessionBonusScore(w);
+      const avg = Math.min(100 , scores.reduce((a,x)=>a+x,0) / scores.length + fifthBonus);
       return { avg, doneCount };
     }
 
