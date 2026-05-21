@@ -1460,7 +1460,16 @@ function weeklyImportedTotals(w){
     if (!workout) continue;
 
     km += Number(workout.distKm) || 0;
-    sec += Number(workout.durationSec) || 0;
+    let durationSec = Number(workout.durationSec);
+    if (!Number.isFinite(durationSec) || durationSec <= 0){
+      durationSec = Number.isFinite(durationSec);
+    }
+    if ((!Number.isFinite(durationSec) || durationSec <= 0) && workout.samples?.length){
+      const first = workout.samples[0];
+      const last = workout.samples[workout.samples.length - 1];
+      durationSec = (last.tMs - first.tMs)/1000;
+    }
+    sec += Number.isFinite(durationSec) ?  durationSec : 0;
     count++;
   }
 
