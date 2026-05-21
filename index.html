@@ -405,7 +405,8 @@
           <div class="s-title">Progression (séances cochées / 4)</div>
           <div class="muted">Chaque ligne = une semaine.</div>
           <div id="bars" class="barwrap"></div>
-          <div id="weeklyVolumeStats" class="card"></div>
+          <div id="weeklyKmVolumeStats" class="card"></div>
+          <div id="weeklyMinVolumeStats" class="card"></div>
         </div>
         <div>
           <div class="s-title">Alerte fatigue</div>
@@ -5675,10 +5676,10 @@ function renderPlan(){
       barsEl.appendChild(row);
     }
 
-    // --- Volume hebdomadaire importé vs théorique
-    const weeklyVolumeEl = document.getElementById("weeklyVolumeStats");
+    // --- Kilometers Volume hebdomadaire importé vs théorique
+    const weeklyKmVolumeEl = document.getElementById("weeklyKmVolumeStats");
     
-    if (weeklyVolumeEl){
+    if (weeklyKmVolumeEl){
       let weeklyRows = "";
       let prevImportedKm = null;
     
@@ -5700,29 +5701,23 @@ function renderPlan(){
             <td>S${w}</td>
             <td>${imported.count}</td>
             <td>${imported.km.toFixed(1)}</td>
-            <td>${Math.round(imported.min)}</td>
             <td>${theo.km.toFixed(1)}</td>
-            <td>${Math.round(theo.min)}</td>
             <td>${kmRatio == null ? "n.d." : Math.round(kmRatio * 100) + "%"}</td>
-            <td>${minRatio == null ? "n.d." : Math.round(minRatio * 100) + "%"}</td>
             <td>${pctTxt(kmVariation)}</td>
           </tr>
         `;
       }
     
-      weeklyVolumeEl.innerHTML = `
-        <div class="s-title">Volume hebdomadaire</div>
+      weeklyKmVolumeEl.innerHTML = `
+        <div class="s-title">Volume km hebdomadaire</div>
         <table>
           <thead>
             <tr>
               <th>Semaine</th>
               <th>Séances</th>
               <th>Km importés</th>
-              <th>Min importées</th>
-              <th>Km théoriques</th>
-              <th>Min théoriques</th>
+               <th>Km théoriques</th>
               <th>Ratio km</th>
-              <th>Ratio min</th>
               <th>Var. km</th>
             </tr>
           </thead>
@@ -5733,6 +5728,57 @@ function renderPlan(){
       `;
     }
 
+    // --- Minutes Volume hebdomadaire importé vs théorique
+    const weeklyMinVolumeEl = document.getElementById("weeklyMinVolumeStats");
+    
+    if (weeklyMinVolumeEl){
+      let weeklyRows = "";
+      let prevImportedMin = null;
+    
+      for (let w = 1; w <= WEEKS; w++){
+        const imported = weeklyImportedTotals(w);
+        const theo = weeklyTheoreticalTotals(w);
+    
+        const kmRatio = theo.km > 0 ? imported.km / theo.km : null;
+        const minRatio = theo.min > 0 ? imported.min / theo.min : null;
+    
+        const minVariation = prevImportedMin && prevImportedMin > 0
+          ? ((imported.min - prevImportedMin) / prevImportedMin) * 100
+          : null;
+    
+        if (imported.min > 0) prevImportedMin = imported.min;
+    
+        weeklyRows += `
+          <tr>
+            <td>S${w}</td>
+            <td>${imported.count}</td>
+            <td>${Math.round(imported.min)}</td>
+            <td>${Math.round(theo.min)}</td>
+            <td>${minRatio == null ? "n.d." : Math.round(minRatio * 100) + "%"}</td>
+            <td>${pctTxt(minVariation)}</td>
+          </tr>
+        `;
+      }
+    
+      weeklyMinVolumeEl.innerHTML = `
+        <div class="s-title">Volume minutes hebdomadaire</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Semaine</th>
+              <th>Séances</th>
+              <th>Min importées</th>
+              <th>Min théoriques</th>
+              <th>Ratio min</th>
+              <th>Var. min</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${weeklyRows}
+          </tbody>
+        </table>
+      `;
+    }
 
     const f = fatigueStatus();
     const fatiguePill = document.getElementById("fatiguePill");
