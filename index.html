@@ -547,7 +547,7 @@
     
     // Phase 1 — Base aérobie + économie
     if (w === 1) return { tue:`8×400 m — ${VMA} • ${REC_SHORT}`, thu:`2×12 min seuil — 4'55–5'00/km • ${REC_TEMPO}`, sat:`45 min endurance — ${EASY}`, sun:`SL 1h15 — ${EASY}`, nutrition:"Base : construire sans fatigue." };
-    if (w === 2) return { tue:`8×500 m — ${VMA} • ${REC_SHORT}`, thu:`2×12 min seuil — 4'55–5'00/km • ${REC_TEMPO}`, sat:`50 min endurance — ${EASY}`, sun:`SL 1h20 dont 10 min à 5'05/km`, nutrition:"Base : rester facile sur l’endurance." };
+    if (w === 2) return { tue:`8×500 m — ${VMA} • ${REC_SHORT}`, thu:`2×12 min seuil — 4'55–5'00/km • ${REC_TEMPO}`, sat:`50 min endurance — ${EASY}`, sun:`SL 1h00 dont 10 min à 5'05/km`, nutrition:"Base : rester facile sur l’endurance." };
     if (w === 3) return { tue:`6×800 m — ${VMA} • ${REC_MED}`, wed:`5e séance optionnelle : 35–40 min très facile — 6'00–6'30/km`, thu:`3×10 min seuil — 4'55–5'00/km • ${REC_TEMPO}`, sat:`50 min endurance — ${EASY}`, sun:`SL 1h20 dont 15 min à 5'05/km`, nutrition:"Progression douce." };
     if (w === 4) return { tue:`8×500 m — ${VMA} • ${REC_SHORT}`, thu:`3×12 min seuil — 4'55–5'00/km • ${REC_TEMPO}`, sat:`45 min endurance — ${EASY}`, sun:`SL 1h25 — ${EASY}`, nutrition:"Semaine de consolidation." };
     if (w === 5) return { tue:`6×800 m — 4'35–4'45/km • ${REC_MED}`, wed:`5e séance optionnelle : 35–40 min très facile — 6'00–6'30/km`, thu:`3×12 min seuil — 4'55/km • ${REC_TEMPO}`, sat:`55 min endurance — ${EASY}`, sun:`SL 1h30 dont 15 min à 5'05/km`, nutrition:"Début endurance spécifique." };
@@ -2909,7 +2909,7 @@ function expectedSpecWeekDay(week, day){
 
   const sunSpecs = {
     1:{ kind:"long", minMin:70, label:"SL 1h15 endurance" },
-    2:{ kind:"long_with_tempo", totalMin:80, tempoMin:10, tempoPaceTarget:305, tempoPaceTol:22, easyTotalMin:70, easyPaceMin:355, easyPaceMax:390, label:"SL 1h20 dont 10 min à 5'05/km" },
+    2:{ kind:"long_with_tempo", totalMin:60, tempoMin:10, tempoPaceTarget:305, tempoPaceTol:22, easyTotalMin:50, easyPaceMin:355, easyPaceMax:390, label:"SL 1h00 dont 10 min à 5'05/km" },
     3:{ kind:"long_with_tempo", totalMin:80, tempoMin:15, tempoPaceTarget:305, tempoPaceTol:22, easyTotalMin:65, easyPaceMin:355, easyPaceMax:390, label:"SL 1h20 dont 15 min à 5'05/km" },
     4:{ kind:"long", minMin:80, label:"SL 1h25 endurance" },
     5:{ kind:"long_with_tempo", totalMin:90, tempoMin:15, tempoPaceTarget:305, tempoPaceTol:22, easyTotalMin:75, easyPaceMin:355, easyPaceMax:390, label:"SL 1h30 dont 15 min à 5'05/km" },
