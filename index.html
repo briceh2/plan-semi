@@ -548,7 +548,7 @@
     // Phase 1 — Base aérobie + économie
     if (w === 1) return { tue:`8×400 m — ${VMA} • ${REC_SHORT}`, thu:`2×12 min seuil — 4'55–5'00/km • ${REC_TEMPO}`, sat:`45 min endurance — ${EASY}`, sun:`SL 1h15 — ${EASY}`, nutrition:"Base : construire sans fatigue." };
     if (w === 2) return { tue:`8×500 m — ${VMA} • ${REC_SHORT}`, thu:`2×12 min seuil — 4'55–5'00/km • ${REC_TEMPO}`, sat:`50 min endurance — ${EASY}`, sun:`SL 1h00 dont 10 min à 5'05/km`, nutrition:"Base : rester facile sur l’endurance." };
-    if (w === 3) return { tue:`6×800 m — ${VMA} • ${REC_MED}`, wed:`5e séance optionnelle : 35–40 min très facile — 6'00–6'30/km`, thu:`3×10 min seuil — 4'55–5'00/km • ${REC_TEMPO}`, sat:`50 min endurance — ${EASY}`, sun:`SL 1h20 dont 15 min à 5'05/km`, nutrition:"Progression douce." };
+    if (w === 3) return { tue:`5×800 m — ${VMA} • ${REC_MED}`, wed:`5e séance optionnelle : 35–40 min très facile — 6'00–6'30/km`, thu:`3×10 min seuil — 4'55–5'00/km • ${REC_TEMPO}`, sat:`50 min endurance — ${EASY}`, sun:`SL 1h20 dont 15 min à 5'05/km`, nutrition:"Progression douce." };
     if (w === 4) return { tue:`8×500 m — ${VMA} • ${REC_SHORT}`, thu:`3×12 min seuil — 4'55–5'00/km • ${REC_TEMPO}`, sat:`45 min endurance — ${EASY}`, sun:`SL 1h25 — ${EASY}`, nutrition:"Semaine de consolidation." };
     if (w === 5) return { tue:`6×800 m — 4'35–4'45/km • ${REC_MED}`, wed:`5e séance optionnelle : 35–40 min très facile — 6'00–6'30/km`, thu:`3×12 min seuil — 4'55/km • ${REC_TEMPO}`, sat:`55 min endurance — ${EASY}`, sun:`SL 1h30 dont 15 min à 5'05/km`, nutrition:"Début endurance spécifique." };
     if (w === 6) return { tue:`10×400 m — ${VMA} • ${REC_SHORT}`, thu:`2×15 min seuil — 4'55/km • ${REC_TEMPO}`, sat:`50 min endurance — ${EASY}`, sun:`SL 1h30 dont 20 min à 5'05/km`, nutrition:"Volume contrôlé." };
@@ -2803,7 +2803,7 @@ function expectedSpecWeekDay(week, day){
   const tueSpecs = {
     1:{ kind:"interval_dist", reps:8, repDistM:400, ...rec.short, paceTarget:270, paceTol:18, label:"8×400 m — récup 1'30 trot lent" },
     2:{ kind:"interval_dist", reps:8, repDistM:500, ...rec.short, paceTarget:275, paceTol:18, label:"8×500 m — récup 1'30 trot lent" },
-    3:{ kind:"interval_dist", reps:6, repDistM:800, ...rec.med, paceTarget:280, paceTol:20, label:"6×800 m — récup 2'00 trot lent" },
+    3:{ kind:"interval_dist", reps:5, repDistM:800, ...rec.med, paceTarget:280, paceTol:20, label:"5×800 m — récup 2'00 trot lent" },
     4:{ kind:"interval_dist", reps:8, repDistM:500, ...rec.short, paceTarget:275, paceTol:18, label:"8×500 m — récup 1'30 trot lent" },
     5:{ kind:"interval_dist", reps:6, repDistM:800, ...rec.med, paceTarget:280, paceTol:20, label:"6×800 m — récup 2'00 trot lent" },
     6:{ kind:"interval_dist", reps:10, repDistM:400, ...rec.short, paceTarget:270, paceTol:18, label:"10×400 m — récup 1'30 trot lent" },
