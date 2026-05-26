@@ -2368,6 +2368,7 @@ function renderHeartRateBox(hr, extra = {}){
     const isLong = spec?.kind === "long";
     const isTempo = spec?.kind === "tempo_time";
     const isRace = spec?.kind === "race";
+    const isInterval = spec?.kind === "interval_dist";
   
     // score de base
     let score = 50;
@@ -2379,7 +2380,7 @@ function renderHeartRateBox(hr, extra = {}){
     // dérive cardio
     let scoreCardio = 0;
     if ((spec?.kind === "tempo_time" || spec?.kind === "interval_time" || spec?.kind === "interval_dist" || spec?.kind === "long_with_tempo") && Number.isFinite(hrStats.hrScore)){
-      scoreCardio = (hrStats.hrScore - 70) * 0.25;
+      scoreCardio = (hrStats.hrScore - 65) * 0.45;
       score += scoreCardio;
     } else if (Number.isFinite(hrStats.driftBpm)){
       if (hrStats.driftBpm <= 2) scoreCardio = 18;
@@ -2408,6 +2409,7 @@ function renderHeartRateBox(hr, extra = {}){
     if (isLong) scoreBonus = 8;
     if (isTempo) scoreBonus = 10;
     if (isRace) scoreBonus = 12;
+    if (isInterval) scoreBonus = 6;
     score += scoreBonus;
   
     score = Math.max(0, Math.min(100, Math.round(score)));
