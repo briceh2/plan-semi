@@ -506,7 +506,7 @@
   };
   
   // 
-  const APP_VERSION = "v26-05-21_1.2";
+  const APP_VERSION = "v26-05-21_1.3";
   // ===== Dates =====
   const START = new Date("2026-05-11T00:00:00");
   const RACE  = new Date("2026-11-15T00:00:00");
@@ -5491,7 +5491,6 @@ function renderPlan(){
     summary.innerHTML = `
       <span>Semaine ${w} — ${fmtDate(weekStart)} → ${fmtDate(weekEnd)}</span> - ${fifthSessionBadge(w)}
       <span class="pill phase">${phase}</span>
-      <span class="pill load">📊 ${load} pts</span>
     `;
     details.appendChild(summary);
 
