@@ -1484,6 +1484,70 @@ function pctTxt(v){
   if (!Number.isFinite(v)) return "n.d.";
   return `${v >= 0 ? "+" : ""}${Math.round(v)}%`;
 }
+  function slopeArrayBetweenSamples(samples){
+  const out = [];
+
+  for (let i = 1; i < (samples || []).length; i++){
+    const a = samples[i - 1];
+    const b = samples[i];
+
+    if (
+      Number.isFinite(a.distM) &&
+      Number.isFinite(b.distM) &&
+      Number.isFinite(a.eleM) &&
+      Number.isFinite(b.eleM)
+    ){
+      const dDist = b.distM - a.distM;
+      const dEle = b.eleM - a.eleM;
+
+      if (dDist > 3){
+        out.push({
+          tMs: b.tMs,
+          slopePct: (dEle / dDist) * 100
+        });
+      }
+    }
+  }
+
+  return out;
+}
+
+function nearestSlopeAt(slopes, tMs){
+  if (!slopes || !slopes.length) return null;
+
+  let best = null;
+  let bestDt = Infinity;
+
+  for (const s of slopes){
+    const dt = Math.abs(s.tMs - tMs);
+    if (dt < bestDt){
+      bestDt = dt;
+      best = s;
+    }
+  }
+
+  return bestDt <= 15000 ? best.slopePct : null;
+}
+
+function correlation(xs, ys){
+  if (!xs || !ys || xs.length !== ys.length || xs.length < 3) return null;
+
+  const mx = xs.reduce((a,b)=>a+b,0) / xs.length;
+  const my = ys.reduce((a,b)=>a+b,0) / ys.length;
+
+  let num = 0, dx2 = 0, dy2 = 0;
+
+  for (let i = 0; i < xs.length; i++){
+    const dx = xs[i] - mx;
+    const dy = ys[i] - my;
+    num += dx * dy;
+    dx2 += dx * dx;
+    dy2 += dy * dy;
+  }
+
+  if (dx2 <= 0 || dy2 <= 0) return null;
+  return num / Math.sqrt(dx2 * dy2);
+}
   // ========================
   // ===== Helpers fin ======
   // ========================
@@ -1741,7 +1805,22 @@ function pctTxt(v){
     // relation FC ↔ allure : on compare HR avec vitesse (km/h)
     const speeds = pts.map(p => 3600 / p.pace); // km/h
     const corr = pearsonCorrelation(hrs, speeds);
-  
+
+    // relation FC / dénivelé 
+    const slopes = slopeArrayBetweenSamples(samples);
+    const slopeXs = [];
+    const slopeHrYs = [];
+    for (const p of samples || []){
+      if (!Number.isFinite(p.hr)) continue;
+    
+      const slope = nearestSlopeAt(slopes, p.tMs);
+      if (!Number.isFinite(slope)) continue;
+    
+      slopeXs.push(slope);
+      slopeHrYs.push(p.hr);
+    }
+    const corrSlopeHr = correlation(slopeXs, slopeHrYs);
+    
     // seuil cardio estimé :
     // approximation simple = meilleure moyenne lissée sur 20 min
     const startT = pts[0].tMs;
@@ -1791,6 +1870,7 @@ function pctTxt(v){
       maxHr,
       driftBpm,
       corr,
+      corrSlopeHr,
       thresholdHr,
       hrScore,
       verdict,
@@ -1921,6 +2001,20 @@ function analyzeHeartRateIntervals(samples, intervals, spec){
 
   const summary = summarizeHrBlocks(validBlocks);
 
+  const slopes = slopeArrayBetweenSamples(samples);
+  const slopeXs = [];
+  const slopeHrYs = [];
+  for (const p of samples || []){
+    if (!Number.isFinite(p.hr)) continue;
+  
+    const slope = nearestSlopeAt(slopes, p.tMs);
+    if (!Number.isFinite(slope)) continue;
+  
+    slopeXs.push(slope);
+    slopeHrYs.push(p.hr);
+  }
+  const corrSlopeHr = correlation(slopeXs, slopeHrYs);
+
   return {
     avgHr: summary?.avgHr ?? null,
     maxHr: summary?.maxHr ?? null,
@@ -1928,6 +2022,7 @@ function analyzeHeartRateIntervals(samples, intervals, spec){
     corr: null,
     thresholdHr: validBlocks.length ? Math.max(...validBlocks.map(b => b.avgHr).filter(Number.isFinite)) : null,
     hrScore: score,
+    corrSlopeHr,
     verdict:
       score >= 85 ? "Très bonne cohérence cardio" :
       score >= 70 ? "Cohérence cardio correcte" :
@@ -2180,6 +2275,20 @@ function analyzeHeartRateStructured(samples, structuredBlocks, spec){
     score += 3;
   }
 
+  const slopes = slopeArrayBetweenSamples(samples);
+  const slopeXs = [];
+  const slopeHrYs = [];
+  for (const p of samples || []){
+    if (!Number.isFinite(p.hr)) continue;
+  
+    const slope = nearestSlopeAt(slopes, p.tMs);
+    if (!Number.isFinite(slope)) continue;
+  
+    slopeXs.push(slope);
+    slopeHrYs.push(p.hr);
+  }
+  const corrSlopeHr = correlation(slopeXs, slopeHrYs);
+
   score = Math.max(0, Math.min(100, Math.round(score)));
 
   const verdict =
@@ -2199,6 +2308,7 @@ function analyzeHeartRateStructured(samples, structuredBlocks, spec){
     corr: null,
     thresholdHr: tempoHr ? tempoHr.avg : null,
     hrScore: score,
+    corrSlopeHr,
     verdict,
     note: notes.join(" "),
     structured: {
@@ -2219,6 +2329,9 @@ function renderHeartRateBox(hr, extra = {}){
     : "n.d.";
   const thresholdTxt = (hr && Number.isFinite(hr.thresholdHr))
     ? `${hr.thresholdHr}`
+    : "n.d.";
+  const corrSlopeTxt = (hr && hr.corrSlopeHr != null)
+    ? hr.corrSlopeHr.toFixed(2)
     : "n.d.";
 
   const structuredHTML = (hr && hr.structured)
@@ -2328,6 +2441,10 @@ function renderHeartRateBox(hr, extra = {}){
             <div class="value">${corrTxt}</div>
           </div>
           <div class="hrKpi">
+            <div class="label">Corrélation FC / dénivelé</div>
+            <div class="value">${corrSlopeTxt}</div>
+          </div>
+          <div class="hrKpi">
             <div class="label">Score cardio</div>
             <div class="value">${hr.hrScore}/100</div>
           </div>
@@ -2397,6 +2514,14 @@ function renderHeartRateBox(hr, extra = {}){
       if (hrStats.corr >= 0.45) scoreCorrelation = 6;
       else if (hrStats.corr < 0.10) scoreCorrelation = -4;
       score += scoreCorrelation;
+    }
+    // corrélation FC / dénivelé
+    if (Number.isFinite(hrStats.corrSlopeHr)){
+      if (hrStats.corrSlopeHr >= 0.45){
+        score += 3;
+      } else if (hrStats.corrSlopeHr <= -0.25){
+        score -= 3;
+      }
     }
   
     // seuil estimé utile pour séances spécifiques
